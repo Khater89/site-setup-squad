@@ -1,5 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { MedicalService } from "@/lib/services";
+import { MedicalService, PeriodType } from "@/lib/services";
 import { PatientData } from "./PatientForm";
 import PriceSummary from "./PriceSummary";
 import { format } from "date-fns";
@@ -20,6 +20,8 @@ const BookingConfirmation = ({ service, patient }: BookingConfirmationProps) => 
     evening: t("time.evening"),
   };
 
+  const period: PeriodType = patient.time === "evening" ? "night" : "day";
+
   const infoRows = [
     { icon: User, label: t("form.patient_name"), value: patient.name },
     {
@@ -38,6 +40,7 @@ const BookingConfirmation = ({ service, patient }: BookingConfirmationProps) => 
         : "—",
     },
     { icon: Clock, label: t("form.time"), value: timeLabels[patient.time] || "—" },
+    { icon: Clock, label: t("form.hours"), value: `${patient.hours} ${patient.hours === 1 ? t("form.hours.single") : t("form.hours.plural")}` },
     ...(patient.notes ? [{ icon: FileText, label: t("form.notes"), value: patient.notes }] : []),
   ];
 
@@ -57,7 +60,7 @@ const BookingConfirmation = ({ service, patient }: BookingConfirmationProps) => 
       </div>
 
       {/* Price Summary */}
-      <PriceSummary service={service} />
+      <PriceSummary service={service} hours={patient.hours} period={period} />
     </div>
   );
 };

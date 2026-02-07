@@ -94,7 +94,21 @@ const translations: Record<Language, Record<string, string>> = {
     "price.base": "سعر الخدمة",
     "price.commission": "رسوم المنصة (10%)",
     "price.total": "الإجمالي",
-    "price.currency": "ر.س",
+    "price.currency": "د.أ",
+    "price.first_hour": "الساعة الأولى",
+    "price.additional_hour": "ساعة إضافية",
+    "price.subtotal": "المجموع الفرعي",
+    "price.materials_note": "* الأسعار غير شاملة المواد الطبية",
+    "price.starts_from": "يبدأ من",
+    "price.per_hour": "ساعة",
+    "price.period": "فترة الخدمة",
+    "price.period.day": "نهاري (6ص - 9م)",
+    "price.period.night": "ليلي (9م - 6ص)",
+    
+    // Hours
+    "form.hours": "عدد الساعات",
+    "form.hours.single": "ساعة",
+    "form.hours.plural": "ساعات",
     
     // Actions
     "action.next": "التالي",
@@ -205,7 +219,21 @@ const translations: Record<Language, Record<string, string>> = {
     "price.base": "Service Price",
     "price.commission": "Platform Fee (10%)",
     "price.total": "Total",
-    "price.currency": "SAR",
+    "price.currency": "JOD",
+    "price.first_hour": "First Hour",
+    "price.additional_hour": "Additional Hour",
+    "price.subtotal": "Subtotal",
+    "price.materials_note": "* Prices do not include medical materials",
+    "price.starts_from": "From",
+    "price.per_hour": "hr",
+    "price.period": "Service Period",
+    "price.period.day": "Day (6AM - 9PM)",
+    "price.period.night": "Night (9PM - 6AM)",
+    
+    // Hours
+    "form.hours": "Number of Hours",
+    "form.hours.single": "hour",
+    "form.hours.plural": "hours",
     
     // Actions
     "action.next": "Next",
