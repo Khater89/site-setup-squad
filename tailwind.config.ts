@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        arabic: ["IBM Plex Sans Arabic", "Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
@@ -50,11 +51,6 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
-        },
-        safety: {
-          yellow: "hsl(var(--safety-yellow))",
-          "yellow-foreground": "hsl(var(--safety-yellow-foreground))",
-          orange: "hsl(var(--safety-orange))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
