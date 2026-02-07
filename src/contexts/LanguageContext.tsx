@@ -103,6 +103,9 @@ const translations: Record<Language, Record<string, string>> = {
     "status.success": "تم إرسال طلبك بنجاح!",
     "status.success.desc": "سنتواصل معك قريباً لتأكيد الموعد",
     "status.pending": "في انتظار التأكيد",
+    "status.submitting": "جارٍ إرسال الطلب...",
+    "status.error": "حدث خطأ أثناء الإرسال",
+    "status.error.desc": "يرجى المحاولة مرة أخرى",
     
     // Landing
     "landing.hero": "خدمات طبية منزلية موثوقة",
@@ -206,6 +209,9 @@ const translations: Record<Language, Record<string, string>> = {
     "status.success": "Your request has been submitted!",
     "status.success.desc": "We'll contact you shortly to confirm the appointment",
     "status.pending": "Pending Confirmation",
+    "status.submitting": "Submitting your request...",
+    "status.error": "Submission failed",
+    "status.error.desc": "Please try again",
     
     // Landing
     "landing.hero": "Trusted Home Medical Services",
