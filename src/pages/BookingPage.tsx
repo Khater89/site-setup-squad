@@ -9,7 +9,8 @@ import BookingConfirmation from "@/components/booking/BookingConfirmation";
 import SuccessView from "@/components/booking/SuccessView";
 import { Button } from "@/components/ui/button";
 import { MedicalService, ServiceCategory, getServicesByCategory } from "@/lib/services";
-import { ArrowRight, ArrowLeft, Send } from "lucide-react";
+import { buildBookingPayload, submitToGoogleSheets } from "@/lib/googleSheets";
+import { ArrowRight, ArrowLeft, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const initialPatientData: PatientData = {
@@ -23,7 +24,7 @@ const initialPatientData: PatientData = {
 };
 
 const BookingPage = () => {
-  const { t, isRTL } = useLanguage();
+  const { t, lang, isRTL } = useLanguage();
   const { toast } = useToast();
 
   const [step, setStep] = useState(1);
@@ -31,6 +32,7 @@ const BookingPage = () => {
   const [selectedService, setSelectedService] = useState<MedicalService | null>(null);
   const [patient, setPatient] = useState<PatientData>(initialPatientData);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categoryServices = getServicesByCategory(category);
 
@@ -48,12 +50,29 @@ const BookingPage = () => {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: t("status.success"),
-      description: t("status.success.desc"),
-    });
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!selectedService || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    const payload = buildBookingPayload(selectedService, patient, lang);
+    const result = await submitToGoogleSheets(payload);
+
+    setIsSubmitting(false);
+
+    if (result.success) {
+      toast({
+        title: t("status.success"),
+        description: t("status.success.desc"),
+      });
+      setSubmitted(true);
+    } else {
+      toast({
+        title: t("status.error"),
+        description: t("status.error.desc"),
+        variant: "destructive",
+      });
+    }
   };
 
   const handleReset = () => {
@@ -143,10 +162,15 @@ const BookingPage = () => {
           ) : (
             <Button
               onClick={handleSubmit}
+              disabled={isSubmitting}
               className="gap-2 flex-1"
             >
-              <Send className="h-4 w-4" />
-              {t("action.submit")}
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {isSubmitting ? t("status.submitting") : t("action.submit")}
             </Button>
           )}
         </div>
