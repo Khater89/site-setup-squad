@@ -1,4 +1,4 @@
-import { MedicalService, calculatePricing } from "./services";
+import { MedicalService } from "./services";
 
 // ============================================================
 // Google Sheets Integration via Apps Script
@@ -29,19 +29,16 @@ const GOOGLE_SHEETS_URL = "";
 //
 //   sheet.appendRow([
 //     new Date(),                // Timestamp
-//     data.service,              // Service name
-//     data.category,             // Category
-//     data.patientName,          // Patient name
-//     data.phone,                // Phone
-//     data.email || "",          // Email
-//     data.address,              // Address
-//     data.date,                 // Preferred date
-//     data.time,                 // Preferred time
-//     data.notes || "",          // Notes
-//     data.basePrice,            // Base price
-//     data.commission,           // Commission (10%)
-//     data.total,                // Total
-//     "جديد"                    // Status = "New"
+//     data.patientName,          // الاسم الكامل
+//     data.isEmergency,          // هل الحالة طارئة؟
+//     data.phone,                // رقم الهاتف
+//     data.city,                 // المنطقة / المدينة
+//     data.service,              // نوع الخدمة المطلوبة
+//     data.date,                 // الوقت أو التاريخ المفضل للخدمة
+//     data.notes || "",          // ملاحظات إضافية
+//     "",                        // Column 8 (فارغ)
+//     data.time,                 // الوقت المفضل للخدمة
+//     data.email || ""           // Email Address
 //   ]);
 //
 //   return ContentService
@@ -57,48 +54,48 @@ const GOOGLE_SHEETS_URL = "";
 // -------------------------------------------------------------------
 
 export interface BookingPayload {
-  service: string;
-  category: string;
   patientName: string;
+  isEmergency: string;
   phone: string;
-  email: string;
-  address: string;
+  city: string;
+  service: string;
   date: string;
-  time: string;
   notes: string;
-  basePrice: number;
-  commission: number;
-  total: number;
+  time: string;
+  email: string;
 }
 
 export function buildBookingPayload(
   service: MedicalService,
   patient: {
     name: string;
+    isEmergency: boolean;
     phone: string;
     email: string;
-    address: string;
+    city: string;
     date: Date | undefined;
     time: string;
     notes: string;
   },
   lang: "ar" | "en"
 ): BookingPayload {
-  const pricing = calculatePricing(service.basePrice);
+  const timeLabels: Record<string, Record<string, string>> = {
+    ar: { morning: "صباحاً", afternoon: "ظهراً", evening: "مساءً" },
+    en: { morning: "Morning", afternoon: "Afternoon", evening: "Evening" },
+  };
 
   return {
-    service: service.nameKey, // translation key – the sheet can store the key or resolved name
-    category: service.category,
     patientName: patient.name.trim(),
+    isEmergency: patient.isEmergency
+      ? lang === "ar" ? "نعم" : "Yes"
+      : lang === "ar" ? "لا" : "No",
     phone: patient.phone.trim(),
-    email: patient.email.trim(),
-    address: patient.address.trim(),
+    city: patient.city.trim(),
+    service: service.nameKey,
     date: patient.date ? patient.date.toISOString().split("T")[0] : "",
-    time: patient.time,
     notes: patient.notes.trim(),
-    basePrice: pricing.basePrice,
-    commission: pricing.commission,
-    total: pricing.total,
+    time: timeLabels[lang][patient.time] || patient.time,
+    email: patient.email.trim(),
   };
 }
 

@@ -4,7 +4,7 @@ import { PatientData } from "./PatientForm";
 import PriceSummary from "./PriceSummary";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { User, Phone, Mail, MapPin, CalendarIcon, Clock, FileText } from "lucide-react";
+import { User, Phone, Mail, MapPin, CalendarIcon, Clock, FileText, AlertTriangle } from "lucide-react";
 
 interface BookingConfirmationProps {
   service: MedicalService;
@@ -22,9 +22,14 @@ const BookingConfirmation = ({ service, patient }: BookingConfirmationProps) => 
 
   const infoRows = [
     { icon: User, label: t("form.patient_name"), value: patient.name },
+    {
+      icon: AlertTriangle,
+      label: t("form.emergency"),
+      value: patient.isEmergency ? t("form.emergency.yes") : t("form.emergency.no"),
+    },
     { icon: Phone, label: t("form.phone"), value: patient.phone },
     ...(patient.email ? [{ icon: Mail, label: t("form.email"), value: patient.email }] : []),
-    { icon: MapPin, label: t("form.address"), value: patient.address },
+    { icon: MapPin, label: t("form.city"), value: patient.city },
     {
       icon: CalendarIcon,
       label: t("form.date"),
