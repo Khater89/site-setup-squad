@@ -4,15 +4,11 @@ import { cn } from "@/lib/utils";
 import {
   Stethoscope,
   HeartPulse,
-  Dumbbell,
-  TestTube,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
   Stethoscope,
   HeartPulse,
-  Dumbbell,
-  TestTube,
 };
 
 interface CategoryTabsProps {
@@ -20,13 +16,13 @@ interface CategoryTabsProps {
   onChange: (cat: ServiceCategory) => void;
 }
 
-const categories: ServiceCategory[] = ["medical", "nursing", "therapy", "lab"];
+const categories: ServiceCategory[] = ["medical", "nursing"];
 
 const CategoryTabs = ({ selected, onChange }: CategoryTabsProps) => {
   const { t } = useLanguage();
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+    <div className="grid grid-cols-2 gap-2">
       {categories.map((cat) => {
         const config = categoryConfig[cat];
         const Icon = iconMap[config.icon];
