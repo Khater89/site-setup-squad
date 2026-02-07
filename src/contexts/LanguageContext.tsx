@@ -16,8 +16,8 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const translations: Record<Language, Record<string, string>> = {
   ar: {
     // Header
-    "app.name": "طبيبك بالبيت",
-    "app.tagline": "خدمات طبية منزلية احترافية",
+    "app.name": "Medical Field Nation",
+    "app.tagline": "خدمات طبية ميدانية احترافية",
     
     // Navigation
     "nav.home": "الرئيسية",
@@ -156,8 +156,8 @@ const translations: Record<Language, Record<string, string>> = {
   },
   en: {
     // Header
-    "app.name": "TabibBelBeit",
-    "app.tagline": "Professional Home Medical Services",
+    "app.name": "Medical Field Nation",
+    "app.tagline": "Professional Field Medical Services",
     
     // Navigation
     "nav.home": "Home",
