@@ -15,9 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 
 const initialPatientData: PatientData = {
   name: "",
+  isEmergency: false,
   phone: "",
   email: "",
-  address: "",
+  city: "",
   date: undefined,
   time: "",
   notes: "",
@@ -38,7 +39,7 @@ const BookingPage = () => {
 
   const canGoNext = () => {
     if (step === 1) return !!selectedService;
-    if (step === 2) return patient.name && patient.phone && patient.address && patient.date && patient.time;
+    if (step === 2) return patient.name && patient.phone && patient.city && patient.date && patient.time;
     return true;
   };
 

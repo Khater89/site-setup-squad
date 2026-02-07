@@ -6,16 +6,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, User, Phone, Mail, MapPin } from "lucide-react";
+import { CalendarIcon, User, Phone, Mail, MapPin, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 export interface PatientData {
   name: string;
+  isEmergency: boolean;
   phone: string;
   email: string;
-  address: string;
+  city: string;
   date: Date | undefined;
   time: string;
   notes: string;
@@ -29,8 +30,12 @@ interface PatientFormProps {
 const PatientForm = ({ data, onChange }: PatientFormProps) => {
   const { t, lang, isRTL } = useLanguage();
 
-  const update = (field: keyof PatientData, value: string | Date | undefined) => {
-    onChange({ ...data, [field]: value });
+  const update = (field: keyof PatientData, value: string | boolean | Date | undefined) => {
+    if (field === "isEmergency") {
+      onChange({ ...data, isEmergency: value === "yes" || value === true });
+    } else {
+      onChange({ ...data, [field]: value });
+    }
   };
 
   const timeSlots = [
@@ -55,6 +60,39 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
         />
       </div>
 
+      {/* Emergency Toggle */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2 text-sm font-medium">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          {t("form.emergency")}
+        </Label>
+        <RadioGroup
+          value={data.isEmergency ? "yes" : "no"}
+          onValueChange={(v) => update("isEmergency", v === "yes" ? "yes" : "")}
+          className="grid grid-cols-2 gap-2"
+        >
+          {[
+            { value: "no", label: t("form.emergency.no") },
+            { value: "yes", label: t("form.emergency.yes") },
+          ].map((opt) => (
+            <label
+              key={opt.value}
+              className={cn(
+                "flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all text-center",
+                (data.isEmergency ? "yes" : "no") === opt.value
+                  ? opt.value === "yes"
+                    ? "border-destructive bg-destructive/10 text-destructive"
+                    : "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card hover:border-primary/30"
+              )}
+            >
+              <RadioGroupItem value={opt.value} className="sr-only" />
+              <span className="text-xs font-medium">{opt.label}</span>
+            </label>
+          ))}
+        </RadioGroup>
+      </div>
+
       {/* Phone */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2 text-sm font-medium">
@@ -67,6 +105,20 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
           placeholder={t("form.phone.placeholder")}
           type="tel"
           dir="ltr"
+          className="h-11"
+        />
+      </div>
+
+      {/* City / Area */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2 text-sm font-medium">
+          <MapPin className="h-4 w-4 text-primary" />
+          {t("form.city")}
+        </Label>
+        <Input
+          value={data.city}
+          onChange={(e) => update("city", e.target.value)}
+          placeholder={t("form.city.placeholder")}
           className="h-11"
         />
       </div>
@@ -84,20 +136,6 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
           type="email"
           dir="ltr"
           className="h-11"
-        />
-      </div>
-
-      {/* Address */}
-      <div className="space-y-2">
-        <Label className="flex items-center gap-2 text-sm font-medium">
-          <MapPin className="h-4 w-4 text-primary" />
-          {t("form.address")}
-        </Label>
-        <Textarea
-          value={data.address}
-          onChange={(e) => update("address", e.target.value)}
-          placeholder={t("form.address.placeholder")}
-          rows={2}
         />
       </div>
 
