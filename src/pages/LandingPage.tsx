@@ -3,6 +3,7 @@ import LanguageToggle from "@/components/booking/LanguageToggle";
 import mfnLogo from "@/assets/mfn-logo.png";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import {
   ShieldCheck,
   Zap,
@@ -23,6 +24,35 @@ import {
   MapPin,
   CheckCircle,
 } from "lucide-react";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.85 },
+  visible: { opacity: 1, scale: 1 },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const staggerFast = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.07 },
+  },
+};
 
 const LandingPage = () => {
   const { t, isRTL } = useLanguage();
@@ -45,9 +75,14 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header / Navbar */}
-      <header className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-20">
+      <motion.header
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-20"
+      >
         <div className="container max-w-6xl py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={mfnLogo} alt="Medical Field Nation" className="h-10 w-10 rounded-xl object-contain" />
@@ -70,129 +105,216 @@ const LandingPage = () => {
             </Link>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/10" />
-        <div className="absolute top-20 start-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 end-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="absolute top-20 start-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl"
+        />
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
+          className="absolute bottom-10 end-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl"
+        />
 
-        <div className="container max-w-6xl relative py-16 sm:py-24 text-center space-y-8">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+          className="container max-w-6xl relative py-16 sm:py-24 text-center space-y-8"
+        >
+          <motion.div variants={fadeUp} transition={{ duration: 0.5 }} className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium">
             <Phone className="h-4 w-4" />
             {t("landing.feature4")}
-          </div>
+          </motion.div>
 
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground leading-tight max-w-3xl mx-auto">
+          <motion.h2 variants={fadeUp} transition={{ duration: 0.6 }} className="text-3xl sm:text-5xl font-extrabold text-foreground leading-tight max-w-3xl mx-auto">
             {t("landing.hero")}
-          </h2>
+          </motion.h2>
 
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          <motion.p variants={fadeUp} transition={{ duration: 0.6 }} className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             {t("landing.hero.sub")}
-          </p>
+          </motion.p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <motion.div variants={fadeUp} transition={{ duration: 0.6 }} className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/booking">
               <Button size="lg" className="gap-2 text-base px-8 shadow-lg hover:shadow-xl transition-shadow">
                 {t("landing.cta")}
                 <ArrowIcon className="h-4 w-4" />
               </Button>
             </Link>
-          </div>
+          </motion.div>
 
           {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-8 pt-8">
-            <div className="text-center">
-              <p className="text-3xl font-extrabold text-primary">22+</p>
-              <p className="text-sm text-muted-foreground">{t("landing.stats.services")}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-extrabold text-primary">24/7</p>
-              <p className="text-sm text-muted-foreground">{t("landing.stats.available")}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-extrabold text-primary">5+</p>
-              <p className="text-sm text-muted-foreground">{t("landing.stats.cities")}</p>
-            </div>
-          </div>
-        </div>
+          <motion.div
+            variants={staggerFast}
+            initial="hidden"
+            animate="visible"
+            className="flex flex-wrap justify-center gap-8 pt-8"
+          >
+            {[
+              { value: "22+", label: t("landing.stats.services") },
+              { value: "24/7", label: t("landing.stats.available") },
+              { value: "5+", label: t("landing.stats.cities") },
+            ].map((stat, i) => (
+              <motion.div key={i} variants={scaleIn} transition={{ duration: 0.5 }} className="text-center">
+                <p className="text-3xl font-extrabold text-primary">{stat.value}</p>
+                <p className="text-sm text-muted-foreground">{stat.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Why Us Section */}
       <section className="py-16 bg-card/50">
         <div className="container max-w-6xl space-y-12">
-          <div className="text-center space-y-3">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-3"
+          >
             <h3 className="text-2xl sm:text-3xl font-bold text-foreground">{t("landing.whyus")}</h3>
             <p className="text-muted-foreground max-w-xl mx-auto">{t("landing.whyus.sub")}</p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
             {features.map((f, i) => (
-              <div
+              <motion.div
                 key={i}
-                className="group bg-card rounded-2xl p-6 border border-border hover:border-primary/30 transition-all hover:shadow-lg hover:-translate-y-1 duration-300"
+                variants={fadeUp}
+                transition={{ duration: 0.5 }}
+                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                className="group bg-card rounded-2xl p-6 border border-border hover:border-primary/30 transition-all hover:shadow-lg duration-300"
               >
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                <motion.div
+                  whileHover={{ rotate: [0, -10, 10, 0], transition: { duration: 0.4 } }}
+                  className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors"
+                >
                   <f.icon className="h-6 w-6 text-primary" />
-                </div>
+                </motion.div>
                 <h4 className="font-bold text-foreground mb-2">{t(f.titleKey)}</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">{t(f.descKey)}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Services Section */}
       <section className="py-16">
         <div className="container max-w-6xl space-y-12">
-          <div className="text-center space-y-3">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-3"
+          >
             <h3 className="text-2xl sm:text-3xl font-bold text-foreground">{t("landing.services_title")}</h3>
             <p className="text-muted-foreground max-w-xl mx-auto">{t("landing.services_sub")}</p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={staggerFast}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
+          >
             {highlightedServices.map((s, i) => (
-              <Link
+              <motion.div
                 key={i}
-                to="/booking"
-                className="group flex flex-col items-center text-center gap-3 bg-card border border-border rounded-2xl p-5 hover:border-primary/40 hover:shadow-md transition-all hover:-translate-y-1 duration-300"
+                variants={scaleIn}
+                transition={{ duration: 0.4 }}
+                whileHover={{ y: -5, scale: 1.04, transition: { duration: 0.2 } }}
               >
-                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                  <s.icon className="h-7 w-7 text-primary" />
-                </div>
-                <p className="text-sm font-semibold text-foreground leading-snug">{t(s.key)}</p>
-              </Link>
+                <Link
+                  to="/booking"
+                  className="group flex flex-col items-center text-center gap-3 bg-card border border-border rounded-2xl p-5 hover:border-primary/40 hover:shadow-md transition-all duration-300 h-full"
+                >
+                  <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                    <s.icon className="h-7 w-7 text-primary" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground leading-snug">{t(s.key)}</p>
+                </Link>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
-          <div className="text-center">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
             <Link to="/booking">
               <Button variant="outline" size="lg" className="gap-2">
                 {t("landing.cta")}
                 <ArrowIcon className="h-4 w-4" />
               </Button>
             </Link>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Pricing Section */}
       <section className="py-16 bg-card/50">
         <div className="container max-w-4xl space-y-12">
-          <div className="text-center space-y-3">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-3"
+          >
             <h3 className="text-2xl sm:text-3xl font-bold text-foreground">{t("landing.pricing_title")}</h3>
             <p className="text-muted-foreground max-w-xl mx-auto">{t("landing.pricing_sub")}</p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-6"
+          >
             {/* Day Pricing */}
-            <div className="bg-card border border-border rounded-2xl p-6 space-y-5 hover:shadow-lg transition-shadow">
+            <motion.div
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="bg-card border border-border rounded-2xl p-6 space-y-5 hover:shadow-lg transition-shadow"
+            >
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-warning/15 flex items-center justify-center">
+                <motion.div
+                  initial={{ rotate: -20, opacity: 0 }}
+                  whileInView={{ rotate: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="h-12 w-12 rounded-xl bg-warning/15 flex items-center justify-center"
+                >
                   <Sun className="h-6 w-6 text-warning" />
-                </div>
+                </motion.div>
                 <div>
                   <h4 className="font-bold text-foreground">{t("landing.pricing.day_label")}</h4>
                   <p className="text-xs text-muted-foreground">{t("landing.pricing.day_time")}</p>
@@ -214,20 +336,37 @@ const LandingPage = () => {
                   <ArrowIcon className="h-4 w-4" />
                 </Button>
               </Link>
-            </div>
+            </motion.div>
 
             {/* Night Pricing */}
-            <div className="bg-card border-2 border-primary/30 rounded-2xl p-6 space-y-5 relative hover:shadow-lg transition-shadow">
-              <div className="absolute -top-3 start-4">
+            <motion.div
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="bg-card border-2 border-primary/30 rounded-2xl p-6 space-y-5 relative hover:shadow-lg transition-shadow"
+            >
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.3, type: "spring", stiffness: 200 }}
+                className="absolute -top-3 start-4"
+              >
                 <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
                   <Star className="h-3 w-3" />
                   24/7
                 </span>
-              </div>
+              </motion.div>
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center">
+                <motion.div
+                  initial={{ rotate: 20, opacity: 0 }}
+                  whileInView={{ rotate: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center"
+                >
                   <Moon className="h-6 w-6 text-primary" />
-                </div>
+                </motion.div>
                 <div>
                   <h4 className="font-bold text-foreground">{t("landing.pricing.night_label")}</h4>
                   <p className="text-xs text-muted-foreground">{t("landing.pricing.night_time")}</p>
@@ -249,42 +388,65 @@ const LandingPage = () => {
                   <ArrowIcon className="h-4 w-4" />
                 </Button>
               </Link>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Pricing Notes */}
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerFast}
+            className="flex flex-col items-center gap-2 text-center"
+          >
+            <motion.div variants={fadeIn} transition={{ duration: 0.4 }} className="flex items-center gap-2 text-sm text-muted-foreground">
               <CheckCircle className="h-4 w-4 text-primary" />
               {t("landing.pricing.commission_note")}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            </motion.div>
+            <motion.div variants={fadeIn} transition={{ duration: 0.4 }} className="flex items-center gap-2 text-sm text-muted-foreground">
               <CheckCircle className="h-4 w-4 text-primary" />
               {t("landing.pricing.materials_note")}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
-        <div className="container max-w-3xl relative text-center space-y-6">
-          <h3 className="text-2xl sm:text-4xl font-extrabold text-foreground">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={staggerContainer}
+          className="container max-w-3xl relative text-center space-y-6"
+        >
+          <motion.h3 variants={fadeUp} transition={{ duration: 0.6 }} className="text-2xl sm:text-4xl font-extrabold text-foreground">
             {t("landing.hero")}
-          </h3>
-          <p className="text-lg text-muted-foreground">{t("landing.hero.sub")}</p>
-          <Link to="/booking">
-            <Button size="lg" className="gap-2 text-base px-10 shadow-lg">
-              {t("landing.cta")}
-              <ArrowIcon className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
+          </motion.h3>
+          <motion.p variants={fadeUp} transition={{ duration: 0.6 }} className="text-lg text-muted-foreground">
+            {t("landing.hero.sub")}
+          </motion.p>
+          <motion.div variants={fadeUp} transition={{ duration: 0.6 }}>
+            <Link to="/booking">
+              <Button size="lg" className="gap-2 text-base px-10 shadow-lg">
+                {t("landing.cta")}
+                <ArrowIcon className="h-4 w-4" />
+              </Button>
+            </Link>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/80 py-8">
+      <motion.footer
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={fadeIn}
+        transition={{ duration: 0.5 }}
+        className="border-t border-border bg-card/80 py-8"
+      >
         <div className="container max-w-6xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -300,7 +462,7 @@ const LandingPage = () => {
             </div>
           </div>
         </div>
-      </footer>
+      </motion.footer>
     </div>
   );
 };
