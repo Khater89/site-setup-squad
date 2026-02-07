@@ -1,11 +1,9 @@
-import { MedicalService } from "./services";
+import { MedicalService, PeriodType, calculateHourlyPricing } from "./services";
 
 // ============================================================
 // Google Sheets Integration via Apps Script
 // ============================================================
-// 1. Create a Google Sheet with these columns:
-//    Timestamp | Service | Category | Patient | Phone | Email |
-//    Address | Date | Time | Notes | BasePrice | Commission | Total | Status
+// 1. Use the existing Google Sheet (MFN.xlsx columns).
 //
 // 2. Open Extensions → Apps Script and paste the code from
 //    the APPS_SCRIPT_CODE comment below.
@@ -63,6 +61,11 @@ export interface BookingPayload {
   notes: string;
   time: string;
   email: string;
+  hours: number;
+  period: string;
+  basePrice: number;
+  commission: number;
+  total: number;
 }
 
 export function buildBookingPayload(
@@ -75,6 +78,7 @@ export function buildBookingPayload(
     city: string;
     date: Date | undefined;
     time: string;
+    hours: number;
     notes: string;
   },
   lang: "ar" | "en"
@@ -83,6 +87,9 @@ export function buildBookingPayload(
     ar: { morning: "صباحاً", afternoon: "ظهراً", evening: "مساءً" },
     en: { morning: "Morning", afternoon: "Afternoon", evening: "Evening" },
   };
+
+  const period: PeriodType = patient.time === "evening" ? "night" : "day";
+  const pricing = calculateHourlyPricing(period, patient.hours);
 
   return {
     patientName: patient.name.trim(),
@@ -96,6 +103,11 @@ export function buildBookingPayload(
     notes: patient.notes.trim(),
     time: timeLabels[lang][patient.time] || patient.time,
     email: patient.email.trim(),
+    hours: patient.hours,
+    period: lang === "ar" ? (period === "day" ? "نهاري" : "ليلي") : period,
+    basePrice: pricing.basePrice,
+    commission: pricing.commission,
+    total: pricing.total,
   };
 }
 
@@ -113,13 +125,11 @@ export async function submitToGoogleSheets(
   try {
     const response = await fetch(GOOGLE_SHEETS_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" }, // Apps Script prefers text/plain to avoid CORS preflight
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(payload),
-      mode: "no-cors", // Apps Script doesn't return CORS headers
+      mode: "no-cors",
     });
 
-    // With no-cors mode, we can't read the response body,
-    // so we assume success if no network error was thrown.
     return { success: true };
   } catch (err) {
     const message =

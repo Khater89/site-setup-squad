@@ -6,10 +6,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, User, Phone, Mail, MapPin, AlertTriangle } from "lucide-react";
+import { CalendarIcon, User, Phone, Mail, MapPin, AlertTriangle, Clock, Minus, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { PeriodType, HOURLY_PRICING, calculateHourlyPricing } from "@/lib/services";
 
 export interface PatientData {
   name: string;
@@ -19,6 +20,7 @@ export interface PatientData {
   city: string;
   date: Date | undefined;
   time: string;
+  hours: number;
   notes: string;
 }
 
@@ -30,7 +32,7 @@ interface PatientFormProps {
 const PatientForm = ({ data, onChange }: PatientFormProps) => {
   const { t, lang, isRTL } = useLanguage();
 
-  const update = (field: keyof PatientData, value: string | boolean | Date | undefined) => {
+  const update = (field: keyof PatientData, value: string | boolean | number | Date | undefined) => {
     if (field === "isEmergency") {
       onChange({ ...data, isEmergency: value === "yes" || value === true });
     } else {
@@ -43,6 +45,11 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
     { value: "afternoon", label: t("time.afternoon") },
     { value: "evening", label: t("time.evening") },
   ];
+
+  // Determine period based on selected time slot
+  const period: PeriodType = data.time === "evening" ? "night" : "day";
+  const pricing = calculateHourlyPricing(period, data.hours);
+  const config = HOURLY_PRICING[period];
 
   return (
     <div className="space-y-5">
@@ -167,6 +174,7 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
               onSelect={(d) => update("date", d)}
               disabled={(date) => date < new Date()}
               initialFocus
+              className={cn("p-3 pointer-events-auto")}
             />
           </PopoverContent>
         </Popover>
@@ -195,6 +203,67 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
             </label>
           ))}
         </RadioGroup>
+      </div>
+
+      {/* Hours Selector */}
+      <div className="space-y-3">
+        <Label className="flex items-center gap-2 text-sm font-medium">
+          <Clock className="h-4 w-4 text-primary" />
+          {t("form.hours")}
+        </Label>
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 rounded-full"
+            onClick={() => update("hours", Math.max(1, data.hours - 1))}
+            disabled={data.hours <= 1}
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <div className="text-center min-w-[80px]">
+            <span className="text-3xl font-bold text-primary">{data.hours}</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              {data.hours === 1 ? t("form.hours.single") : t("form.hours.plural")}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 rounded-full"
+            onClick={() => update("hours", Math.min(12, data.hours + 1))}
+            disabled={data.hours >= 12}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Live Price Preview */}
+        {data.time && (
+          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("price.first_hour")}</span>
+              <span className="font-medium">{config.firstHour} {t("price.currency")}</span>
+            </div>
+            {data.hours > 1 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {data.hours - 1} × {t("price.additional_hour")}
+                </span>
+                <span className="font-medium">
+                  {(data.hours - 1) * config.additionalHour} {t("price.currency")}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between pt-1 border-t border-border">
+              <span className="font-semibold text-foreground">{t("price.subtotal")}</span>
+              <span className="font-bold text-primary">{pricing.basePrice} {t("price.currency")}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">{t("price.materials_note")}</p>
+          </div>
+        )}
       </div>
 
       {/* Notes */}

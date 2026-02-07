@@ -5,20 +5,36 @@ export interface MedicalService {
   nameKey: string;
   descKey: string;
   category: ServiceCategory;
-  basePrice: number;
   icon: string; // lucide icon name
 }
 
 export const COMMISSION_RATE = 0.1; // 10%
 
+// Hourly pricing config
+export const HOURLY_PRICING = {
+  day: { firstHour: 50, additionalHour: 20, label: "6:00 AM – 9:00 PM" },
+  night: { firstHour: 70, additionalHour: 20, label: "9:00 PM – 6:00 AM" },
+} as const;
+
+export type PeriodType = "day" | "night";
+
+export function calculateHourlyPricing(period: PeriodType, hours: number) {
+  const config = HOURLY_PRICING[period];
+  if (hours <= 0) return { basePrice: 0, commission: 0, total: 0 };
+
+  const basePrice = config.firstHour + Math.max(0, hours - 1) * config.additionalHour;
+  const commission = Math.round(basePrice * COMMISSION_RATE);
+  const total = basePrice + commission;
+  return { basePrice, commission, total };
+}
+
 export const services: MedicalService[] = [
-  // Medical Services (Higher pricing)
+  // Medical Services
   {
     id: "doctor_visit",
     nameKey: "service.doctor_visit",
     descKey: "service.doctor_visit.desc",
     category: "medical",
-    basePrice: 300,
     icon: "Stethoscope",
   },
   {
@@ -26,7 +42,6 @@ export const services: MedicalService[] = [
     nameKey: "service.specialist",
     descKey: "service.specialist.desc",
     category: "medical",
-    basePrice: 500,
     icon: "UserRound",
   },
   {
@@ -34,17 +49,15 @@ export const services: MedicalService[] = [
     nameKey: "service.followup",
     descKey: "service.followup.desc",
     category: "medical",
-    basePrice: 200,
     icon: "ClipboardCheck",
   },
 
-  // Nursing Services (Different/Lower pricing)
+  // Nursing Services
   {
     id: "injection",
     nameKey: "service.injection",
     descKey: "service.injection.desc",
     category: "nursing",
-    basePrice: 100,
     icon: "Syringe",
   },
   {
@@ -52,7 +65,6 @@ export const services: MedicalService[] = [
     nameKey: "service.wound_care",
     descKey: "service.wound_care.desc",
     category: "nursing",
-    basePrice: 120,
     icon: "HeartPulse",
   },
   {
@@ -60,7 +72,6 @@ export const services: MedicalService[] = [
     nameKey: "service.vital_signs",
     descKey: "service.vital_signs.desc",
     category: "nursing",
-    basePrice: 80,
     icon: "Activity",
   },
   {
@@ -68,7 +79,6 @@ export const services: MedicalService[] = [
     nameKey: "service.catheter",
     descKey: "service.catheter.desc",
     category: "nursing",
-    basePrice: 150,
     icon: "CircleDot",
   },
 
@@ -78,7 +88,6 @@ export const services: MedicalService[] = [
     nameKey: "service.physio_session",
     descKey: "service.physio_session.desc",
     category: "therapy",
-    basePrice: 250,
     icon: "Dumbbell",
   },
   {
@@ -86,7 +95,6 @@ export const services: MedicalService[] = [
     nameKey: "service.rehab",
     descKey: "service.rehab.desc",
     category: "therapy",
-    basePrice: 350,
     icon: "Accessibility",
   },
 
@@ -96,7 +104,6 @@ export const services: MedicalService[] = [
     nameKey: "service.blood_test",
     descKey: "service.blood_test.desc",
     category: "lab",
-    basePrice: 70,
     icon: "TestTube",
   },
   {
@@ -104,7 +111,6 @@ export const services: MedicalService[] = [
     nameKey: "service.full_checkup",
     descKey: "service.full_checkup.desc",
     category: "lab",
-    basePrice: 180,
     icon: "FlaskConical",
   },
 ];
@@ -134,12 +140,6 @@ export const categoryConfig: Record<
     color: "accent",
   },
 };
-
-export function calculatePricing(basePrice: number) {
-  const commission = Math.round(basePrice * COMMISSION_RATE);
-  const total = basePrice + commission;
-  return { basePrice, commission, total };
-}
 
 export function getServicesByCategory(category: ServiceCategory) {
   return services.filter((s) => s.category === category);

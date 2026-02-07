@@ -1,5 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { MedicalService, calculatePricing } from "@/lib/services";
+import { MedicalService, HOURLY_PRICING } from "@/lib/services";
 import { cn } from "@/lib/utils";
 import {
   Stethoscope,
@@ -39,7 +39,6 @@ interface ServiceCardProps {
 const ServiceCard = ({ service, isSelected, onSelect }: ServiceCardProps) => {
   const { t } = useLanguage();
   const Icon = iconMap[service.icon];
-  const { total } = calculatePricing(service.basePrice);
 
   return (
     <button
@@ -75,8 +74,9 @@ const ServiceCard = ({ service, isSelected, onSelect }: ServiceCardProps) => {
             {t(service.descKey)}
           </p>
           <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-lg font-bold text-primary">{total}</span>
-            <span className="text-xs text-muted-foreground">{t("price.currency")}</span>
+            <span className="text-sm font-bold text-primary">
+              {t("price.starts_from")} {HOURLY_PRICING.day.firstHour} {t("price.currency")}/{t("price.per_hour")}
+            </span>
           </div>
         </div>
       </div>

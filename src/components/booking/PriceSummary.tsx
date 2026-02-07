@@ -1,15 +1,18 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { MedicalService, calculatePricing } from "@/lib/services";
+import { MedicalService, calculateHourlyPricing, PeriodType, HOURLY_PRICING } from "@/lib/services";
 import { Separator } from "@/components/ui/separator";
 import { Receipt } from "lucide-react";
 
 interface PriceSummaryProps {
   service: MedicalService;
+  hours: number;
+  period: PeriodType;
 }
 
-const PriceSummary = ({ service }: PriceSummaryProps) => {
+const PriceSummary = ({ service, hours, period }: PriceSummaryProps) => {
   const { t } = useLanguage();
-  const { basePrice, commission, total } = calculatePricing(service.basePrice);
+  const { basePrice, commission, total } = calculateHourlyPricing(period, hours);
+  const config = HOURLY_PRICING[period];
   const currency = t("price.currency");
 
   return (
@@ -20,6 +23,29 @@ const PriceSummary = ({ service }: PriceSummaryProps) => {
       </div>
 
       <div className="space-y-3">
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-muted-foreground">{t("price.period")}</span>
+          <span className="font-medium text-foreground">{t(`price.period.${period}`)}</span>
+        </div>
+
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-muted-foreground">{t("price.first_hour")}</span>
+          <span className="font-medium text-foreground">
+            {config.firstHour} {currency}
+          </span>
+        </div>
+
+        {hours > 1 && (
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground">
+              {hours - 1} × {t("price.additional_hour")}
+            </span>
+            <span className="font-medium text-foreground">
+              {(hours - 1) * config.additionalHour} {currency}
+            </span>
+          </div>
+        )}
+
         <div className="flex justify-between items-center text-sm">
           <span className="text-muted-foreground">{t("price.base")}</span>
           <span className="font-medium text-foreground">
@@ -42,6 +68,8 @@ const PriceSummary = ({ service }: PriceSummaryProps) => {
             {total} {currency}
           </span>
         </div>
+
+        <p className="text-[10px] text-muted-foreground text-center">{t("price.materials_note")}</p>
       </div>
     </div>
   );

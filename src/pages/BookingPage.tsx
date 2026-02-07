@@ -21,6 +21,7 @@ const initialPatientData: PatientData = {
   city: "",
   date: undefined,
   time: "",
+  hours: 1,
   notes: "",
 };
 
