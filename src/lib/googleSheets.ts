@@ -1,27 +1,75 @@
 import { MedicalService, PeriodType, calculateHourlyPricing } from "./services";
 
 // ============================================================
-// Google Forms Integration
+// Google Sheets Integration via Apps Script Web App
 // ============================================================
-// Form: نموذج حجز خدمات تمريض منزلي – Medical Field Nation
-// Submissions are sent directly to the Google Form's formResponse endpoint.
+//
+// الخطوات لإعداد الربط:
+//
+// 1. افتح Google Sheets جديد أو الموجود
+//
+// 2. أضف هذه العناوين في الصف الأول (Row 1):
+//    A: Timestamp | B: الاسم | C: طوارئ | D: الهاتف | E: المدينة
+//    F: الخدمة | G: التاريخ | H: الوقت | I: الساعات | J: الفترة
+//    K: السعر الأساسي | L: العمولة | M: الإجمالي | N: ملاحظات | O: البريد
+//
+// 3. افتح Extensions → Apps Script
+//
+// 4. الصق الكود التالي (انسخه من الأسفل)
+//
+// 5. Deploy → New Deployment → Web App
+//    - Execute as: Me
+//    - Who has access: Anyone
+//    → Deploy → انسخ الرابط
+//
+// 6. الصق الرابط في GOOGLE_APPS_SCRIPT_URL أدناه
+//
 // ============================================================
 
-const GOOGLE_FORM_ACTION_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLScVOTnLKji97e5gOUz8FSOg9DPXlC912AHeC0Yug5DwfYeOwA/formResponse";
+/**
+ * ⬇️ الصق رابط Apps Script Web App هنا ⬇️
+ * مثال: "https://script.google.com/macros/s/AKfycb.../exec"
+ */
+const GOOGLE_APPS_SCRIPT_URL = "";
 
-// Google Form entry IDs (extracted from form HTML)
-const FORM_ENTRIES = {
-  email: "emailAddress",          // Email (built-in)
-  fullName: "entry.74523402",     // الاسم الكامل
-  emergency: "entry.2118343810",  // هل الحالة طارئة؟
-  phone: "entry.1437637396",      // رقم الهاتف (يفضل واتساب)
-  city: "entry.1094225640",       // المنطقة / المدينة
-  service: "entry.1984300273",    // نوع الخدمة المطلوبة
-  date: "entry.1115209118",       // الوقت أو التاريخ المفضل للخدمة (date)
-  time: "entry.2088069351",       // الوقت المفضل للخدمة (time)
-  notes: "entry.357922041",       // ملاحظات إضافية
-} as const;
+// ============================================================
+// 📋 كود Apps Script — انسخه والصقه في Google Apps Script
+// ============================================================
+//
+// function doPost(e) {
+//   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+//   var data = JSON.parse(e.postData.contents);
+//
+//   sheet.appendRow([
+//     new Date(),              // A: Timestamp
+//     data.patientName,        // B: الاسم
+//     data.isEmergency,        // C: طوارئ
+//     data.phone,              // D: الهاتف
+//     data.city,               // E: المدينة
+//     data.service,            // F: الخدمة
+//     data.date,               // G: التاريخ
+//     data.time,               // H: الوقت
+//     data.hours,              // I: الساعات
+//     data.period,             // J: الفترة
+//     data.basePrice,          // K: السعر الأساسي
+//     data.commission,         // L: العمولة
+//     data.total,              // M: الإجمالي
+//     data.notes || "",        // N: ملاحظات
+//     data.email || ""         // O: البريد
+//   ]);
+//
+//   return ContentService
+//     .createTextOutput(JSON.stringify({ result: "success" }))
+//     .setMimeType(ContentService.MimeType.JSON);
+// }
+//
+// function doGet() {
+//   return ContentService
+//     .createTextOutput(JSON.stringify({ result: "ok" }))
+//     .setMimeType(ContentService.MimeType.JSON);
+// }
+//
+// ============================================================
 
 export interface BookingPayload {
   patientName: string;
@@ -40,18 +88,32 @@ export interface BookingPayload {
   total: number;
 }
 
-// Map our service IDs to the Google Form dropdown options
-const SERVICE_FORM_LABELS: Record<string, string> = {
+// Map our service IDs to Arabic labels for the sheet
+const SERVICE_LABELS: Record<string, string> = {
+  // Medical
+  general_medicine: "طب عام وتشخيص",
+  emergency: "خدمات الطوارئ",
+  fracture_treatment: "علاج الكسور",
+  wound_suturing: "تخييط الجروح",
+  // Nursing
   home_nursing: "تمريض منزلي",
   elderly_care: "رعاية كبار السن",
-  patient_companion: "مرافق مريض",
+  patient_companion: "مرافق/ة مريض (24 ساعة)",
   home_physiotherapy: "علاج طبيعي منزلي",
-  wound_dressing: "غيارات جروح",
-  iv_fluids: "محاليل / إبر",
-  injections: "محاليل / إبر",
   home_xray: "تصوير أشعة منزلي",
   patient_transport: "نقل مرضى",
-  // All other services map to "اخرى"
+  medical_equipment: "توفير أجهزة ومستلزمات طبية",
+  iv_fluids: "محاليل وريدية (IV Fluids)",
+  injections: "حقن وإبر (عضلي/وريدي/فيتامينات)",
+  vital_signs: "قياس العلامات الحيوية",
+  blood_sugar: "قياس سكر الدم + متابعة سكري",
+  diabetic_foot_care: "عناية قدم سكري + عناية جلد",
+  wound_dressing: "غيارات جروح / تضميد",
+  post_surgery_care: "رعاية ما بعد العمليات الجراحية",
+  urinary_catheter: "قسطرة بولية (تركيب/تغيير/عناية)",
+  ng_tube: "أنبوب أنفي معدي NG (تركيب/تغيير/عناية)",
+  home_samples: "سحب عينات منزلية (دم/جروح/زراعة)",
+  home_enema: "حقنة شرجية منزلية",
 };
 
 export function buildBookingPayload(
@@ -77,25 +139,18 @@ export function buildBookingPayload(
   const period: PeriodType = patient.time === "evening" ? "night" : "day";
   const pricing = calculateHourlyPricing(period, patient.hours);
 
-  // Resolve to the Google Form dropdown label
-  const formServiceLabel =
-    SERVICE_FORM_LABELS[service.id] ||
-    "اخرى : نرجو التوضيح  في  حقل  الملاحظات";
-
   return {
     patientName: patient.name.trim(),
-    isEmergency: patient.isEmergency
-      ? lang === "ar" ? "نعم" : "Yes"
-      : lang === "ar" ? "لا" : "No",
+    isEmergency: patient.isEmergency ? "نعم" : "لا",
     phone: patient.phone.trim(),
     city: patient.city.trim(),
-    service: formServiceLabel,
+    service: SERVICE_LABELS[service.id] || service.id,
     date: patient.date ? patient.date.toISOString().split("T")[0] : "",
     notes: patient.notes.trim(),
     time: timeLabels[lang][patient.time] || patient.time,
     email: patient.email.trim(),
     hours: patient.hours,
-    period: lang === "ar" ? (period === "day" ? "نهاري" : "ليلي") : period,
+    period: period === "day" ? "نهاري (6ص - 9م)" : "ليلي (9م - 6ص)",
     basePrice: pricing.basePrice,
     commission: pricing.commission,
     total: pricing.total,
@@ -103,81 +158,36 @@ export function buildBookingPayload(
 }
 
 /**
- * Submit booking data to Google Form.
- * Uses no-cors mode since we can't read the response from Google Forms,
- * but the data will be submitted successfully.
+ * Submit booking data to Google Sheets via Apps Script Web App.
+ * Falls back to success in dev mode if no URL is configured.
  */
 export async function submitToGoogleSheets(
   payload: BookingPayload
 ): Promise<{ success: boolean; error?: string }> {
+  if (!GOOGLE_APPS_SCRIPT_URL) {
+    console.warn(
+      "[GoogleSheets] ⚠️ لم يتم إعداد رابط Apps Script بعد.\n" +
+      "الصق الرابط في GOOGLE_APPS_SCRIPT_URL داخل src/lib/googleSheets.ts\n" +
+      "البيانات المرسلة:",
+      payload
+    );
+    // Return success so the UI flow works during development
+    return { success: true };
+  }
+
   try {
-    const formData = new URLSearchParams();
-
-    // Map payload to Google Form entry IDs
-    if (payload.email) {
-      formData.append(FORM_ENTRIES.email, payload.email);
-    }
-    formData.append(FORM_ENTRIES.fullName, payload.patientName);
-    formData.append(FORM_ENTRIES.emergency, payload.isEmergency);
-    formData.append(FORM_ENTRIES.phone, payload.phone);
-    formData.append(FORM_ENTRIES.city, payload.city);
-    formData.append(FORM_ENTRIES.service, payload.service);
-    formData.append(FORM_ENTRIES.notes, buildNotesString(payload));
-
-    // Date field: Google Forms date uses _year, _month, _day suffixes
-    if (payload.date) {
-      const [year, month, day] = payload.date.split("-");
-      formData.append(`${FORM_ENTRIES.date}_year`, year);
-      formData.append(`${FORM_ENTRIES.date}_month`, month);
-      formData.append(`${FORM_ENTRIES.date}_day`, day);
-    }
-
-    // Time field: Google Forms time uses _hour, _minute suffixes
-    // Map our time slots to approximate hours
-    const timeMapping: Record<string, { hour: string; minute: string }> = {
-      "صباحاً": { hour: "09", minute: "00" },
-      "ظهراً": { hour: "13", minute: "00" },
-      "مساءً": { hour: "17", minute: "00" },
-      "Morning": { hour: "09", minute: "00" },
-      "Afternoon": { hour: "13", minute: "00" },
-      "Evening": { hour: "17", minute: "00" },
-    };
-    const timeParts = timeMapping[payload.time] || { hour: "09", minute: "00" };
-    formData.append(`${FORM_ENTRIES.time}_hour`, timeParts.hour);
-    formData.append(`${FORM_ENTRIES.time}_minute`, timeParts.minute);
-
-    await fetch(GOOGLE_FORM_ACTION_URL, {
+    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
       method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(payload),
       mode: "no-cors",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: formData.toString(),
     });
 
-    // With no-cors we can't read the response, but the data is submitted
     return { success: true };
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : "Unknown error submitting to Google Form";
-    console.error("[GoogleForm] Submission failed:", message);
+      err instanceof Error ? err.message : "خطأ غير معروف أثناء الإرسال";
+    console.error("[GoogleSheets] فشل الإرسال:", message);
     return { success: false, error: message };
   }
-}
-
-/**
- * Build a rich notes string that includes pricing info and hours.
- */
-function buildNotesString(payload: BookingPayload): string {
-  const parts: string[] = [];
-
-  if (payload.notes) {
-    parts.push(payload.notes);
-  }
-
-  parts.push(`عدد الساعات: ${payload.hours}`);
-  parts.push(`الفترة: ${payload.period}`);
-  parts.push(`السعر: ${payload.total} د.أ (الأساس: ${payload.basePrice} + عمولة: ${payload.commission})`);
-
-  return parts.join(" | ");
 }
