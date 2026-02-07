@@ -1,4 +1,4 @@
-export type ServiceCategory = "medical" | "nursing" | "therapy" | "lab";
+export type ServiceCategory = "medical" | "nursing";
 
 export interface MedicalService {
   id: string;
@@ -31,41 +31,97 @@ export function calculateHourlyPricing(period: PeriodType, hours: number) {
 export const services: MedicalService[] = [
   // Medical Services
   {
-    id: "doctor_visit",
-    nameKey: "service.doctor_visit",
-    descKey: "service.doctor_visit.desc",
+    id: "general_medicine",
+    nameKey: "service.general_medicine",
+    descKey: "service.general_medicine.desc",
     category: "medical",
     icon: "Stethoscope",
   },
   {
-    id: "specialist",
-    nameKey: "service.specialist",
-    descKey: "service.specialist.desc",
+    id: "emergency",
+    nameKey: "service.emergency",
+    descKey: "service.emergency.desc",
     category: "medical",
-    icon: "UserRound",
+    icon: "Siren",
   },
   {
-    id: "followup",
-    nameKey: "service.followup",
-    descKey: "service.followup.desc",
+    id: "fracture_treatment",
+    nameKey: "service.fracture_treatment",
+    descKey: "service.fracture_treatment.desc",
     category: "medical",
-    icon: "ClipboardCheck",
+    icon: "Bone",
+  },
+  {
+    id: "wound_suturing",
+    nameKey: "service.wound_suturing",
+    descKey: "service.wound_suturing.desc",
+    category: "medical",
+    icon: "Scissors",
   },
 
   // Nursing Services
   {
-    id: "injection",
-    nameKey: "service.injection",
-    descKey: "service.injection.desc",
-    category: "nursing",
-    icon: "Syringe",
-  },
-  {
-    id: "wound_care",
-    nameKey: "service.wound_care",
-    descKey: "service.wound_care.desc",
+    id: "home_nursing",
+    nameKey: "service.home_nursing",
+    descKey: "service.home_nursing.desc",
     category: "nursing",
     icon: "HeartPulse",
+  },
+  {
+    id: "elderly_care",
+    nameKey: "service.elderly_care",
+    descKey: "service.elderly_care.desc",
+    category: "nursing",
+    icon: "UserRound",
+  },
+  {
+    id: "patient_companion",
+    nameKey: "service.patient_companion",
+    descKey: "service.patient_companion.desc",
+    category: "nursing",
+    icon: "Clock",
+  },
+  {
+    id: "home_physiotherapy",
+    nameKey: "service.home_physiotherapy",
+    descKey: "service.home_physiotherapy.desc",
+    category: "nursing",
+    icon: "Dumbbell",
+  },
+  {
+    id: "home_xray",
+    nameKey: "service.home_xray",
+    descKey: "service.home_xray.desc",
+    category: "nursing",
+    icon: "ScanLine",
+  },
+  {
+    id: "patient_transport",
+    nameKey: "service.patient_transport",
+    descKey: "service.patient_transport.desc",
+    category: "nursing",
+    icon: "Ambulance",
+  },
+  {
+    id: "medical_equipment",
+    nameKey: "service.medical_equipment",
+    descKey: "service.medical_equipment.desc",
+    category: "nursing",
+    icon: "Package",
+  },
+  {
+    id: "iv_fluids",
+    nameKey: "service.iv_fluids",
+    descKey: "service.iv_fluids.desc",
+    category: "nursing",
+    icon: "Droplets",
+  },
+  {
+    id: "injections",
+    nameKey: "service.injections",
+    descKey: "service.injections.desc",
+    category: "nursing",
+    icon: "Syringe",
   },
   {
     id: "vital_signs",
@@ -75,42 +131,59 @@ export const services: MedicalService[] = [
     icon: "Activity",
   },
   {
-    id: "catheter",
-    nameKey: "service.catheter",
-    descKey: "service.catheter.desc",
+    id: "blood_sugar",
+    nameKey: "service.blood_sugar",
+    descKey: "service.blood_sugar.desc",
+    category: "nursing",
+    icon: "Droplet",
+  },
+  {
+    id: "diabetic_foot_care",
+    nameKey: "service.diabetic_foot_care",
+    descKey: "service.diabetic_foot_care.desc",
+    category: "nursing",
+    icon: "Footprints",
+  },
+  {
+    id: "wound_dressing",
+    nameKey: "service.wound_dressing",
+    descKey: "service.wound_dressing.desc",
+    category: "nursing",
+    icon: "BandageIcon",
+  },
+  {
+    id: "post_surgery_care",
+    nameKey: "service.post_surgery_care",
+    descKey: "service.post_surgery_care.desc",
+    category: "nursing",
+    icon: "ShieldCheck",
+  },
+  {
+    id: "urinary_catheter",
+    nameKey: "service.urinary_catheter",
+    descKey: "service.urinary_catheter.desc",
     category: "nursing",
     icon: "CircleDot",
   },
-
-  // Physical Therapy
   {
-    id: "physio_session",
-    nameKey: "service.physio_session",
-    descKey: "service.physio_session.desc",
-    category: "therapy",
-    icon: "Dumbbell",
+    id: "ng_tube",
+    nameKey: "service.ng_tube",
+    descKey: "service.ng_tube.desc",
+    category: "nursing",
+    icon: "Pipette",
   },
   {
-    id: "rehab",
-    nameKey: "service.rehab",
-    descKey: "service.rehab.desc",
-    category: "therapy",
-    icon: "Accessibility",
-  },
-
-  // Lab Services
-  {
-    id: "blood_test",
-    nameKey: "service.blood_test",
-    descKey: "service.blood_test.desc",
-    category: "lab",
+    id: "home_samples",
+    nameKey: "service.home_samples",
+    descKey: "service.home_samples.desc",
+    category: "nursing",
     icon: "TestTube",
   },
   {
-    id: "full_checkup",
-    nameKey: "service.full_checkup",
-    descKey: "service.full_checkup.desc",
-    category: "lab",
+    id: "home_enema",
+    nameKey: "service.home_enema",
+    descKey: "service.home_enema.desc",
+    category: "nursing",
     icon: "FlaskConical",
   },
 ];
@@ -128,16 +201,6 @@ export const categoryConfig: Record<
     labelKey: "service.category.nursing",
     icon: "HeartPulse",
     color: "info",
-  },
-  therapy: {
-    labelKey: "service.category.therapy",
-    icon: "Dumbbell",
-    color: "success",
-  },
-  lab: {
-    labelKey: "service.category.lab",
-    icon: "TestTube",
-    color: "accent",
   },
 };
 
