@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import LandingPage from "./pages/LandingPage";
 import BookingPage from "./pages/BookingPage";
 import NotFound from "./pages/NotFound";
 
@@ -17,7 +18,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<BookingPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/booking" element={<BookingPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
