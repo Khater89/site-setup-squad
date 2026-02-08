@@ -14,16 +14,306 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          assigned_provider_id: string | null
+          city: string
+          connect_charge_type: string | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          customer_user_id: string | null
+          deposit_amount: number | null
+          deposit_status: string | null
+          id: string
+          notes: string | null
+          payment_method: string
+          payment_status: string
+          platform_fee: number
+          provider_payout: number
+          remaining_cash_amount: number | null
+          scheduled_at: string
+          service_id: string
+          status: string
+          stripe_application_fee_amount: number | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          stripe_transfer_id: string | null
+          subtotal: number
+        }
+        Insert: {
+          assigned_provider_id?: string | null
+          city: string
+          connect_charge_type?: string | null
+          created_at?: string
+          customer_name: string
+          customer_phone: string
+          customer_user_id?: string | null
+          deposit_amount?: number | null
+          deposit_status?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          payment_status?: string
+          platform_fee?: number
+          provider_payout?: number
+          remaining_cash_amount?: number | null
+          scheduled_at: string
+          service_id: string
+          status?: string
+          stripe_application_fee_amount?: number | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          stripe_transfer_id?: string | null
+          subtotal?: number
+        }
+        Update: {
+          assigned_provider_id?: string | null
+          city?: string
+          connect_charge_type?: string | null
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          customer_user_id?: string | null
+          deposit_amount?: number | null
+          deposit_status?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string
+          payment_status?: string
+          platform_fee?: number
+          provider_payout?: number
+          remaining_cash_amount?: number | null
+          scheduled_at?: string
+          service_id?: string
+          status?: string
+          stripe_application_fee_amount?: number | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          stripe_transfer_id?: string | null
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications_log: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          id: string
+          payload: Json | null
+          type: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          type: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_settings: {
+        Row: {
+          deposit_percent: number
+          id: number
+          platform_fee_percent: number
+          provider_debt_limit: number
+          setup_completed: boolean
+          updated_at: string
+        }
+        Insert: {
+          deposit_percent?: number
+          id?: number
+          platform_fee_percent?: number
+          provider_debt_limit?: number
+          setup_completed?: boolean
+          updated_at?: string
+        }
+        Update: {
+          deposit_percent?: number
+          id?: number
+          platform_fee_percent?: number
+          provider_debt_limit?: number
+          setup_completed?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          city: string | null
+          created_at: string
+          full_name: string | null
+          phone: string | null
+          provider_status: string
+          stripe_connect_account_id: string | null
+          stripe_connect_onboarding_status: string | null
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          full_name?: string | null
+          phone?: string | null
+          provider_status?: string
+          stripe_connect_account_id?: string | null
+          stripe_connect_onboarding_status?: string | null
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          full_name?: string | null
+          phone?: string | null
+          provider_status?: string
+          stripe_connect_account_id?: string | null
+          stripe_connect_onboarding_status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      provider_wallet_ledger: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          created_at: string
+          id: string
+          provider_id: string
+          reason: string
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          provider_id: string
+          reason: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          provider_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_wallet_ledger_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          active: boolean
+          base_price: number
+          city: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          base_price?: number
+          city?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          base_price?: number
+          city?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_provider_balance: { Args: { _provider_id: string }; Returns: number }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_customer: { Args: never; Returns: boolean }
+      is_provider: { Args: never; Returns: boolean }
+      remove_user_role: {
+        Args: {
+          old_role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
+        }
+        Returns: undefined
+      }
+      set_user_role: {
+        Args: {
+          new_role: Database["public"]["Enums"]["app_role"]
+          target_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "provider" | "customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +440,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "provider", "customer"],
+    },
   },
 } as const
