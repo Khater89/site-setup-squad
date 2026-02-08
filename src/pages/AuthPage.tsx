@@ -84,7 +84,9 @@ const AuthPage = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <img src={mfnLogo} alt="MFN" className="h-12 mx-auto mb-4" />
+          <Link to="/">
+            <img src={mfnLogo} alt="MFN" className="h-12 mx-auto mb-4 hover:opacity-80 transition-opacity" />
+          </Link>
           <h1 className="text-2xl font-bold text-foreground">Medical Field Nation</h1>
           <p className="text-sm text-muted-foreground mt-1">خدمات طبية ميدانية احترافية</p>
         </div>

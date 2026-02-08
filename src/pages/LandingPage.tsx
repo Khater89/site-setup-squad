@@ -1,5 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import LanguageToggle from "@/components/booking/LanguageToggle";
+import AppHeader from "@/components/AppHeader";
 import mfnLogo from "@/assets/mfn-logo.png";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -77,40 +77,7 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header / Navbar */}
-      <motion.header
-        initial={{ y: -40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-20"
-      >
-        <div className="container max-w-6xl py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src={mfnLogo} alt="Medical Field Nation" className="h-10 w-10 rounded-xl object-contain" />
-            <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">
-                {t("app.name")}
-              </h1>
-              <p className="text-[11px] text-muted-foreground">
-                {t("app.tagline")}
-              </p>
-            </div>
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageToggle />
-            <Link to="/auth">
-              <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
-                {t("landing.login") || "تسجيل الدخول"}
-              </Button>
-            </Link>
-            <Link to="/booking">
-              <Button size="sm" className="gap-1.5 text-xs sm:text-sm">
-                {t("landing.cta")}
-                <ArrowIcon className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </motion.header>
+      <AppHeader />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">

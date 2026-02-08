@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import BookingPage from "./pages/BookingPage";
 import AuthPage from "./pages/AuthPage";
+import ProfilePage from "./pages/ProfilePage";
 import AdminSetup from "./pages/admin/AdminSetup";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ProviderRegister from "./pages/provider/ProviderRegister";
@@ -30,6 +31,17 @@ const App = () => (
               <Route path="/" element={<LandingPage />} />
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/provider/register" element={<ProviderRegister />} />
+
+              {/* Customer Profile (protected) */}
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Admin */}
               <Route path="/admin/setup" element={<AdminSetup />} />
@@ -43,7 +55,6 @@ const App = () => (
               />
 
               {/* Provider */}
-              <Route path="/provider/register" element={<ProviderRegister />} />
               <Route
                 path="/provider"
                 element={
