@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +13,21 @@ import mfnLogo from "@/assets/mfn-logo.png";
 const AuthPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAdmin, isProvider, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (isAdmin) {
+        navigate("/admin", { replace: true });
+      } else if (isProvider) {
+        navigate("/provider", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [user, isAdmin, isProvider, authLoading, navigate]);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -33,7 +48,7 @@ const AuthPage = () => {
       toast({ title: "خطأ في تسجيل الدخول", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "تم تسجيل الدخول بنجاح" });
-      navigate("/");
+      // useEffect will handle redirect based on role
     }
   };
 
