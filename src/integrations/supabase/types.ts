@@ -93,15 +93,7 @@ export type Database = {
           stripe_transfer_id?: string | null
           subtotal?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "bookings_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       notifications_log: {
         Row: {
