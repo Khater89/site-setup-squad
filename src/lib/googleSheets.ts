@@ -30,7 +30,7 @@ import { MedicalService, PeriodType, calculateHourlyPricing } from "./services";
  * ⬇️ الصق رابط Apps Script Web App هنا ⬇️
  * مثال: "https://script.google.com/macros/s/AKfycb.../exec"
  */
-const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzN9ddKCvuDi6mGT8Gop943oPY4hU1YdpHX6rSgVEsrRaMvny22NOS0HA-d_NMShimd/exec";
+const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGx8FL4pcVrI2A3RCfez_qomKVbrwcLy1CX6eyir93_jY4VB8_OfeE4UK_E1ISfYTQ/exec";
 
 // ============================================================
 // 📋 كود Apps Script — انسخه والصقه في Google Apps Script

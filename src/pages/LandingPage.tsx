@@ -476,7 +476,7 @@ const LandingPage = () => {
 
       {/* WhatsApp Floating Button */}
       <motion.a
-        href="https://wa.me/962790000000"
+        href="https://wa.me/962790619770"
         target="_blank"
         rel="noopener noreferrer"
         initial={{ scale: 0, opacity: 0 }}
