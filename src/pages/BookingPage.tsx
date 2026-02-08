@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { MedicalService, ServiceCategory, getServicesByCategory, calculateHourlyPricing, PeriodType } from "@/lib/services";
+import { useServices, DbService } from "@/hooks/useServices";
+import { calculateHourlyPricing, PeriodType } from "@/lib/services";
 import { buildBookingPayload, submitToGoogleSheets } from "@/lib/googleSheets";
 import BookingHeader from "@/components/booking/BookingHeader";
 import StepIndicator from "@/components/booking/StepIndicator";
@@ -32,34 +33,35 @@ const BookingPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [step, setStep] = useState(1);
-  const [category, setCategory] = useState<ServiceCategory>("medical");
-  const [selectedService, setSelectedService] = useState<MedicalService | null>(null);
-  const [patient, setPatient] = useState<PatientData>(INITIAL_PATIENT);
+  const { services, categories, loading: servicesLoading } = useServices(true);
 
+  const [step, setStep] = useState(1);
+  const [category, setCategory] = useState<string>("");
+  const [selectedService, setSelectedService] = useState<DbService | null>(null);
+  const [patient, setPatient] = useState<PatientData>(INITIAL_PATIENT);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Platform settings from DB
+  // Platform settings
   const [settings, setSettings] = useState({ platform_fee_percent: 10, deposit_percent: 20 });
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      const { data } = await supabase
-        .from("platform_settings")
-        .select("platform_fee_percent, deposit_percent")
-        .eq("id", 1)
-        .maybeSingle();
-      if (data) setSettings(data);
-    };
-    fetchSettings();
+    supabase
+      .from("platform_settings")
+      .select("platform_fee_percent, deposit_percent")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setSettings(data); });
   }, []);
 
-  const categoryServices = getServicesByCategory(category);
+  // Set default category when services load
+  useEffect(() => {
+    if (categories.length > 0 && !category) {
+      setCategory(categories[0]);
+    }
+  }, [categories, category]);
 
-  const handleSelectService = (service: MedicalService) => {
-    setSelectedService(service);
-  };
+  const categoryServices = services.filter((s) => s.category === category);
 
   const canGoNext = () => {
     if (step === 1) return !!selectedService;
@@ -83,17 +85,14 @@ const BookingPage = () => {
     const period: PeriodType = patient.time === "evening" ? "night" : "day";
     const pricing = calculateHourlyPricing(period, patient.hours);
 
-    // Calculate platform amounts
     const subtotal = pricing.total;
     const platformFee = Math.round(subtotal * (settings.platform_fee_percent / 100) * 100) / 100;
     const providerPayout = subtotal - platformFee;
 
-    // Build scheduled_at from date + time slot
     const scheduledAt = new Date(patient.date!);
     const timeMap: Record<string, number> = { morning: 9, afternoon: 13, evening: 20 };
     scheduledAt.setHours(timeMap[patient.time] || 9, 0, 0, 0);
 
-    // Submit to Supabase
     const booking = {
       customer_user_id: user?.id || null,
       customer_name: patient.name.trim(),
@@ -110,7 +109,7 @@ const BookingPage = () => {
 
     const { error } = await supabase.from("bookings").insert(booking);
 
-    // Also submit to Google Sheets (dual write)
+    // Dual-write to Google Sheets
     const payload = buildBookingPayload(selectedService, patient, lang);
     await submitToGoogleSheets(payload);
 
@@ -126,7 +125,7 @@ const BookingPage = () => {
 
   const handleReset = () => {
     setStep(1);
-    setCategory("medical");
+    setCategory(categories[0] || "");
     setSelectedService(null);
     setPatient(INITIAL_PATIENT);
     setSubmitted(false);
@@ -159,29 +158,44 @@ const BookingPage = () => {
         <StepIndicator currentStep={step} totalSteps={3} />
 
         <div className="animate-slide-up">
-          {/* Step 1: Select Category & Service */}
+          {/* Step 1 */}
           {step === 1 && (
             <div className="space-y-4">
-              <CategoryTabs selected={category} onChange={setCategory} />
-              <div className="grid gap-3">
-                {categoryServices.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    isSelected={selectedService?.id === service.id}
-                    onSelect={handleSelectService}
+              {servicesLoading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <>
+                  <CategoryTabs
+                    selected={category}
+                    categories={categories}
+                    onChange={(c) => { setCategory(c); setSelectedService(null); }}
                   />
-                ))}
-              </div>
+                  <div className="grid gap-3">
+                    {categoryServices.map((service) => (
+                      <ServiceCard
+                        key={service.id}
+                        service={service}
+                        isSelected={selectedService?.id === service.id}
+                        onSelect={setSelectedService}
+                      />
+                    ))}
+                  </div>
+                  {categoryServices.length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground py-6">
+                      لا توجد خدمات متاحة في هذا التصنيف
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           )}
 
-          {/* Step 2: Patient Form */}
-          {step === 2 && (
-            <PatientForm data={patient} onChange={setPatient} />
-          )}
+          {/* Step 2 */}
+          {step === 2 && <PatientForm data={patient} onChange={setPatient} />}
 
-          {/* Step 3: Confirmation */}
+          {/* Step 3 */}
           {step === 3 && selectedService && (
             <BookingConfirmation service={selectedService} patient={patient} />
           )}

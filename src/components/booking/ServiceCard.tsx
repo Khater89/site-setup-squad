@@ -1,5 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { MedicalService, HOURLY_PRICING } from "@/lib/services";
+import type { DbService } from "@/hooks/useServices";
 import { cn } from "@/lib/utils";
 import {
   Stethoscope,
@@ -14,31 +14,63 @@ import {
   TestTube,
   FlaskConical,
   Check,
+  Bone,
+  Scissors,
+  Clock,
+  ScanLine,
+  Ambulance,
+  Package,
+  Droplets,
+  Droplet,
+  Footprints,
+  ShieldCheck,
+  Pipette,
+  Siren,
+  Briefcase,
 } from "lucide-react";
 
-const iconMap: Record<string, React.ElementType> = {
-  Stethoscope,
-  UserRound,
-  ClipboardCheck,
-  Syringe,
-  HeartPulse,
-  Activity,
-  CircleDot,
-  Dumbbell,
-  Accessibility,
-  TestTube,
-  FlaskConical,
+// Map service names to icons for visual variety
+const SERVICE_ICON_MAP: Record<string, React.ElementType> = {
+  "طب عام": Stethoscope,
+  "طوارئ": Siren,
+  "كسور": Bone,
+  "تخييط": Scissors,
+  "تمريض": HeartPulse,
+  "كبار السن": UserRound,
+  "مرافق": Clock,
+  "علاج طبيعي": Dumbbell,
+  "أشعة": ScanLine,
+  "نقل": Ambulance,
+  "أجهزة": Package,
+  "محاليل": Droplets,
+  "حقن": Syringe,
+  "علامات حيوية": Activity,
+  "سكر": Droplet,
+  "قدم سكري": Footprints,
+  "غيارات": ClipboardCheck,
+  "عمليات": ShieldCheck,
+  "قسطرة": CircleDot,
+  "أنبوب": Pipette,
+  "عينات": TestTube,
+  "شرجية": FlaskConical,
 };
 
+function getIconForService(name: string): React.ElementType {
+  for (const [keyword, icon] of Object.entries(SERVICE_ICON_MAP)) {
+    if (name.includes(keyword)) return icon;
+  }
+  return Briefcase;
+}
+
 interface ServiceCardProps {
-  service: MedicalService;
+  service: DbService;
   isSelected: boolean;
-  onSelect: (service: MedicalService) => void;
+  onSelect: (service: DbService) => void;
 }
 
 const ServiceCard = ({ service, isSelected, onSelect }: ServiceCardProps) => {
   const { t } = useLanguage();
-  const Icon = iconMap[service.icon];
+  const Icon = getIconForService(service.name);
 
   return (
     <button
@@ -60,23 +92,30 @@ const ServiceCard = ({ service, isSelected, onSelect }: ServiceCardProps) => {
         <div
           className={cn(
             "h-11 w-11 rounded-lg flex items-center justify-center shrink-0 transition-colors",
-            isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+            isSelected
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
           )}
         >
-          {Icon && <Icon className="h-5 w-5" />}
+          <Icon className="h-5 w-5" />
         </div>
 
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-sm text-foreground">
-            {t(service.nameKey)}
-          </h4>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-            {t(service.descKey)}
-          </p>
+          <h4 className="font-semibold text-sm text-foreground">{service.name}</h4>
+          {service.description && (
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              {service.description}
+            </p>
+          )}
           <div className="mt-2 flex items-baseline gap-1">
             <span className="text-sm font-bold text-primary">
-              {t("price.starts_from")} {HOURLY_PRICING.day.firstHour} {t("price.currency")}/{t("price.per_hour")}
+              {service.base_price} {t("price.currency")}
             </span>
+            {service.duration_minutes && (
+              <span className="text-xs text-muted-foreground">
+                / {service.duration_minutes} {t("form.hours.single") || "دقيقة"}
+              </span>
+            )}
           </div>
         </div>
       </div>

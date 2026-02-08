@@ -1,10 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ServiceCategory, categoryConfig } from "@/lib/services";
+import { CATEGORY_CONFIG } from "@/lib/services";
 import { cn } from "@/lib/utils";
-import {
-  Stethoscope,
-  HeartPulse,
-} from "lucide-react";
+import { Stethoscope, HeartPulse } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
   Stethoscope,
@@ -12,20 +9,22 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 interface CategoryTabsProps {
-  selected: ServiceCategory;
-  onChange: (cat: ServiceCategory) => void;
+  selected: string;
+  categories: string[];
+  onChange: (cat: string) => void;
 }
 
-const categories: ServiceCategory[] = ["medical", "nursing"];
-
-const CategoryTabs = ({ selected, onChange }: CategoryTabsProps) => {
-  const { t } = useLanguage();
+const CategoryTabs = ({ selected, categories, onChange }: CategoryTabsProps) => {
+  const { lang } = useLanguage();
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${Math.min(categories.length, 4)}, 1fr)` }}>
       {categories.map((cat) => {
-        const config = categoryConfig[cat];
-        const Icon = iconMap[config.icon];
+        const config = CATEGORY_CONFIG[cat];
+        const Icon = config ? iconMap[config.icon] : null;
+        const label = config
+          ? lang === "ar" ? config.labelAr : config.labelEn
+          : cat;
         const isActive = selected === cat;
 
         return (
@@ -53,7 +52,7 @@ const CategoryTabs = ({ selected, onChange }: CategoryTabsProps) => {
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              {t(config.labelKey)}
+              {label}
             </span>
           </button>
         );
