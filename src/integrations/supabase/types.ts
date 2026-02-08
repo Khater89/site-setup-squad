@@ -226,8 +226,11 @@ export type Database = {
         Row: {
           active: boolean
           base_price: number
+          category: string
           city: string | null
           created_at: string
+          description: string | null
+          duration_minutes: number | null
           id: string
           name: string
           updated_at: string
@@ -235,8 +238,11 @@ export type Database = {
         Insert: {
           active?: boolean
           base_price?: number
+          category?: string
           city?: string | null
           created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
           id?: string
           name: string
           updated_at?: string
@@ -244,8 +250,11 @@ export type Database = {
         Update: {
           active?: boolean
           base_price?: number
+          category?: string
           city?: string | null
           created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
           id?: string
           name?: string
           updated_at?: string

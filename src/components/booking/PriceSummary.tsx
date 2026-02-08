@@ -1,25 +1,31 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { MedicalService, calculateHourlyPricing, PeriodType, HOURLY_PRICING } from "@/lib/services";
+import { calculateHourlyPricing, PeriodType, HOURLY_PRICING, CATEGORY_CONFIG } from "@/lib/services";
+import type { DbService } from "@/hooks/useServices";
 import { Separator } from "@/components/ui/separator";
 import { Receipt } from "lucide-react";
 
 interface PriceSummaryProps {
-  service: MedicalService;
+  service: DbService;
   hours: number;
   period: PeriodType;
 }
 
 const PriceSummary = ({ service, hours, period }: PriceSummaryProps) => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { basePrice, commission, total } = calculateHourlyPricing(period, hours);
   const config = HOURLY_PRICING[period];
   const currency = t("price.currency");
+
+  const catConfig = CATEGORY_CONFIG[service.category];
+  const categoryLabel = catConfig
+    ? lang === "ar" ? catConfig.labelAr : catConfig.labelEn
+    : service.category;
 
   return (
     <div className="rounded-xl border-2 border-border bg-card p-5">
       <div className="flex items-center gap-2 mb-4">
         <Receipt className="h-5 w-5 text-primary" />
-        <h3 className="font-bold text-foreground">{t("service.category." + service.category)}</h3>
+        <h3 className="font-bold text-foreground">{service.name}</h3>
       </div>
 
       <div className="space-y-3">

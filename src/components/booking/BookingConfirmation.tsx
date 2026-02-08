@@ -1,5 +1,6 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { MedicalService, PeriodType } from "@/lib/services";
+import type { DbService } from "@/hooks/useServices";
+import { PeriodType } from "@/lib/services";
 import { PatientData } from "./PatientForm";
 import PriceSummary from "./PriceSummary";
 import { format } from "date-fns";
@@ -7,7 +8,7 @@ import { ar } from "date-fns/locale";
 import { User, Phone, Mail, MapPin, CalendarIcon, Clock, FileText, AlertTriangle } from "lucide-react";
 
 interface BookingConfirmationProps {
-  service: MedicalService;
+  service: DbService;
   patient: PatientData;
 }
 
