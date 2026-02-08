@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,7 +34,7 @@ const INITIAL_PATIENT: PatientData = {
 
 const BookingPage = () => {
   const { t, lang, isRTL } = useLanguage();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const { services, categories, loading: servicesLoading } = useServices(true);
@@ -80,22 +81,22 @@ const BookingPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedService || isSubmitting) return;
+    if (!selectedService || isSubmitting || !user) return;
     setIsSubmitting(true);
 
     const period: PeriodType = patient.time === "evening" ? "night" : "day";
     const pricing = calculateHourlyPricing(period, patient.hours);
 
     const subtotal = pricing.total;
-    const platformFee = Math.round(subtotal * (settings.platform_fee_percent / 100) * 100) / 100;
-    const providerPayout = subtotal - platformFee;
 
     const scheduledAt = new Date(patient.date!);
     const timeMap: Record<string, number> = { morning: 9, afternoon: 13, evening: 20 };
     scheduledAt.setHours(timeMap[patient.time] || 9, 0, 0, 0);
 
+    // Financial fields (platform_fee, provider_payout) are calculated
+    // server-side by the database trigger — not sent from client
     const booking = {
-      customer_user_id: user?.id || null,
+      customer_user_id: user.id,
       customer_name: patient.name.trim(),
       customer_phone: patient.phone.trim(),
       city: patient.city.trim(),
@@ -104,8 +105,6 @@ const BookingPage = () => {
       notes: patient.notes.trim() || null,
       payment_method: "CASH",
       subtotal,
-      platform_fee: platformFee,
-      provider_payout: providerPayout,
     };
 
     const { error } = await supabase.from("bookings").insert(booking);
@@ -133,6 +132,11 @@ const BookingPage = () => {
 
   const NextIcon = isRTL ? ArrowLeft : ArrowRight;
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+
+  // Require authentication — redirect to login if not signed in
+  if (!authLoading && !user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   if (submitted) {
     return (
