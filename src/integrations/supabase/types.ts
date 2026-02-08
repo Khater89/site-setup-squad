@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          assigned_at: string | null
+          assigned_by: string | null
           assigned_provider_id: string | null
           city: string
           connect_charge_type: string | null
@@ -42,6 +44,8 @@ export type Database = {
           subtotal: number
         }
         Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
           assigned_provider_id?: string | null
           city: string
           connect_charge_type?: string | null
@@ -68,6 +72,8 @@ export type Database = {
           subtotal?: number
         }
         Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
           assigned_provider_id?: string | null
           city?: string
           connect_charge_type?: string | null
@@ -156,33 +162,66 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_text: string | null
+          available_now: boolean | null
           city: string | null
           created_at: string
+          date_of_birth: string | null
+          experience_years: number | null
           full_name: string | null
+          languages: string[] | null
+          license_id: string | null
           phone: string | null
+          profile_completed: boolean | null
           provider_status: string
+          radius_km: number | null
+          role_type: string | null
+          schedule_json: Json | null
           stripe_connect_account_id: string | null
           stripe_connect_onboarding_status: string | null
+          tools: string[] | null
           user_id: string
         }
         Insert: {
+          address_text?: string | null
+          available_now?: boolean | null
           city?: string | null
           created_at?: string
+          date_of_birth?: string | null
+          experience_years?: number | null
           full_name?: string | null
+          languages?: string[] | null
+          license_id?: string | null
           phone?: string | null
+          profile_completed?: boolean | null
           provider_status?: string
+          radius_km?: number | null
+          role_type?: string | null
+          schedule_json?: Json | null
           stripe_connect_account_id?: string | null
           stripe_connect_onboarding_status?: string | null
+          tools?: string[] | null
           user_id: string
         }
         Update: {
+          address_text?: string | null
+          available_now?: boolean | null
           city?: string | null
           created_at?: string
+          date_of_birth?: string | null
+          experience_years?: number | null
           full_name?: string | null
+          languages?: string[] | null
+          license_id?: string | null
           phone?: string | null
+          profile_completed?: boolean | null
           provider_status?: string
+          radius_km?: number | null
+          role_type?: string | null
+          schedule_json?: Json | null
           stripe_connect_account_id?: string | null
           stripe_connect_onboarding_status?: string | null
+          tools?: string[] | null
           user_id?: string
         }
         Relationships: []
@@ -314,7 +353,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "provider" | "customer"
+      app_role: "admin" | "provider" | "customer" | "cs"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -442,7 +481,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "provider", "customer"],
+      app_role: ["admin", "provider", "customer", "cs"],
     },
   },
 } as const
