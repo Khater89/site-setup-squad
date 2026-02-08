@@ -95,10 +95,15 @@ const LandingPage = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LanguageToggle />
+            <Link to="/auth">
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
+                {t("landing.login") || "تسجيل الدخول"}
+              </Button>
+            </Link>
             <Link to="/booking">
-              <Button size="sm" className="gap-1.5 hidden sm:flex">
+              <Button size="sm" className="gap-1.5 text-xs sm:text-sm">
                 {t("landing.cta")}
                 <ArrowIcon className="h-3.5 w-3.5" />
               </Button>
