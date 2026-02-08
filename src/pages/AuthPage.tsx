@@ -59,7 +59,7 @@ const AuthPage = () => {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: signupEmail.trim(),
       password: signupPassword,
       options: {
@@ -67,12 +67,17 @@ const AuthPage = () => {
         data: { full_name: signupName.trim() },
       },
     });
-    setLoading(false);
+    
     if (error) {
       toast({ title: "خطأ في التسجيل", description: error.message, variant: "destructive" });
     } else {
+      // Assign customer role
+      if (signUpData.user) {
+        await supabase.from("user_roles").insert({ user_id: signUpData.user.id, role: "customer" as const });
+      }
       toast({ title: "تم التسجيل بنجاح!", description: "تحقق من بريدك الإلكتروني لتأكيد الحساب" });
     }
+    setLoading(false);
   };
 
   return (
@@ -148,8 +153,14 @@ const AuthPage = () => {
                   />
                   <Button type="submit" className="w-full gap-2" disabled={loading}>
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    إنشاء حساب
+                    إنشاء حساب (مستخدم)
                   </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    هل أنت مقدم خدمة طبية؟{" "}
+                    <Link to="/provider/register" className="text-primary hover:underline font-medium">
+                      سجّل كمقدم خدمة
+                    </Link>
+                  </p>
                 </form>
               </TabsContent>
             </Tabs>
