@@ -97,6 +97,11 @@ const LandingPage = () => {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageToggle />
+            <Link to="/admin/setup">
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm gap-1.5">
+                ⚙️ إعداد الأدمن
+              </Button>
+            </Link>
             <Link to="/auth">
               <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
                 {t("landing.login") || "تسجيل الدخول"}
