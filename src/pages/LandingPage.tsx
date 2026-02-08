@@ -84,7 +84,7 @@ const LandingPage = () => {
         className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-20"
       >
         <div className="container max-w-6xl py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src={mfnLogo} alt="Medical Field Nation" className="h-10 w-10 rounded-xl object-contain" />
             <div>
               <h1 className="text-lg font-bold text-foreground tracking-tight">
@@ -94,14 +94,9 @@ const LandingPage = () => {
                 {t("app.tagline")}
               </p>
             </div>
-          </div>
+          </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageToggle />
-            <Link to="/admin/setup">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm gap-1.5">
-                ⚙️ إعداد الأدمن
-              </Button>
-            </Link>
             <Link to="/auth">
               <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
                 {t("landing.login") || "تسجيل الدخول"}

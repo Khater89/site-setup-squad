@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Package, CalendarCheck, Users, Settings, LogOut } from "lucide-react";
@@ -23,13 +23,13 @@ const AdminDashboard = () => {
       {/* Header */}
       <header className="border-b border-border bg-card sticky top-0 z-40">
         <div className="container flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src={mfnLogo} alt="MFN" className="h-8" />
             <div>
               <h1 className="text-sm font-bold text-foreground">لوحة الإدارة</h1>
               <p className="text-[10px] text-muted-foreground">{user?.email}</p>
             </div>
-          </div>
+          </Link>
           <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
             <LogOut className="h-4 w-4" />
             خروج
