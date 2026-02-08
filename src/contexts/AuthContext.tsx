@@ -21,6 +21,7 @@ interface AuthContextType {
   profile: Profile | null;
   roles: AppRole[];
   loading: boolean;
+  rolesLoaded: boolean;
   isAdmin: boolean;
   isProvider: boolean;
   isCustomer: boolean;
@@ -36,8 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
 
   const fetchUserData = useCallback(async (userId: string) => {
+    setRolesLoaded(false);
     const [rolesResult, profileResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
@@ -48,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profileResult.data) {
       setProfile(profileResult.data as Profile);
     }
+    setRolesLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -79,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setRoles([]);
     setProfile(null);
+    setRolesLoaded(false);
   };
 
   const refreshUserData = async () => {
@@ -88,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user, session, profile, roles, loading,
+        user, session, profile, roles, loading, rolesLoaded,
         isAdmin: roles.includes("admin"),
         isProvider: roles.includes("provider"),
         isCustomer: roles.includes("customer"),

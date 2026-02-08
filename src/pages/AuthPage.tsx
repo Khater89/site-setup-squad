@@ -13,12 +13,12 @@ import mfnLogo from "@/assets/mfn-logo.png";
 const AuthPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAdmin, isProvider, loading: authLoading } = useAuth();
+  const { user, isAdmin, isProvider, loading: authLoading, rolesLoaded } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in and roles are loaded
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && rolesLoaded) {
       if (isAdmin) {
         navigate("/admin", { replace: true });
       } else if (isProvider) {
@@ -27,7 +27,7 @@ const AuthPage = () => {
         navigate("/", { replace: true });
       }
     }
-  }, [user, isAdmin, isProvider, authLoading, navigate]);
+  }, [user, isAdmin, isProvider, authLoading, rolesLoaded, navigate]);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
