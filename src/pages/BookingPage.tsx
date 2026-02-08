@@ -6,15 +6,18 @@ import { useServices, DbService } from "@/hooks/useServices";
 import { calculateHourlyPricing, PeriodType } from "@/lib/services";
 import { buildBookingPayload, submitToGoogleSheets } from "@/lib/googleSheets";
 import BookingHeader from "@/components/booking/BookingHeader";
+import AppFooter from "@/components/AppFooter";
 import StepIndicator from "@/components/booking/StepIndicator";
 import CategoryTabs from "@/components/booking/CategoryTabs";
 import ServiceCard from "@/components/booking/ServiceCard";
 import PatientForm, { PatientData } from "@/components/booking/PatientForm";
 import BookingConfirmation from "@/components/booking/BookingConfirmation";
+import BookingSummary from "@/components/booking/BookingSummary";
 import SuccessView from "@/components/booking/SuccessView";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, ArrowLeft, Send, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const INITIAL_PATIENT: PatientData = {
   name: "",
@@ -42,7 +45,6 @@ const BookingPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Platform settings
   const [settings, setSettings] = useState({ platform_fee_percent: 10, deposit_percent: 20 });
 
   useEffect(() => {
@@ -54,7 +56,6 @@ const BookingPage = () => {
       .then(({ data }) => { if (data) setSettings(data); });
   }, []);
 
-  // Set default category when services load
   useEffect(() => {
     if (categories.length > 0 && !category) {
       setCategory(categories[0]);
@@ -109,7 +110,6 @@ const BookingPage = () => {
 
     const { error } = await supabase.from("bookings").insert(booking);
 
-    // Dual-write to Google Sheets
     const payload = buildBookingPayload(selectedService, patient, lang);
     await submitToGoogleSheets(payload);
 
@@ -136,98 +136,138 @@ const BookingPage = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <BookingHeader />
-        <main className="container max-w-xl py-10">
-          <SuccessView onReset={handleReset} />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="container max-w-xl py-10">
+            <SuccessView onReset={handleReset} />
+          </div>
         </main>
+        <AppFooter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <BookingHeader />
 
-      <main className="container max-w-xl py-6 space-y-6">
-        <div className="text-center space-y-1">
-          <h2 className="text-xl font-bold text-foreground">{t("booking.title")}</h2>
+      <main className="flex-1 container max-w-5xl py-8 space-y-8">
+        {/* Title */}
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground">{t("booking.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("booking.subtitle")}</p>
         </div>
 
         <StepIndicator currentStep={step} totalSteps={3} />
 
-        <div className="animate-slide-up">
-          {/* Step 1 */}
-          {step === 1 && (
-            <div className="space-y-4">
-              {servicesLoading ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : (
-                <>
-                  <CategoryTabs
-                    selected={category}
-                    categories={categories}
-                    onChange={(c) => { setCategory(c); setSelectedService(null); }}
-                  />
-                  <div className="grid gap-3">
-                    {categoryServices.map((service) => (
-                      <ServiceCard
-                        key={service.id}
-                        service={service}
-                        isSelected={selectedService?.id === service.id}
-                        onSelect={setSelectedService}
-                      />
-                    ))}
+        {/* 2-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+          {/* Wizard */}
+          <div className="space-y-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+              >
+                {/* Step 1 */}
+                {step === 1 && (
+                  <div className="space-y-4">
+                    {servicesLoading ? (
+                      <div className="flex justify-center py-10">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <>
+                        <CategoryTabs
+                          selected={category}
+                          categories={categories}
+                          onChange={(c) => { setCategory(c); setSelectedService(null); }}
+                        />
+                        <div className="grid gap-3">
+                          {categoryServices.map((service) => (
+                            <ServiceCard
+                              key={service.id}
+                              service={service}
+                              isSelected={selectedService?.id === service.id}
+                              onSelect={setSelectedService}
+                            />
+                          ))}
+                        </div>
+                        {categoryServices.length === 0 && (
+                          <p className="text-center text-sm text-muted-foreground py-6">
+                            لا توجد خدمات متاحة في هذا التصنيف
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
-                  {categoryServices.length === 0 && (
-                    <p className="text-center text-sm text-muted-foreground py-6">
-                      لا توجد خدمات متاحة في هذا التصنيف
-                    </p>
-                  )}
-                </>
+                )}
+
+                {/* Step 2 */}
+                {step === 2 && <PatientForm data={patient} onChange={setPatient} />}
+
+                {/* Step 3 */}
+                {step === 3 && selectedService && (
+                  <BookingConfirmation service={selectedService} patient={patient} />
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Navigation */}
+            <div className="flex gap-3 pt-2">
+              {step > 1 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setStep(step - 1)}
+                  className="gap-2 flex-1 rounded-xl h-11 font-semibold"
+                >
+                  <BackIcon className="h-4 w-4" />
+                  {t("action.back")}
+                </Button>
+              )}
+              {step < 3 ? (
+                <Button
+                  onClick={() => setStep(step + 1)}
+                  disabled={!canGoNext()}
+                  className="gap-2 flex-1 rounded-xl h-11 font-semibold"
+                >
+                  {t("action.next")}
+                  <NextIcon className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="gap-2 flex-1 rounded-xl h-11 font-semibold"
+                >
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {isSubmitting ? t("status.submitting") : t("action.submit")}
+                </Button>
               )}
             </div>
-          )}
+          </div>
 
-          {/* Step 2 */}
-          {step === 2 && <PatientForm data={patient} onChange={setPatient} />}
-
-          {/* Step 3 */}
-          {step === 3 && selectedService && (
-            <BookingConfirmation service={selectedService} patient={patient} />
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex gap-3 pt-2">
-          {step > 1 && (
-            <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-2 flex-1">
-              <BackIcon className="h-4 w-4" />
-              {t("action.back")}
-            </Button>
-          )}
-          {step < 3 ? (
-            <Button onClick={() => setStep(step + 1)} disabled={!canGoNext()} className="gap-2 flex-1">
-              {t("action.next")}
-              <NextIcon className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2 flex-1">
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              {isSubmitting ? t("status.submitting") : t("action.submit")}
-            </Button>
+          {/* Sidebar Summary */}
+          {selectedService && (
+            <div className="hidden lg:block lg:sticky lg:top-24">
+              <BookingSummary service={selectedService} patient={patient} step={step} />
+            </div>
           )}
         </div>
 
-        <footer className="pt-4 pb-8 border-t border-border">
-          <p className="text-[10px] text-muted-foreground text-center">
-            {t("app.name")} — {t("app.tagline")}
-          </p>
-        </footer>
+        {/* Mobile Summary (below wizard) */}
+        {selectedService && (
+          <div className="lg:hidden">
+            <BookingSummary service={selectedService} patient={patient} step={step} />
+          </div>
+        )}
       </main>
+
+      <AppFooter />
     </div>
   );
 };
