@@ -30,7 +30,9 @@ import { motion } from "framer-motion";
 
 const AppHeader = () => {
   const { t, isRTL } = useLanguage();
-  const { user, profile, isAdmin, isProvider, isCustomer, signOut, loading } = useAuth();
+  const { user, profile, isAdmin, isCS, isProvider, isCustomer, signOut, loading } = useAuth();
+  // Effective role prevents showing multiple dashboard links
+  const effectiveRole = isAdmin ? "admin" : isCS ? "cs" : isProvider ? "provider" : "customer";
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -168,19 +170,25 @@ const AppHeader = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-48">
-                {isAdmin && (
+                {effectiveRole === "admin" && (
                   <DropdownMenuItem onClick={() => navigate("/admin")} className="gap-2 cursor-pointer">
                     <LayoutDashboard className="h-4 w-4" />
                     لوحة الإدارة
                   </DropdownMenuItem>
                 )}
-                {isProvider && (
+                {effectiveRole === "cs" && (
+                  <DropdownMenuItem onClick={() => navigate("/cs")} className="gap-2 cursor-pointer">
+                    <LayoutDashboard className="h-4 w-4" />
+                    لوحة خدمة العملاء
+                  </DropdownMenuItem>
+                )}
+                {effectiveRole === "provider" && (
                   <DropdownMenuItem onClick={() => navigate("/provider")} className="gap-2 cursor-pointer">
                     <LayoutDashboard className="h-4 w-4" />
                     لوحة مقدم الخدمة
                   </DropdownMenuItem>
                 )}
-                {isCustomer && (
+                {effectiveRole === "customer" && (
                   <>
                     <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2 cursor-pointer">
                       <User className="h-4 w-4" />

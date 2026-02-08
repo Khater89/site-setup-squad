@@ -14,6 +14,8 @@ import AdminSetup from "./pages/admin/AdminSetup";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ProviderRegister from "./pages/provider/ProviderRegister";
 import ProviderDashboard from "./pages/provider/ProviderDashboard";
+import ProviderOnboarding from "./pages/provider/ProviderOnboarding";
+import CSDashboard from "./pages/cs/CSDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,7 +56,25 @@ const App = () => (
                 }
               />
 
+              {/* Customer Service */}
+              <Route
+                path="/cs"
+                element={
+                  <ProtectedRoute requiredRole="cs">
+                    <CSDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Provider */}
+              <Route
+                path="/provider/onboarding"
+                element={
+                  <ProtectedRoute requiredRole="provider">
+                    <ProviderOnboarding />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/provider"
                 element={

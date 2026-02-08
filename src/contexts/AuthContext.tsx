@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "admin" | "provider" | "customer";
+type AppRole = "admin" | "provider" | "customer" | "cs";
 
 interface Profile {
   user_id: string;
@@ -13,6 +13,17 @@ interface Profile {
   stripe_connect_account_id: string | null;
   stripe_connect_onboarding_status: string | null;
   created_at: string;
+  date_of_birth: string | null;
+  role_type: string | null;
+  experience_years: number | null;
+  tools: string[] | null;
+  languages: string[] | null;
+  available_now: boolean;
+  schedule_json: any | null;
+  radius_km: number | null;
+  address_text: string | null;
+  license_id: string | null;
+  profile_completed: boolean;
 }
 
 interface AuthContextType {
@@ -23,6 +34,7 @@ interface AuthContextType {
   loading: boolean;
   rolesLoaded: boolean;
   isAdmin: boolean;
+  isCS: boolean;
   isProvider: boolean;
   isCustomer: boolean;
   signOut: () => Promise<void>;
@@ -95,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user, session, profile, roles, loading, rolesLoaded,
         isAdmin: roles.includes("admin"),
+        isCS: roles.includes("cs"),
         isProvider: roles.includes("provider"),
         isCustomer: roles.includes("customer"),
         signOut, refreshUserData,

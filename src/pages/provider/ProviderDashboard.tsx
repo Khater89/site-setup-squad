@@ -113,6 +113,9 @@ const ProviderDashboard = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
+  // Guard: only approved + profile-completed providers can access
+  const isProfileReady = profile?.provider_status === "approved" && profile?.profile_completed;
+
   const assignToMe = async (bookingId: string) => {
     if (!user) return;
     setAssigning(bookingId);
@@ -122,6 +125,8 @@ const ProviderDashboard = () => {
       .update({
         assigned_provider_id: user.id,
         status: "ASSIGNED",
+        assigned_at: new Date().toISOString(),
+        assigned_by: "provider_self",
       })
       .eq("id", bookingId)
       .eq("status", "NEW")
@@ -174,6 +179,34 @@ const ProviderDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If provider not approved or profile not completed, show message
+  if (!isProfileReady) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="py-10 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {profile?.provider_status !== "approved"
+                ? "حسابك قيد المراجعة. يرجى الانتظار حتى تتم الموافقة."
+                : "يرجى إكمال ملفك الشخصي أولاً لبدء استقبال الطلبات."}
+            </p>
+            {profile?.provider_status === "approved" && !profile?.profile_completed && (
+              <Link to="/provider/onboarding">
+                <Button>إكمال الملف الشخصي</Button>
+              </Link>
+            )}
+            <div>
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5 mt-2">
+                <LogOut className="h-4 w-4" />
+                خروج
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
