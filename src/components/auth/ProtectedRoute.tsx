@@ -2,15 +2,24 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
+type DashboardRole = "admin" | "cs" | "provider";
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: "admin" | "provider";
+  requiredRole?: DashboardRole;
 }
 
-const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { user, loading, isAdmin, isProvider } = useAuth();
+const ROLE_DASHBOARDS: Record<string, string> = {
+  admin: "/admin",
+  cs: "/cs",
+  provider: "/provider",
+  customer: "/profile",
+};
 
-  if (loading) {
+const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+  const { user, loading, rolesLoaded, isAdmin, isCS, isProvider } = useAuth();
+
+  if (loading || (user && !rolesLoaded)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -22,12 +31,18 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (requiredRole === "admin" && !isAdmin) {
-    return <Navigate to="/" replace />;
-  }
+  // Determine effective (highest-priority) role — prevents role mixing
+  const effectiveRole = isAdmin
+    ? "admin"
+    : isCS
+    ? "cs"
+    : isProvider
+    ? "provider"
+    : "customer";
 
-  if (requiredRole === "provider" && !isProvider) {
-    return <Navigate to="/" replace />;
+  // If a specific role is required and user's effective role doesn't match, redirect
+  if (requiredRole && requiredRole !== effectiveRole) {
+    return <Navigate to={ROLE_DASHBOARDS[effectiveRole]} replace />;
   }
 
   return <>{children}</>;
