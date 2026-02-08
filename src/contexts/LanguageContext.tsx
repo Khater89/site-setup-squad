@@ -18,23 +18,25 @@ const translations: Record<Language, Record<string, string>> = {
     // Header
     "app.name": "Medical Field Nation",
     "app.tagline": "خدمات طبية ميدانية احترافية",
-    
+
     // Navigation
     "nav.home": "الرئيسية",
     "nav.booking": "حجز خدمة",
     "nav.about": "عن المنصة",
-    
+    "nav.services": "الخدمات",
+
     // Booking Form
     "booking.title": "احجز خدمتك الطبية",
     "booking.subtitle": "اختر نوع الخدمة واملأ بياناتك لحجز موعدك",
     "booking.step1": "اختر الخدمة",
     "booking.step2": "بيانات المريض",
     "booking.step3": "تأكيد الحجز",
-    
+    "booking.summary": "ملخص الحجز",
+
     // Service Categories
     "service.category.medical": "خدمات طبية",
     "service.category.nursing": "تمريض منزلي",
-    
+
     // Medical Services
     "service.general_medicine": "طب عام وتشخيص",
     "service.general_medicine.desc": "كشف طبي عام وتشخيص في المنزل",
@@ -44,7 +46,7 @@ const translations: Record<Language, Record<string, string>> = {
     "service.fracture_treatment.desc": "تشخيص وعلاج الكسور منزلياً",
     "service.wound_suturing": "تخييط الجروح",
     "service.wound_suturing.desc": "خياطة وإغلاق الجروح منزلياً",
-    
+
     // Nursing Services
     "service.home_nursing": "تمريض منزلي",
     "service.home_nursing.desc": "خدمات تمريضية شاملة في المنزل",
@@ -82,7 +84,7 @@ const translations: Record<Language, Record<string, string>> = {
     "service.home_samples.desc": "سحب عينات دم وجروح وزراعة في المنزل",
     "service.home_enema": "حقنة شرجية منزلية",
     "service.home_enema.desc": "إعطاء حقنة شرجية في المنزل",
-    
+
     // Patient Form
     "form.patient_name": "اسم المريض",
     "form.patient_name.placeholder": "أدخل الاسم الكامل",
@@ -100,12 +102,12 @@ const translations: Record<Language, Record<string, string>> = {
     "form.time": "الوقت المفضل",
     "form.notes": "ملاحظات إضافية",
     "form.notes.placeholder": "أي معلومات إضافية تود إخبارنا بها...",
-    
+
     // Time slots
     "time.morning": "صباحاً (8-12)",
     "time.afternoon": "ظهراً (12-4)",
     "time.evening": "مساءً (4-8)",
-    
+
     // Pricing
     "price.base": "سعر الخدمة",
     "price.commission": "رسوم المنصة (10%)",
@@ -120,19 +122,19 @@ const translations: Record<Language, Record<string, string>> = {
     "price.period": "فترة الخدمة",
     "price.period.day": "نهاري (6ص - 9م)",
     "price.period.night": "ليلي (9م - 6ص)",
-    
+
     // Hours
     "form.hours": "عدد الساعات",
     "form.hours.single": "ساعة",
     "form.hours.plural": "ساعات",
-    
+
     // Actions
     "action.next": "التالي",
     "action.back": "رجوع",
     "action.confirm": "تأكيد الحجز",
     "action.submit": "إرسال الطلب",
     "action.book_now": "احجز الآن",
-    
+
     // Status
     "status.success": "تم إرسال طلبك بنجاح!",
     "status.success.desc": "سنتواصل معك قريباً لتأكيد الموعد",
@@ -140,11 +142,12 @@ const translations: Record<Language, Record<string, string>> = {
     "status.submitting": "جارٍ إرسال الطلب...",
     "status.error": "حدث خطأ أثناء الإرسال",
     "status.error.desc": "يرجى المحاولة مرة أخرى",
-    
+
     // Landing
     "landing.hero": "خدمات طبية منزلية موثوقة",
     "landing.hero.sub": "أطباء وممرضون معتمدون يصلون إلى باب منزلك في أي وقت",
     "landing.cta": "احجز موعدك الآن",
+    "landing.login": "تسجيل الدخول",
     "landing.feature1": "أطباء معتمدون",
     "landing.feature1.desc": "فريق طبي مرخص وذو خبرة عالية في تقديم الرعاية المنزلية",
     "landing.feature2": "خدمة سريعة",
@@ -169,30 +172,43 @@ const translations: Record<Language, Record<string, string>> = {
     "landing.stats.available": "متاح دائماً",
     "landing.stats.cities": "مدن مغطاة",
     "landing.footer.rights": "جميع الحقوق محفوظة",
+    "landing.footer.quickLinks": "روابط سريعة",
+    "landing.footer.contact": "تواصل معنا",
     "landing.whyus": "لماذا نحن؟",
     "landing.whyus.sub": "نلتزم بتقديم أعلى مستويات الرعاية الطبية في راحة منزلك",
+
+    // How it works
+    "landing.howItWorks": "كيف يعمل؟",
+    "landing.step1.title": "اختر خدمتك",
+    "landing.step1.desc": "تصفح قائمة الخدمات الطبية واختر ما يناسب حالتك",
+    "landing.step2.title": "حدد موعدك",
+    "landing.step2.desc": "اختر التاريخ والوقت والمكان المناسب لك",
+    "landing.step3.title": "نصلك فوراً",
+    "landing.step3.desc": "فريقنا الطبي المعتمد يصل إلى باب منزلك",
   },
   en: {
     // Header
     "app.name": "Medical Field Nation",
     "app.tagline": "Professional Field Medical Services",
-    
+
     // Navigation
     "nav.home": "Home",
     "nav.booking": "Book Service",
     "nav.about": "About",
-    
+    "nav.services": "Services",
+
     // Booking Form
     "booking.title": "Book Your Medical Service",
     "booking.subtitle": "Choose your service type and fill in your details",
     "booking.step1": "Select Service",
     "booking.step2": "Patient Info",
     "booking.step3": "Confirm Booking",
-    
+    "booking.summary": "Booking Summary",
+
     // Service Categories
     "service.category.medical": "Medical Services",
     "service.category.nursing": "Home Nursing",
-    
+
     // Medical Services
     "service.general_medicine": "General Medicine & Diagnosis",
     "service.general_medicine.desc": "General medical checkup and diagnosis at home",
@@ -202,7 +218,7 @@ const translations: Record<Language, Record<string, string>> = {
     "service.fracture_treatment.desc": "Fracture diagnosis and treatment at home",
     "service.wound_suturing": "Wound Suturing",
     "service.wound_suturing.desc": "Wound stitching and closure at home",
-    
+
     // Nursing Services
     "service.home_nursing": "Home Nursing",
     "service.home_nursing.desc": "Comprehensive nursing services at home",
@@ -240,7 +256,7 @@ const translations: Record<Language, Record<string, string>> = {
     "service.home_samples.desc": "Blood, wound, and culture sample collection at home",
     "service.home_enema": "Home Enema",
     "service.home_enema.desc": "Enema administration at home",
-    
+
     // Patient Form
     "form.patient_name": "Patient Name",
     "form.patient_name.placeholder": "Enter full name",
@@ -259,12 +275,12 @@ const translations: Record<Language, Record<string, string>> = {
     "form.time": "Preferred Time",
     "form.notes": "Additional Notes",
     "form.notes.placeholder": "Any additional information you'd like to share...",
-    
+
     // Time slots
     "time.morning": "Morning (8-12)",
     "time.afternoon": "Afternoon (12-4)",
     "time.evening": "Evening (4-8)",
-    
+
     // Pricing
     "price.base": "Service Price",
     "price.commission": "Platform Fee (10%)",
@@ -279,19 +295,19 @@ const translations: Record<Language, Record<string, string>> = {
     "price.period": "Service Period",
     "price.period.day": "Day (6AM - 9PM)",
     "price.period.night": "Night (9PM - 6AM)",
-    
+
     // Hours
     "form.hours": "Number of Hours",
     "form.hours.single": "hour",
     "form.hours.plural": "hours",
-    
+
     // Actions
     "action.next": "Next",
     "action.back": "Back",
     "action.confirm": "Confirm Booking",
     "action.submit": "Submit Request",
     "action.book_now": "Book Now",
-    
+
     // Status
     "status.success": "Your request has been submitted!",
     "status.success.desc": "We'll contact you shortly to confirm the appointment",
@@ -299,11 +315,12 @@ const translations: Record<Language, Record<string, string>> = {
     "status.submitting": "Submitting your request...",
     "status.error": "Submission failed",
     "status.error.desc": "Please try again",
-    
+
     // Landing
     "landing.hero": "Trusted Home Medical Services",
     "landing.hero.sub": "Licensed doctors and nurses arriving at your doorstep anytime you need",
     "landing.cta": "Book Your Appointment",
+    "landing.login": "Login",
     "landing.feature1": "Licensed Doctors",
     "landing.feature1.desc": "Experienced and certified medical team specialized in home care",
     "landing.feature2": "Fast Service",
@@ -328,8 +345,19 @@ const translations: Record<Language, Record<string, string>> = {
     "landing.stats.available": "Always Available",
     "landing.stats.cities": "Cities Covered",
     "landing.footer.rights": "All rights reserved",
+    "landing.footer.quickLinks": "Quick Links",
+    "landing.footer.contact": "Contact Us",
     "landing.whyus": "Why Choose Us?",
     "landing.whyus.sub": "We're committed to delivering the highest quality medical care in the comfort of your home",
+
+    // How it works
+    "landing.howItWorks": "How It Works",
+    "landing.step1.title": "Choose Your Service",
+    "landing.step1.desc": "Browse our medical services and select what fits your needs",
+    "landing.step2.title": "Schedule Your Visit",
+    "landing.step2.desc": "Pick your preferred date, time, and location",
+    "landing.step3.title": "We Come to You",
+    "landing.step3.desc": "Our certified medical team arrives at your doorstep",
   },
 };
 
