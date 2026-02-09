@@ -7,6 +7,7 @@ import {
   CalendarDays, MapPin, Phone, User, CreditCard, UserCheck,
   MessageCircle, FileText, StickyNote,
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export interface BookingRow {
   id: string;
@@ -34,15 +35,6 @@ export interface BookingRow {
   created_at: string;
   service_id: string;
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  NEW: "جديد",
-  CONFIRMED: "مؤكد",
-  ASSIGNED: "تم التعيين",
-  ACCEPTED: "مقبول",
-  COMPLETED: "مكتمل",
-  CANCELLED: "ملغي",
-};
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-info/10 text-info border-info/30",
@@ -76,13 +68,15 @@ const InfoRow = ({ icon: Icon, label, value, dir }: { icon: any; label: string; 
 };
 
 const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, providerName, onAssign }: Props) => {
+  const { t, formatCurrency, formatDate, formatDateTime, formatDateShort } = useLanguage();
+
   if (!booking) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4">
-          <SheetTitle className="text-base">تفاصيل الحجز</SheetTitle>
+          <SheetTitle className="text-base">{t("booking.details.title")}</SheetTitle>
           <SheetDescription dir="ltr" className="text-xs">
             {booking.booking_number || booking.id.slice(0, 8)}
           </SheetDescription>
@@ -94,21 +88,21 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
             <div>
               <p className="font-semibold text-sm">{serviceName}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                أُنشئ {new Date(booking.created_at).toLocaleDateString("ar-JO", { year: "numeric", month: "short", day: "numeric" })}
+                {t("booking.details.created")} {formatDate(booking.created_at)}
               </p>
             </div>
             <Badge variant="outline" className={STATUS_COLORS[booking.status] || ""}>
-              {STATUS_LABELS[booking.status] || booking.status}
+              {t(`status.${booking.status}`)}
             </Badge>
           </div>
 
           {/* Client Info */}
           <div className="rounded-lg border border-border p-3 space-y-3">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">بيانات العميل</h4>
-            <InfoRow icon={User} label="الاسم" value={booking.customer_name} />
-            <InfoRow icon={Phone} label="الهاتف" value={booking.customer_phone} dir="ltr" />
-            <InfoRow icon={MapPin} label="المدينة" value={booking.city} />
-            <InfoRow icon={MapPin} label="العنوان" value={booking.client_address_text} />
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.client_info")}</h4>
+            <InfoRow icon={User} label={t("booking.details.client_name")} value={booking.customer_name} />
+            <InfoRow icon={Phone} label={t("booking.details.client_phone")} value={booking.customer_phone} dir="ltr" />
+            <InfoRow icon={MapPin} label={t("booking.details.client_city")} value={booking.city} />
+            <InfoRow icon={MapPin} label={t("booking.details.client_address")} value={booking.client_address_text} />
             {booking.client_lat && booking.client_lng && (
               <p className="text-xs text-muted-foreground" dir="ltr">
                 📍 {booking.client_lat}, {booking.client_lng}
@@ -118,65 +112,64 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
 
           {/* Schedule */}
           <div className="rounded-lg border border-border p-3 space-y-3">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الموعد</h4>
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.schedule")}</h4>
             <InfoRow
               icon={CalendarDays}
-              label="موعد الخدمة"
-              value={new Date(booking.scheduled_at).toLocaleDateString("ar-JO", {
-                weekday: "long", year: "numeric", month: "long", day: "numeric",
-                hour: "2-digit", minute: "2-digit",
-              })}
+              label={t("booking.details.service_date")}
+              value={formatDateTime(booking.scheduled_at)}
             />
           </div>
 
           {/* Financials */}
           <div className="rounded-lg border border-border p-3 space-y-3">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">البيانات المالية</h4>
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.financials")}</h4>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-xs text-muted-foreground">المجموع</span>
-                <p className="font-bold">{booking.subtotal} د.أ</p>
+                <span className="text-xs text-muted-foreground">{t("booking.details.subtotal")}</span>
+                <p className="font-bold">{formatCurrency(booking.subtotal)}</p>
               </div>
               <div>
-                <span className="text-xs text-muted-foreground">عمولة المنصة</span>
-                <p className="font-bold">{booking.platform_fee} د.أ</p>
+                <span className="text-xs text-muted-foreground">{t("booking.details.platform_fee")}</span>
+                <p className="font-bold">{formatCurrency(booking.platform_fee)}</p>
               </div>
               <div>
-                <span className="text-xs text-muted-foreground">أجر المزوّد</span>
-                <p className="font-bold">{booking.provider_payout} د.أ</p>
+                <span className="text-xs text-muted-foreground">{t("booking.details.provider_payout")}</span>
+                <p className="font-bold">{formatCurrency(booking.provider_payout)}</p>
               </div>
               {booking.agreed_price != null && (
                 <div>
-                  <span className="text-xs text-muted-foreground">السعر المتفق</span>
-                  <p className="font-bold text-success">{booking.agreed_price} د.أ</p>
+                  <span className="text-xs text-muted-foreground">{t("booking.details.agreed_price")}</span>
+                  <p className="font-bold text-success">{formatCurrency(booking.agreed_price)}</p>
                 </div>
               )}
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs">
-                <CreditCard className="h-3 w-3 ml-1" />
-                {booking.payment_method}
+                <CreditCard className="h-3 w-3 ms-1 me-1" />
+                {t(`payment.${booking.payment_method}`) || booking.payment_method}
               </Badge>
-              <Badge variant="outline" className="text-xs">{booking.payment_status}</Badge>
+              <Badge variant="outline" className="text-xs">
+                {t(`payment.${booking.payment_status}`) || booking.payment_status}
+              </Badge>
             </div>
           </div>
 
           {/* Assignment Info */}
           {booking.assigned_provider_id && (
             <div className="rounded-lg border border-success/20 bg-success/5 p-3 space-y-2">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">الإسناد</h4>
-              <InfoRow icon={UserCheck} label="المزوّد" value={providerName || "مزوّد"} />
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.assignment")}</h4>
+              <InfoRow icon={UserCheck} label={t("booking.details.provider")} value={providerName || t("booking.details.provider")} />
               {booking.assigned_by && (
-                <p className="text-xs text-muted-foreground">بواسطة: {booking.assigned_by}</p>
+                <p className="text-xs text-muted-foreground">{t("booking.details.assigned_by")}: {booking.assigned_by}</p>
               )}
               {booking.assigned_at && (
                 <p className="text-xs text-muted-foreground">
-                  تاريخ الإسناد: {new Date(booking.assigned_at).toLocaleDateString("ar-JO", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  {t("booking.details.assigned_date")}: {formatDateShort(booking.assigned_at)}
                 </p>
               )}
               {booking.accepted_at && (
                 <p className="text-xs text-success">
-                  ✅ مقبول: {new Date(booking.accepted_at).toLocaleDateString("ar-JO", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  ✅ {t("booking.details.accepted_date")}: {formatDateShort(booking.accepted_at)}
                 </p>
               )}
             </div>
@@ -186,7 +179,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
           {booking.notes && (
             <div className="rounded-lg border border-border p-3 space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-                <FileText className="h-3 w-3" /> ملاحظات العميل
+                <FileText className="h-3 w-3" /> {t("booking.details.client_notes")}
               </div>
               <p className="text-sm">{booking.notes}</p>
             </div>
@@ -195,7 +188,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
           {booking.internal_note && (
             <div className="rounded-lg border border-warning/20 bg-warning/5 p-3 space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-warning">
-                <StickyNote className="h-3 w-3" /> ملاحظة داخلية
+                <StickyNote className="h-3 w-3" /> {t("booking.details.internal_note")}
               </div>
               <p className="text-sm">{booking.internal_note}</p>
             </div>
@@ -205,7 +198,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
           <div className="flex gap-2 pt-2">
             {booking.status === "NEW" && !booking.assigned_provider_id && (
               <Button className="flex-1 gap-1.5" onClick={() => onAssign(booking)}>
-                <UserCheck className="h-4 w-4" /> تعيين مزوّد وتسعير
+                <UserCheck className="h-4 w-4" /> {t("booking.details.assign_provider")}
               </Button>
             )}
             <a
@@ -215,7 +208,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
               className="flex-1"
             >
               <Button variant="outline" className="w-full gap-1.5">
-                <MessageCircle className="h-4 w-4" /> واتساب
+                <MessageCircle className="h-4 w-4" /> {t("booking.details.whatsapp")}
               </Button>
             </a>
           </div>

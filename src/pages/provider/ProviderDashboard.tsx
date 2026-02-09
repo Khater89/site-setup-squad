@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,13 +49,6 @@ interface LedgerEntry {
   booking_id: string | null;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  ASSIGNED: "بانتظار القبول",
-  ACCEPTED: "مقبول",
-  COMPLETED: "مكتمل",
-  CANCELLED: "ملغي",
-};
-
 const STATUS_COLORS: Record<string, string> = {
   ASSIGNED: "bg-warning/10 text-warning border-warning/30",
   ACCEPTED: "bg-info/10 text-info border-info/30",
@@ -74,6 +68,7 @@ const TOOL_SUGGESTIONS = ["جهاز ضغط", "سماعة طبية", "جهاز س
 
 const ProviderDashboard = () => {
   const { user, profile, signOut, refreshUserData } = useAuth();
+  const { t, formatCurrency, formatDateShort, formatDate } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -109,7 +104,6 @@ const ProviderDashboard = () => {
   const fetchData = async () => {
     if (!user) return;
 
-    // Update last_active_at (fire and forget)
     supabase.from("profiles").update({ last_active_at: new Date().toISOString() } as any).eq("user_id", user.id);
 
     const { data: svcData } = await supabase.from("services").select("id, name");
@@ -117,7 +111,6 @@ const ProviderDashboard = () => {
     (svcData || []).forEach((s: any) => { svcMap[s.id] = s.name; });
     setServiceNames(svcMap);
 
-    // Only returns orders assigned to this provider (privacy-safe)
     const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
     setOrders((ordersData as unknown as ProviderOrder[]) || []);
 
@@ -148,16 +141,16 @@ const ProviderDashboard = () => {
       await (supabase as any).from("data_access_log").insert({
         booking_id: id, accessed_by: user.id, accessor_role: "provider", action: "accept_order",
       });
-      toast({ title: "تم قبول الطلب — بيانات التواصل متاحة الآن ✅" });
+      toast({ title: t("provider.dashboard.accepted_toast") });
       fetchData();
     } else {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     }
     setActionLoading(null);
   };
 
   const rejectOrder = async (id: string) => {
-    if (!confirm("هل تريد رفض هذا الطلب؟ سيعود للطابور ليتم إسناده لمزوّد آخر.")) return;
+    if (!confirm(t("provider.dashboard.reject_confirm"))) return;
     setActionLoading(id);
     const { error } = await supabase.from("bookings").update({
       assigned_provider_id: null,
@@ -167,9 +160,9 @@ const ProviderDashboard = () => {
     } as any).eq("id", id);
 
     if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "تم رفض الطلب — سيتم إعادته للطابور" });
+      toast({ title: t("provider.dashboard.rejected_toast") });
       fetchData();
     }
     setActionLoading(null);
@@ -178,9 +171,9 @@ const ProviderDashboard = () => {
   const markComplete = async (id: string) => {
     const { error } = await supabase.from("bookings").update({ status: "COMPLETED" }).eq("id", id);
     if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "تم تأكيد إتمام الطلب ✅" });
+      toast({ title: t("provider.dashboard.completed_toast") });
       fetchData();
     }
   };
@@ -200,10 +193,10 @@ const ProviderDashboard = () => {
 
     setProfileSaving(false);
     if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     } else {
       await refreshUserData();
-      toast({ title: "تم حفظ التعديلات ✅" });
+      toast({ title: t("provider.dashboard.profile_saved") });
     }
   };
 
@@ -222,15 +215,15 @@ const ProviderDashboard = () => {
           <CardContent className="py-10 space-y-4">
             <p className="text-sm text-muted-foreground">
               {profile?.provider_status !== "approved"
-                ? "حسابك قيد المراجعة. يرجى الانتظار حتى تتم الموافقة."
-                : "يرجى إكمال ملفك الشخصي أولاً لبدء استقبال الطلبات."}
+                ? t("provider.dashboard.pending_review")
+                : t("provider.dashboard.complete_profile")}
             </p>
             {profile?.provider_status === "approved" && !profile?.profile_completed && (
-              <Link to="/provider/onboarding"><Button>إكمال الملف الشخصي</Button></Link>
+              <Link to="/provider/onboarding"><Button>{t("provider.dashboard.go_complete_profile")}</Button></Link>
             )}
             <div>
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5 mt-2">
-                <LogOut className="h-4 w-4" /> خروج
+                <LogOut className="h-4 w-4" /> {t("action.logout")}
               </Button>
             </div>
           </CardContent>
@@ -246,8 +239,8 @@ const ProviderDashboard = () => {
     setSpecialties((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
   };
 
-  const addTool = (t: string) => {
-    const trimmed = t.trim();
+  const addTool = (toolName: string) => {
+    const trimmed = toolName.trim();
     if (trimmed && !tools.includes(trimmed)) setTools([...tools, trimmed]);
     setToolInput("");
   };
@@ -261,12 +254,12 @@ const ProviderDashboard = () => {
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src={mfnLogo} alt="MFN" className="h-8" />
             <div>
-              <h1 className="text-sm font-bold text-foreground">لوحة مقدم الخدمة</h1>
+              <h1 className="text-sm font-bold text-foreground">{t("provider.dashboard.title")}</h1>
               <p className="text-[10px] text-muted-foreground">{profile?.full_name || user?.email}</p>
             </div>
           </Link>
           <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
-            <LogOut className="h-4 w-4" /> خروج
+            <LogOut className="h-4 w-4" /> {t("action.logout")}
           </Button>
         </div>
       </header>
@@ -276,8 +269,8 @@ const ProviderDashboard = () => {
         <Card className="mb-6">
           <CardContent className="flex items-center justify-between py-4">
             <div>
-              <p className="text-sm text-muted-foreground">رصيد المحفظة</p>
-              <p className={`text-2xl font-bold ${balance < 0 ? "text-destructive" : "text-success"}`}>{balance} د.أ</p>
+              <p className="text-sm text-muted-foreground">{t("provider.dashboard.wallet_balance")}</p>
+              <p className={`text-2xl font-bold ${balance < 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(balance)}</p>
             </div>
             <Wallet className="h-8 w-8 text-muted-foreground" />
           </CardContent>
@@ -286,13 +279,13 @@ const ProviderDashboard = () => {
         <Tabs defaultValue="orders" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="orders" className="gap-1.5 text-xs">
-              <ClipboardList className="h-4 w-4" /> طلباتي ({orders.length})
+              <ClipboardList className="h-4 w-4" /> {t("provider.dashboard.tab.orders")} ({orders.length})
             </TabsTrigger>
             <TabsTrigger value="profile" className="gap-1.5 text-xs">
-              <User className="h-4 w-4" /> ملفي
+              <User className="h-4 w-4" /> {t("provider.dashboard.tab.profile")}
             </TabsTrigger>
             <TabsTrigger value="wallet" className="gap-1.5 text-xs">
-              <Wallet className="h-4 w-4" /> المحفظة
+              <Wallet className="h-4 w-4" /> {t("provider.dashboard.tab.wallet")}
             </TabsTrigger>
           </TabsList>
 
@@ -307,14 +300,14 @@ const ProviderDashboard = () => {
                   className="text-xs h-7"
                   onClick={() => setStatusFilter(s)}
                 >
-                  {s === "ALL" ? "الكل" : STATUS_LABELS[s]}
+                  {t(`provider.status.${s}`)}
                   {s !== "ALL" && ` (${orders.filter((o) => o.status === s).length})`}
                 </Button>
               ))}
             </div>
 
             {filteredOrders.length === 0 ? (
-              <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد طلبات مسندة إليك حالياً</CardContent></Card>
+              <Card><CardContent className="py-10 text-center text-muted-foreground">{t("provider.dashboard.no_orders")}</CardContent></Card>
             ) : (
               <div className="grid gap-3">
                 {filteredOrders.map((o) => (
@@ -322,25 +315,25 @@ const ProviderDashboard = () => {
                     <CardContent className="py-4 px-4 space-y-2">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-medium text-sm">{serviceNames[o.service_id] || "خدمة"}</p>
+                          <p className="font-medium text-sm">{serviceNames[o.service_id] || t("provider.dashboard.service")}</p>
                           <p className="text-xs text-muted-foreground">
-                            {o.customer_display_name || "عميل"}
+                            {o.customer_display_name || t("provider.dashboard.customer")}
                             {o.booking_number && <span className="ms-1" dir="ltr">({o.booking_number})</span>}
                           </p>
                         </div>
                         <Badge variant="outline" className={STATUS_COLORS[o.status] || ""}>
-                          {STATUS_LABELS[o.status] || o.status}
+                          {t(`provider.status.${o.status}`) || o.status}
                         </Badge>
                       </div>
 
                       <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <CalendarDays className="h-3 w-3" />
-                          {new Date(o.scheduled_at).toLocaleDateString("ar-JO", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          {formatDateShort(o.scheduled_at)}
                         </span>
                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{o.city}</span>
                         <span className="font-semibold text-primary">
-                          {o.agreed_price != null ? `${o.agreed_price} د.أ` : `${o.provider_payout} د.أ`}
+                          {o.agreed_price != null ? formatCurrency(o.agreed_price) : formatCurrency(o.provider_payout)}
                         </span>
                       </div>
 
@@ -348,7 +341,7 @@ const ProviderDashboard = () => {
                       {isAccepted(o) ? (
                         <div className="rounded-lg border border-success/20 bg-success/5 p-3 space-y-1.5">
                           <div className="flex items-center gap-1.5 text-xs font-medium text-success">
-                            <ShieldCheck className="h-3.5 w-3.5" /> بيانات التواصل
+                            <ShieldCheck className="h-3.5 w-3.5" /> {t("provider.dashboard.contact_info")}
                           </div>
                           {o.customer_phone && (
                             <p className="text-sm flex items-center gap-1.5">
@@ -366,7 +359,7 @@ const ProviderDashboard = () => {
                       ) : (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
                           <Lock className="h-3.5 w-3.5" />
-                          اضغط &quot;قبول الطلب&quot; لعرض بيانات التواصل
+                          {t("provider.dashboard.press_accept")}
                         </div>
                       )}
 
@@ -381,7 +374,7 @@ const ProviderDashboard = () => {
                               disabled={actionLoading === o.id}
                             >
                               {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                              قبول الطلب
+                              {t("provider.dashboard.accept")}
                             </Button>
                             <Button
                               size="sm"
@@ -390,13 +383,13 @@ const ProviderDashboard = () => {
                               onClick={() => rejectOrder(o.id)}
                               disabled={actionLoading === o.id}
                             >
-                              <XCircle className="h-3 w-3" /> رفض
+                              <XCircle className="h-3 w-3" /> {t("provider.dashboard.reject")}
                             </Button>
                           </>
                         )}
                         {isAccepted(o) && o.status !== "COMPLETED" && (
                           <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => markComplete(o.id)}>
-                            <CheckCircle className="h-3 w-3" /> تأكيد الإتمام
+                            <CheckCircle className="h-3 w-3" /> {t("provider.dashboard.complete")}
                           </Button>
                         )}
                         {isAccepted(o) && o.customer_phone && (
@@ -406,7 +399,7 @@ const ProviderDashboard = () => {
                             rel="noopener noreferrer"
                           >
                             <Button size="sm" variant="outline" className="gap-1 h-7 text-xs">
-                              <MessageCircle className="h-3 w-3" /> واتساب
+                              <MessageCircle className="h-3 w-3" /> {t("provider.dashboard.whatsapp")}
                             </Button>
                           </a>
                         )}
@@ -422,34 +415,28 @@ const ProviderDashboard = () => {
           <TabsContent value="profile" className="space-y-4">
             <Card>
               <CardContent className="py-4 space-y-2">
-                <h3 className="text-sm font-bold">البيانات الأساسية</h3>
+                <h3 className="text-sm font-bold">{t("provider.details.basic_info")}</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="text-muted-foreground">الاسم:</span> {profile?.full_name}</div>
-                  <div><span className="text-muted-foreground">الهاتف:</span> <span dir="ltr">{profile?.phone}</span></div>
-                  <div><span className="text-muted-foreground">المدينة:</span> {profile?.city}</div>
-                  <div><span className="text-muted-foreground">التخصص:</span> {profile?.role_type}</div>
+                  <div><span className="text-muted-foreground">{t("booking.details.client_name")}:</span> {profile?.full_name}</div>
+                  <div><span className="text-muted-foreground">{t("booking.details.client_phone")}:</span> <span dir="ltr">{profile?.phone}</span></div>
+                  <div><span className="text-muted-foreground">{t("booking.details.client_city")}:</span> {profile?.city}</div>
+                  <div><span className="text-muted-foreground">{t("admin.providers.col.type")}:</span> {profile?.role_type ? t(`role_type.${profile.role_type}`) : "—"}</div>
                   {profile?.date_of_birth && (
-                    <div><span className="text-muted-foreground">تاريخ الميلاد:</span> {profile.date_of_birth}</div>
+                    <div><span className="text-muted-foreground">{t("provider.details.registered")}:</span> {profile.date_of_birth}</div>
                   )}
-                  <div><span className="text-muted-foreground">الخبرة:</span> {profile?.experience_years || 0} سنة</div>
+                  <div><span className="text-muted-foreground">{t("admin.providers.col.experience")}:</span> {profile?.experience_years || 0} {t("admin.providers.years")}</div>
                 </div>
-                <Link to="/provider/onboarding" className="text-xs text-primary hover:underline">
-                  تعديل البيانات الأساسية ←
-                </Link>
               </CardContent>
             </Card>
 
             <Card>
               <CardContent className="py-4 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold">التوفر</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">متاح الآن</span>
-                    <Switch checked={availableNow} onCheckedChange={setAvailableNow} />
-                  </div>
+                  <h3 className="text-sm font-bold">{t("provider.profile.availability")}</h3>
+                  <Switch checked={availableNow} onCheckedChange={setAvailableNow} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">نطاق التغطية (كم)</label>
+                  <label className="text-sm font-medium">{t("provider.profile.radius")} ({t("provider.details.km")})</label>
                   <Input
                     type="number" min={1} max={100} value={radiusKm}
                     onChange={(e) => setRadiusKm(Number(e.target.value))}
@@ -457,11 +444,11 @@ const ProviderDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">العنوان</label>
+                  <label className="text-sm font-medium">{t("provider.profile.address")}</label>
                   <Input
                     value={addressText}
                     onChange={(e) => setAddressText(e.target.value)}
-                    placeholder="وصف العنوان" className="mt-1"
+                    placeholder={t("provider.profile.address_placeholder")} className="mt-1"
                   />
                 </div>
               </CardContent>
@@ -469,7 +456,7 @@ const ProviderDashboard = () => {
 
             <Card>
               <CardContent className="py-4 space-y-4">
-                <h3 className="text-sm font-bold">التخصصات</h3>
+                <h3 className="text-sm font-bold">{t("provider.profile.specialties")}</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {SPECIALTY_OPTIONS.map((s) => (
                     <Badge
@@ -483,28 +470,28 @@ const ProviderDashboard = () => {
                   ))}
                 </div>
 
-                <h3 className="text-sm font-bold mt-4">الأدوات</h3>
+                <h3 className="text-sm font-bold mt-4">{t("provider.profile.tools")}</h3>
                 <div className="flex gap-2">
                   <Input
                     value={toolInput}
                     onChange={(e) => setToolInput(e.target.value)}
-                    placeholder="أضف أداة..."
+                    placeholder={t("provider.profile.add_tool")}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTool(toolInput); } }}
                   />
                   <Button type="button" variant="outline" size="sm" onClick={() => addTool(toolInput)}>+</Button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {TOOL_SUGGESTIONS.filter((t) => !tools.includes(t)).slice(0, 3).map((t) => (
-                    <Badge key={t} variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => addTool(t)}>
-                      + {t}
+                  {TOOL_SUGGESTIONS.filter((ts) => !tools.includes(ts)).slice(0, 3).map((ts) => (
+                    <Badge key={ts} variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => addTool(ts)}>
+                      + {ts}
                     </Badge>
                   ))}
                 </div>
                 {tools.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {tools.map((t) => (
-                      <Badge key={t} variant="secondary" className="gap-1 text-xs">
-                        {t} <X className="h-3 w-3 cursor-pointer" onClick={() => setTools(tools.filter((x) => x !== t))} />
+                    {tools.map((toolItem) => (
+                      <Badge key={toolItem} variant="secondary" className="gap-1 text-xs">
+                        {toolItem} <X className="h-3 w-3 cursor-pointer" onClick={() => setTools(tools.filter((x) => x !== toolItem))} />
                       </Badge>
                     ))}
                   </div>
@@ -514,14 +501,15 @@ const ProviderDashboard = () => {
 
             <Button className="w-full gap-2" onClick={saveProfile} disabled={profileSaving}>
               {profileSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-              حفظ التعديلات
+              {t("provider.profile.save")}
             </Button>
           </TabsContent>
 
           {/* ═══ Wallet Tab ═══ */}
           <TabsContent value="wallet">
+            <h3 className="text-sm font-bold mb-3">{t("provider.wallet.history")}</h3>
             {ledger.length === 0 ? (
-              <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد حركات في المحفظة</CardContent></Card>
+              <Card><CardContent className="py-10 text-center text-muted-foreground">{t("provider.wallet.no_transactions")}</CardContent></Card>
             ) : (
               <div className="grid gap-2">
                 {ledger.map((entry) => (
@@ -529,12 +517,12 @@ const ProviderDashboard = () => {
                     <CardContent className="flex items-center justify-between py-3 px-4">
                       <div>
                         <p className="text-sm font-medium">
-                          {entry.reason === "commission" ? "عمولة" : entry.reason === "settlement" ? "تسوية" : "تعديل"}
+                          {entry.reason === "commission" ? t("provider.wallet.commission") : entry.reason === "settlement" ? t("provider.wallet.settlement") : entry.reason}
                         </p>
-                        <p className="text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleDateString("ar-JO")}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(entry.created_at)}</p>
                       </div>
                       <span className={`font-bold text-sm ${entry.amount < 0 ? "text-destructive" : "text-success"}`}>
-                        {entry.amount > 0 ? "+" : ""}{entry.amount} د.أ
+                        {entry.amount > 0 ? "+" : ""}{formatCurrency(entry.amount)}
                       </span>
                     </CardContent>
                   </Card>

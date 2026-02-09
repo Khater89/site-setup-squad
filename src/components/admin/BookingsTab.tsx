@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Loader2, Search, UserCheck } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -20,17 +21,11 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  NEW: "جديد",
-  CONFIRMED: "مؤكد",
-  ASSIGNED: "تم التعيين",
-  ACCEPTED: "مقبول",
-  COMPLETED: "مكتمل",
-  CANCELLED: "ملغي",
-};
+const FILTER_STATUSES = ["ALL", "NEW", "ASSIGNED", "ACCEPTED", "COMPLETED", "CANCELLED"];
 
 const BookingsTab = () => {
   const { toast } = useToast();
+  const { t, formatCurrency, formatDateShort, isRTL } = useLanguage();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [providerNames, setProviderNames] = useState<Record<string, string>>({});
@@ -38,7 +33,6 @@ const BookingsTab = () => {
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
 
-  // Drawers
   const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
   const [assignBooking, setAssignBooking] = useState<BookingRow | null>(null);
 
@@ -56,7 +50,7 @@ const BookingsTab = () => {
     setServiceNames(svcMap);
 
     const pMap: Record<string, string> = {};
-    (profilesRes.data || []).forEach((p: any) => { pMap[p.user_id] = p.full_name || "بدون اسم"; });
+    (profilesRes.data || []).forEach((p: any) => { pMap[p.user_id] = p.full_name || t("admin.providers.no_name"); });
     setProviderNames(pMap);
 
     setLoading(false);
@@ -89,15 +83,15 @@ const BookingsTab = () => {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-lg font-bold">الحجوزات ({bookings.length})</h2>
+        <h2 className="text-lg font-bold">{t("admin.bookings.title")} ({bookings.length})</h2>
         <div className="flex gap-2 flex-wrap">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`} />
             <Input
-              placeholder="بحث..."
+              placeholder={t("admin.bookings.search")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pr-9 w-[200px]"
+              className={`${isRTL ? "pr-9" : "pl-9"} w-[200px]`}
             />
           </div>
           <Select value={filter} onValueChange={setFilter}>
@@ -105,12 +99,11 @@ const BookingsTab = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">الكل</SelectItem>
-              <SelectItem value="NEW">جديد</SelectItem>
-              <SelectItem value="ASSIGNED">معيّن</SelectItem>
-              <SelectItem value="ACCEPTED">مقبول</SelectItem>
-              <SelectItem value="COMPLETED">مكتمل</SelectItem>
-              <SelectItem value="CANCELLED">ملغي</SelectItem>
+              {FILTER_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s === "ALL" ? t("admin.bookings.filter_all") : t(`status.${s}`)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -118,20 +111,20 @@ const BookingsTab = () => {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground">لا توجد حجوزات</div>
+        <div className="text-center py-10 text-muted-foreground">{t("admin.bookings.no_bookings")}</div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="text-right">رقم الحجز</TableHead>
-                <TableHead className="text-right">الخدمة</TableHead>
-                <TableHead className="text-right">العميل</TableHead>
-                <TableHead className="text-right">المدينة</TableHead>
-                <TableHead className="text-right">الموعد</TableHead>
-                <TableHead className="text-right">المبلغ</TableHead>
-                <TableHead className="text-right">الحالة</TableHead>
-                <TableHead className="text-right">المزوّد</TableHead>
+                <TableHead>{t("admin.bookings.col.number")}</TableHead>
+                <TableHead>{t("admin.bookings.col.service")}</TableHead>
+                <TableHead>{t("admin.bookings.col.customer")}</TableHead>
+                <TableHead>{t("admin.bookings.col.city")}</TableHead>
+                <TableHead>{t("admin.bookings.col.date")}</TableHead>
+                <TableHead>{t("admin.bookings.col.amount")}</TableHead>
+                <TableHead>{t("admin.bookings.col.status")}</TableHead>
+                <TableHead>{t("admin.bookings.col.provider")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -155,20 +148,18 @@ const BookingsTab = () => {
                   </TableCell>
                   <TableCell className="text-sm">{b.city}</TableCell>
                   <TableCell className="text-xs">
-                    {new Date(b.scheduled_at).toLocaleDateString("ar-JO", {
-                      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                    })}
+                    {formatDateShort(b.scheduled_at)}
                   </TableCell>
                   <TableCell className="text-sm font-medium">
                     {b.agreed_price != null ? (
-                      <span className="text-success">{b.agreed_price}</span>
+                      <span className="text-success">{formatCurrency(b.agreed_price)}</span>
                     ) : (
-                      b.subtotal
-                    )} د.أ
+                      formatCurrency(b.subtotal)
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={`text-[10px] ${STATUS_COLORS[b.status] || ""}`}>
-                      {STATUS_LABELS[b.status] || b.status}
+                      {t(`status.${b.status}`)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs">
@@ -188,24 +179,22 @@ const BookingsTab = () => {
         </div>
       )}
 
-      {/* Booking Details Drawer */}
       <BookingDetailsDrawer
         booking={selectedBooking}
         open={!!selectedBooking}
         onOpenChange={(open) => { if (!open) setSelectedBooking(null); }}
-        serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || "خدمة" : ""}
+        serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || t("provider.dashboard.service") : ""}
         providerName={selectedBooking?.assigned_provider_id ? providerNames[selectedBooking.assigned_provider_id] || null : null}
         onAssign={handleAssignFromDetails}
       />
 
-      {/* Assignment Dialog */}
       {assignBooking && (
         <CSAssignmentDialog
           booking={assignBooking}
           open={!!assignBooking}
           onOpenChange={(open) => { if (!open) setAssignBooking(null); }}
           onAssigned={() => { setAssignBooking(null); fetchBookings(); }}
-          serviceName={serviceNames[assignBooking.service_id] || "خدمة"}
+          serviceName={serviceNames[assignBooking.service_id] || t("provider.dashboard.service")}
         />
       )}
     </div>
