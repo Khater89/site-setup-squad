@@ -16,11 +16,17 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          accepted_at: string | null
           assigned_at: string | null
           assigned_by: string | null
           assigned_provider_id: string | null
+          booking_number: string | null
           city: string
+          client_address_text: string | null
+          client_lat: number | null
+          client_lng: number | null
           connect_charge_type: string | null
+          contact_revealed_at: string | null
           created_at: string
           customer_name: string
           customer_phone: string
@@ -34,6 +40,7 @@ export type Database = {
           platform_fee: number
           provider_payout: number
           remaining_cash_amount: number | null
+          reveal_contact_allowed: boolean | null
           scheduled_at: string
           service_id: string
           status: string
@@ -44,11 +51,17 @@ export type Database = {
           subtotal: number
         }
         Insert: {
+          accepted_at?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_provider_id?: string | null
+          booking_number?: string | null
           city: string
+          client_address_text?: string | null
+          client_lat?: number | null
+          client_lng?: number | null
           connect_charge_type?: string | null
+          contact_revealed_at?: string | null
           created_at?: string
           customer_name: string
           customer_phone: string
@@ -62,6 +75,7 @@ export type Database = {
           platform_fee?: number
           provider_payout?: number
           remaining_cash_amount?: number | null
+          reveal_contact_allowed?: boolean | null
           scheduled_at: string
           service_id: string
           status?: string
@@ -72,11 +86,17 @@ export type Database = {
           subtotal?: number
         }
         Update: {
+          accepted_at?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_provider_id?: string | null
+          booking_number?: string | null
           city?: string
+          client_address_text?: string | null
+          client_lat?: number | null
+          client_lng?: number | null
           connect_charge_type?: string | null
+          contact_revealed_at?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string
@@ -90,6 +110,7 @@ export type Database = {
           platform_fee?: number
           provider_payout?: number
           remaining_cash_amount?: number | null
+          reveal_contact_allowed?: boolean | null
           scheduled_at?: string
           service_id?: string
           status?: string
@@ -100,6 +121,41 @@ export type Database = {
           subtotal?: number
         }
         Relationships: []
+      }
+      data_access_log: {
+        Row: {
+          accessed_by: string
+          accessor_role: string
+          action: string
+          booking_id: string | null
+          created_at: string
+          id: string
+        }
+        Insert: {
+          accessed_by: string
+          accessor_role: string
+          action: string
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          accessed_by?: string
+          accessor_role?: string
+          action?: string
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_access_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications_log: {
         Row: {
@@ -170,7 +226,9 @@ export type Database = {
           experience_years: number | null
           full_name: string | null
           languages: string[] | null
+          lat: number | null
           license_id: string | null
+          lng: number | null
           phone: string | null
           profile_completed: boolean | null
           provider_status: string
@@ -191,7 +249,9 @@ export type Database = {
           experience_years?: number | null
           full_name?: string | null
           languages?: string[] | null
+          lat?: number | null
           license_id?: string | null
+          lng?: number | null
           phone?: string | null
           profile_completed?: boolean | null
           provider_status?: string
@@ -212,7 +272,9 @@ export type Database = {
           experience_years?: number | null
           full_name?: string | null
           languages?: string[] | null
+          lat?: number | null
           license_id?: string | null
+          lng?: number | null
           phone?: string | null
           profile_completed?: boolean | null
           provider_status?: string
@@ -326,13 +388,53 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_nearest_providers: {
+        Args: { _lat: number; _limit?: number; _lng: number }
+        Returns: {
+          available_now: boolean
+          city: string
+          distance_km: number
+          experience_years: number
+          full_name: string
+          phone: string
+          provider_id: string
+          role_type: string
+        }[]
+      }
       get_provider_balance: { Args: { _provider_id: string }; Returns: number }
+      get_provider_bookings: {
+        Args: never
+        Returns: {
+          accepted_at: string
+          assigned_at: string
+          assigned_provider_id: string
+          booking_number: string
+          city: string
+          client_address_text: string
+          client_lat: number
+          client_lng: number
+          created_at: string
+          customer_display_name: string
+          customer_phone: string
+          id: string
+          notes: string
+          provider_payout: number
+          scheduled_at: string
+          service_id: string
+          status: string
+          subtotal: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      haversine_distance: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
       }
       is_admin: { Args: never; Returns: boolean }
       is_cs: { Args: never; Returns: boolean }

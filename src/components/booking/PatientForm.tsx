@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,7 +7,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, User, Phone, Mail, MapPin, AlertTriangle, Clock, Minus, Plus } from "lucide-react";
+import {
+  CalendarIcon, User, Phone, MapPin, Clock, Minus, Plus,
+  Navigation, Home,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -14,10 +18,11 @@ import { PeriodType, HOURLY_PRICING, calculateHourlyPricing } from "@/lib/servic
 
 export interface PatientData {
   name: string;
-  isEmergency: boolean;
   phone: string;
-  email: string;
   city: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
   date: Date | undefined;
   time: string;
   hours: number;
@@ -30,14 +35,24 @@ interface PatientFormProps {
 }
 
 const PatientForm = ({ data, onChange }: PatientFormProps) => {
-  const { t, lang, isRTL } = useLanguage();
+  const { t, lang } = useLanguage();
+  const [locating, setLocating] = useState(false);
 
-  const update = (field: keyof PatientData, value: string | boolean | number | Date | undefined) => {
-    if (field === "isEmergency") {
-      onChange({ ...data, isEmergency: value === "yes" || value === true });
-    } else {
-      onChange({ ...data, [field]: value });
-    }
+  const update = (field: keyof PatientData, value: string | number | Date | undefined | null) => {
+    onChange({ ...data, [field]: value });
+  };
+
+  const getLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        onChange({ ...data, lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const timeSlots = [
@@ -46,7 +61,6 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
     { value: "evening", label: t("time.evening") },
   ];
 
-  // Determine period based on selected time slot
   const period: PeriodType = data.time === "evening" ? "night" : "day";
   const pricing = calculateHourlyPricing(period, data.hours);
   const config = HOURLY_PRICING[period];
@@ -67,39 +81,6 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
         />
       </div>
 
-      {/* Emergency Toggle */}
-      <div className="space-y-2">
-        <Label className="flex items-center gap-2 text-sm font-medium">
-          <AlertTriangle className="h-4 w-4 text-destructive" />
-          {t("form.emergency")}
-        </Label>
-        <RadioGroup
-          value={data.isEmergency ? "yes" : "no"}
-          onValueChange={(v) => update("isEmergency", v === "yes" ? "yes" : "")}
-          className="grid grid-cols-2 gap-2"
-        >
-          {[
-            { value: "no", label: t("form.emergency.no") },
-            { value: "yes", label: t("form.emergency.yes") },
-          ].map((opt) => (
-            <label
-              key={opt.value}
-              className={cn(
-                "flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all text-center",
-                (data.isEmergency ? "yes" : "no") === opt.value
-                  ? opt.value === "yes"
-                    ? "border-destructive bg-destructive/10 text-destructive"
-                    : "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card hover:border-primary/30"
-              )}
-            >
-              <RadioGroupItem value={opt.value} className="sr-only" />
-              <span className="text-xs font-medium">{opt.label}</span>
-            </label>
-          ))}
-        </RadioGroup>
-      </div>
-
       {/* Phone */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2 text-sm font-medium">
@@ -116,7 +97,7 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
         />
       </div>
 
-      {/* City / Area */}
+      {/* City */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2 text-sm font-medium">
           <MapPin className="h-4 w-4 text-primary" />
@@ -130,20 +111,45 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
         />
       </div>
 
-      {/* Email */}
+      {/* Address */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2 text-sm font-medium">
-          <Mail className="h-4 w-4 text-primary" />
-          {t("form.email")}
+          <Home className="h-4 w-4 text-primary" />
+          {t("form.address")}
         </Label>
         <Input
-          value={data.email}
-          onChange={(e) => update("email", e.target.value)}
-          placeholder={t("form.email.placeholder")}
-          type="email"
-          dir="ltr"
+          value={data.address}
+          onChange={(e) => update("address", e.target.value)}
+          placeholder={t("form.address.placeholder")}
           className="h-11"
         />
+      </div>
+
+      {/* Get Location */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="flex items-center gap-2 text-sm font-medium">
+            <Navigation className="h-4 w-4 text-primary" />
+            {t("form.get_location")}
+          </Label>
+          {data.lat != null && data.lng != null && (
+            <span className="text-xs text-success font-medium">{t("form.location_detected")} ✓</span>
+          )}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full h-11 gap-2"
+          onClick={getLocation}
+          disabled={locating}
+        >
+          <Navigation className={cn("h-4 w-4", locating && "animate-pulse")} />
+          {locating
+            ? "..."
+            : data.lat != null
+            ? `${data.lat.toFixed(4)}, ${data.lng?.toFixed(4)}`
+            : t("form.get_location")}
+        </Button>
       </div>
 
       {/* Date Picker */}

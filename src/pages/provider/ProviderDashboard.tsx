@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,23 +10,31 @@ import { useToast } from "@/hooks/use-toast";
 import {
   CalendarCheck, Wallet, LogOut, Loader2, CheckCircle,
   CalendarDays, MapPin, ClipboardList, UserCheck, Phone,
-  MessageCircle,
+  MessageCircle, ShieldCheck, Eye, Lock,
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 
-interface BookingRow {
+/* ── Types ── */
+
+interface ProviderBooking {
   id: string;
-  customer_name: string;
-  customer_phone: string;
+  booking_number: string | null;
+  service_id: string;
   city: string;
   scheduled_at: string;
   status: string;
-  payment_method: string;
-  subtotal: number;
   provider_payout: number;
-  notes: string | null;
+  subtotal: number;
   assigned_provider_id: string | null;
-  service_id: string;
+  assigned_at: string | null;
+  accepted_at: string | null;
+  created_at: string;
+  customer_display_name: string | null;
+  customer_phone: string | null;
+  client_address_text: string | null;
+  client_lat: number | null;
+  client_lng: number | null;
+  notes: string | null;
 }
 
 interface LedgerEntry {
@@ -37,66 +45,43 @@ interface LedgerEntry {
   booking_id: string | null;
 }
 
-interface ServiceName {
-  id: string;
-  name: string;
-}
-
 const STATUS_LABELS: Record<string, string> = {
   NEW: "جديد",
   ASSIGNED: "معيّن",
+  ACCEPTED: "مقبول",
   CONFIRMED: "مؤكد",
   COMPLETED: "مكتمل",
   CANCELLED: "ملغي",
 };
+
+/* ── Component ── */
 
 const ProviderDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const [myBookings, setMyBookings] = useState<BookingRow[]>([]);
-  const [availableBookings, setAvailableBookings] = useState<BookingRow[]>([]);
+  const [allBookings, setAllBookings] = useState<ProviderBooking[]>([]);
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [assigning, setAssigning] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  /* ── Data fetching ── */
 
   const fetchData = async () => {
     if (!user) return;
 
-    // Fetch service names for display
     const { data: svcData } = await supabase.from("services").select("id, name");
     const svcMap: Record<string, string> = {};
     (svcData || []).forEach((s: any) => { svcMap[s.id] = s.name; });
     setServiceNames(svcMap);
 
-    // Fetch my assigned bookings
-    const { data: myData } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("assigned_provider_id", user.id)
-      .order("scheduled_at", { ascending: false });
-    setMyBookings((myData as unknown as BookingRow[]) || []);
+    // Privacy-safe: masks contact details until accepted
+    const { data: bookingsData } = await supabase.rpc("get_provider_bookings" as any);
+    setAllBookings((bookingsData as unknown as ProviderBooking[]) || []);
 
-    // Fetch available (unassigned, NEW) bookings
-    // Provider can see bookings matching their city
-    const { data: availData } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq("status", "NEW")
-      .is("assigned_provider_id", null)
-      .order("scheduled_at", { ascending: true });
-    
-    // Filter by provider's city if available
-    let filtered = (availData as unknown as BookingRow[]) || [];
-    if (profile?.city) {
-      filtered = filtered.filter((b) => b.city.includes(profile.city!) || profile.city!.includes(b.city));
-    }
-    setAvailableBookings(filtered);
-
-    // Wallet
     const [ledgerRes, balanceRes] = await Promise.all([
       supabase
         .from("provider_wallet_ledger")
@@ -113,12 +98,22 @@ const ProviderDashboard = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
-  // Guard: only approved + profile-completed providers can access
+  /* ── Derived lists ── */
+
+  const availableBookings = allBookings.filter(
+    (b) => b.status === "NEW" && !b.assigned_provider_id
+  );
+  const myBookings = allBookings.filter(
+    (b) => b.assigned_provider_id === user?.id
+  );
+
   const isProfileReady = profile?.provider_status === "approved" && profile?.profile_completed;
+
+  /* ── Actions ── */
 
   const assignToMe = async (bookingId: string) => {
     if (!user) return;
-    setAssigning(bookingId);
+    setActionLoading(bookingId);
 
     const { error } = await supabase
       .from("bookings")
@@ -138,7 +133,36 @@ const ProviderDashboard = () => {
       toast({ title: "تم إسناد الطلب إليك بنجاح ✅" });
       fetchData();
     }
-    setAssigning(null);
+    setActionLoading(null);
+  };
+
+  const acceptBooking = async (bookingId: string) => {
+    if (!user) return;
+    setActionLoading(bookingId);
+
+    const { error } = await supabase
+      .from("bookings")
+      .update({
+        accepted_at: new Date().toISOString(),
+        status: "ACCEPTED",
+      })
+      .eq("id", bookingId)
+      .eq("assigned_provider_id", user.id);
+
+    if (!error) {
+      // Log data access for privacy audit
+      await (supabase as any).from("data_access_log").insert({
+        booking_id: bookingId,
+        accessed_by: user.id,
+        accessor_role: "provider",
+        action: "accept_booking",
+      });
+      toast({ title: "تم قبول الطلب — بيانات التواصل متاحة الآن ✅" });
+      fetchData();
+    } else {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    }
+    setActionLoading(null);
   };
 
   const markComplete = async (bookingId: string) => {
@@ -159,7 +183,7 @@ const ProviderDashboard = () => {
     if (!confirm("هل تريد إلغاء إسنادك لهذا الطلب؟")) return;
     const { error } = await supabase
       .from("bookings")
-      .update({ assigned_provider_id: null, status: "NEW" })
+      .update({ assigned_provider_id: null, status: "NEW", accepted_at: null })
       .eq("id", bookingId);
 
     if (error) {
@@ -175,6 +199,8 @@ const ProviderDashboard = () => {
     navigate("/");
   };
 
+  /* ── Guards ── */
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -183,7 +209,6 @@ const ProviderDashboard = () => {
     );
   }
 
-  // If provider not approved or profile not completed, show message
   if (!isProfileReady) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -210,6 +235,10 @@ const ProviderDashboard = () => {
       </div>
     );
   }
+
+  const isAccepted = (b: ProviderBooking) => !!b.accepted_at;
+
+  /* ── Render ── */
 
   return (
     <div className="min-h-screen bg-background">
@@ -259,7 +288,7 @@ const ProviderDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Available Requests */}
+          {/* ═══ Available Requests — Limited Data ═══ */}
           <TabsContent value="available">
             {availableBookings.length === 0 ? (
               <Card>
@@ -275,11 +304,18 @@ const ProviderDashboard = () => {
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium text-sm">{serviceNames[b.service_id] || "خدمة"}</p>
-                          <p className="text-xs text-muted-foreground">{b.customer_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {b.customer_display_name || "عميل"}
+                          </p>
                         </div>
-                        <Badge variant="outline" className="bg-info/10 text-info border-info/30">
-                          {STATUS_LABELS[b.status] || b.status}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant="outline" className="bg-info/10 text-info border-info/30">
+                            {STATUS_LABELS[b.status] || b.status}
+                          </Badge>
+                          {b.booking_number && (
+                            <span className="text-[10px] text-muted-foreground" dir="ltr">{b.booking_number}</span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
@@ -289,14 +325,18 @@ const ProviderDashboard = () => {
                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{b.city}</span>
                         <span className="font-medium text-primary">{b.provider_payout} د.أ</span>
                       </div>
-                      {b.notes && <p className="text-xs bg-muted rounded p-2">{b.notes}</p>}
+                      {/* Privacy notice */}
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <Lock className="h-3 w-3" />
+                        بيانات التواصل مخفية — تظهر بعد القبول
+                      </div>
                       <Button
                         size="sm"
                         className="gap-1.5 w-full"
                         onClick={() => assignToMe(b.id)}
-                        disabled={assigning === b.id}
+                        disabled={actionLoading === b.id}
                       >
-                        {assigning === b.id ? (
+                        {actionLoading === b.id ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
                         ) : (
                           <UserCheck className="h-3 w-3" />
@@ -310,7 +350,7 @@ const ProviderDashboard = () => {
             )}
           </TabsContent>
 
-          {/* My Bookings */}
+          {/* ═══ My Bookings — Accept/Reveal Flow ═══ */}
           <TabsContent value="bookings">
             {myBookings.length === 0 ? (
               <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد حجوزات مسندة إليك</CardContent></Card>
@@ -322,38 +362,87 @@ const ProviderDashboard = () => {
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium text-sm">{serviceNames[b.service_id] || "خدمة"}</p>
-                          <p className="text-xs text-muted-foreground">{b.customer_name} · {b.customer_phone}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {b.customer_display_name || "عميل"}
+                            {b.booking_number && <span className="ms-1" dir="ltr">({b.booking_number})</span>}
+                          </p>
                         </div>
-                        <Badge variant="outline">{STATUS_LABELS[b.status] || b.status}</Badge>
+                        <Badge variant="outline" className={
+                          b.status === "ACCEPTED" ? "bg-success/10 text-success border-success/30" : ""
+                        }>
+                          {STATUS_LABELS[b.status] || b.status}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" />{new Date(b.scheduled_at).toLocaleDateString("ar-JO")}</span>
                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{b.city}</span>
                         <span>الحصة: {b.provider_payout} د.أ</span>
                       </div>
-                      {b.notes && <p className="text-xs bg-muted rounded p-2">{b.notes}</p>}
-                      <div className="flex gap-2">
-                        {(b.status === "ASSIGNED" || b.status === "CONFIRMED") && (
-                          <>
-                            <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => markComplete(b.id)}>
-                              <CheckCircle className="h-3 w-3" />
-                              تأكيد الإتمام
-                            </Button>
-                            <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={() => releaseBooking(b.id)}>
-                              إلغاء الإسناد
-                            </Button>
-                          </>
-                        )}
-                        <a
-                          href={`https://wa.me/${b.customer_phone.replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${b.customer_name}، أنا مقدم الخدمة من MFN. تم تأكيد حجزك.`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Button size="sm" variant="outline" className="gap-1 h-7 text-xs">
-                            <MessageCircle className="h-3 w-3" />
-                            واتساب
+
+                      {/* Contact Details — Only After Acceptance */}
+                      {isAccepted(b) ? (
+                        <div className="rounded-lg border border-success/20 bg-success/5 p-3 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-success">
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            بيانات التواصل
+                          </div>
+                          {b.customer_phone && (
+                            <p className="text-sm flex items-center gap-1.5">
+                              <Phone className="h-3 w-3 text-muted-foreground" />
+                              <span dir="ltr">{b.customer_phone}</span>
+                            </p>
+                          )}
+                          {b.client_address_text && (
+                            <p className="text-sm flex items-center gap-1.5">
+                              <MapPin className="h-3 w-3 text-muted-foreground" />
+                              {b.client_address_text}
+                            </p>
+                          )}
+                          {b.notes && <p className="text-xs bg-muted rounded p-2 mt-1">{b.notes}</p>}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
+                          <Lock className="h-3.5 w-3.5" />
+                          اضغط &quot;قبول الطلب&quot; لعرض بيانات التواصل
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-2 flex-wrap">
+                        {b.status === "ASSIGNED" && !isAccepted(b) && (
+                          <Button
+                            size="sm"
+                            className="gap-1 h-7 text-xs flex-1 bg-success hover:bg-success/90"
+                            onClick={() => acceptBooking(b.id)}
+                            disabled={actionLoading === b.id}
+                          >
+                            {actionLoading === b.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                            قبول الطلب
                           </Button>
-                        </a>
+                        )}
+                        {isAccepted(b) && (b.status === "ACCEPTED" || b.status === "ASSIGNED") && (
+                          <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => markComplete(b.id)}>
+                            <CheckCircle className="h-3 w-3" />
+                            تأكيد الإتمام
+                          </Button>
+                        )}
+                        {(b.status === "ASSIGNED" || b.status === "ACCEPTED") && (
+                          <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={() => releaseBooking(b.id)}>
+                            إلغاء الإسناد
+                          </Button>
+                        )}
+                        {isAccepted(b) && b.customer_phone && (
+                          <a
+                            href={`https://wa.me/${b.customer_phone.replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${b.customer_display_name || ""}, أنا مقدم الخدمة من MFN. تم تأكيد حجزك.`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button size="sm" variant="outline" className="gap-1 h-7 text-xs">
+                              <MessageCircle className="h-3 w-3" />
+                              واتساب
+                            </Button>
+                          </a>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -362,7 +451,7 @@ const ProviderDashboard = () => {
             )}
           </TabsContent>
 
-          {/* Wallet */}
+          {/* ═══ Wallet ═══ */}
           <TabsContent value="wallet">
             {ledger.length === 0 ? (
               <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد حركات في المحفظة</CardContent></Card>

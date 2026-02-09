@@ -1,0 +1,142 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const body = await req.json();
+    const {
+      customer_name,
+      customer_phone,
+      city,
+      client_address_text,
+      client_lat,
+      client_lng,
+      service_id,
+      scheduled_at,
+      hours,
+      time_slot,
+      notes,
+    } = body;
+
+    // ── Validate required fields ──
+    if (
+      !customer_name?.trim() ||
+      !customer_phone?.trim() ||
+      !city?.trim() ||
+      !service_id ||
+      !scheduled_at
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Input length validation ──
+    if (customer_name.trim().length > 200) {
+      return new Response(
+        JSON.stringify({ error: "Name too long (max 200)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (customer_phone.trim().length > 20) {
+      return new Response(
+        JSON.stringify({ error: "Phone too long (max 20)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Service-role client (bypasses RLS) ──
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // ── Validate service exists and is active ──
+    const { data: service } = await supabaseAdmin
+      .from("services")
+      .select("id, base_price")
+      .eq("id", service_id)
+      .eq("active", true)
+      .maybeSingle();
+
+    if (!service) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or inactive service" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Calculate subtotal server-side ──
+    const hourCount = Math.max(1, Math.min(12, parseInt(String(hours)) || 1));
+    const isNight = time_slot === "evening";
+    const firstHour = isNight ? 70 : 50;
+    const additionalHour = 20;
+    const basePrice = firstHour + Math.max(0, hourCount - 1) * additionalHour;
+    const commission = Math.round(basePrice * 0.1);
+    const subtotal = basePrice + commission;
+
+    // ── Check for authenticated user (optional — supports both guest & logged-in) ──
+    let customer_user_id: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+      if (user) customer_user_id = user.id;
+    }
+
+    // ── Insert booking ──
+    const booking = {
+      customer_name: customer_name.trim().substring(0, 200),
+      customer_phone: customer_phone.trim().substring(0, 20),
+      city: city.trim().substring(0, 100),
+      client_address_text: client_address_text?.trim()?.substring(0, 500) || null,
+      client_lat: client_lat != null ? parseFloat(String(client_lat)) : null,
+      client_lng: client_lng != null ? parseFloat(String(client_lng)) : null,
+      service_id,
+      scheduled_at: new Date(scheduled_at).toISOString(),
+      notes: notes?.trim()?.substring(0, 1000) || null,
+      subtotal,
+      payment_method: "CASH",
+      customer_user_id,
+    };
+
+    const { data, error } = await supabaseAdmin
+      .from("bookings")
+      .insert(booking)
+      .select("booking_number, id")
+      .single();
+
+    if (error) {
+      console.error("Booking insert error:", error);
+      return new Response(
+        JSON.stringify({ error: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        booking_number: data.booking_number,
+        booking_id: data.id,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (err) {
+    console.error("Edge function error:", err);
+    return new Response(
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

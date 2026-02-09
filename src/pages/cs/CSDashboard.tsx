@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,16 +16,21 @@ import { useToast } from "@/hooks/use-toast";
 import {
   CalendarCheck, Users, PlusCircle, LogOut, Loader2,
   UserCheck, Phone, MapPin, CalendarDays, Search,
-  MessageCircle, Filter, Briefcase, Clock,
+  MessageCircle, Filter, Briefcase, Clock, Navigation,
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
-import { useNavigate } from "react-router-dom";
+
+/* ── Types ── */
 
 interface BookingRow {
   id: string;
+  booking_number: string | null;
   customer_name: string;
   customer_phone: string;
   city: string;
+  client_address_text: string | null;
+  client_lat: number | null;
+  client_lng: number | null;
   scheduled_at: string;
   status: string;
   payment_method: string;
@@ -34,6 +39,8 @@ interface BookingRow {
   notes: string | null;
   assigned_provider_id: string | null;
   assigned_by: string | null;
+  assigned_at: string | null;
+  accepted_at: string | null;
   service_id: string;
 }
 
@@ -50,6 +57,19 @@ interface ProviderRow {
   tools: string[] | null;
   radius_km: number | null;
   address_text: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+
+interface NearestProvider {
+  provider_id: string;
+  full_name: string;
+  city: string;
+  distance_km: number;
+  available_now: boolean;
+  phone: string;
+  role_type: string;
+  experience_years: number;
 }
 
 interface ServiceRow {
@@ -63,6 +83,7 @@ interface ServiceRow {
 const STATUS_LABELS: Record<string, string> = {
   NEW: "جديد",
   ASSIGNED: "معيّن",
+  ACCEPTED: "مقبول",
   CONFIRMED: "مؤكد",
   COMPLETED: "مكتمل",
   CANCELLED: "ملغي",
@@ -74,6 +95,8 @@ const ROLE_TYPE_LABELS: Record<string, string> = {
   caregiver: "مقدم رعاية",
   physiotherapist: "أخصائي علاج طبيعي",
 };
+
+/* ── Component ── */
 
 const CSDashboard = () => {
   const { user, signOut } = useAuth();
@@ -93,6 +116,9 @@ const CSDashboard = () => {
     customer_name: "",
     customer_phone: "",
     city: "",
+    client_address_text: "",
+    client_lat: "",
+    client_lng: "",
     service_id: "",
     scheduled_at: "",
     notes: "",
@@ -102,6 +128,7 @@ const CSDashboard = () => {
   // Assignment dialog
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
+  const [nearestProviders, setNearestProviders] = useState<NearestProvider[]>([]);
   const [assigning, setAssigning] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -113,7 +140,6 @@ const CSDashboard = () => {
 
     setBookings((bookingsRes.data as unknown as BookingRow[]) || []);
 
-    // Filter to only show providers (those with provider role_type or status)
     const allProfiles = (providersRes.data || []) as unknown as ProviderRow[];
     const providerProfiles = allProfiles.filter(
       (p) => p.role_type || p.provider_status !== "pending"
@@ -138,13 +164,14 @@ const CSDashboard = () => {
       return (
         b.customer_name.toLowerCase().includes(q) ||
         b.customer_phone.includes(q) ||
-        b.city.toLowerCase().includes(q)
+        b.city.toLowerCase().includes(q) ||
+        (b.booking_number || "").toLowerCase().includes(q)
       );
     }
     return true;
   });
 
-  // Get available providers for a booking's city
+  // City-based fallback matching
   const getMatchingProviders = (city: string) => {
     return providers
       .filter(
@@ -154,7 +181,6 @@ const CSDashboard = () => {
           p.city?.toLowerCase().includes(city.toLowerCase())
       )
       .sort((a, b) => {
-        // Prefer available_now
         if (a.available_now && !b.available_now) return -1;
         if (!a.available_now && b.available_now) return 1;
         return 0;
@@ -182,19 +208,53 @@ const CSDashboard = () => {
       toast({ title: "تم الإسناد بنجاح ✅" });
       setAssignDialogOpen(false);
       setSelectedBooking(null);
+      setNearestProviders([]);
       fetchData();
     }
   };
 
   const handleAssignNearest = async (booking: BookingRow) => {
+    setAssigning(true);
+
+    // Try Haversine-based matching first if lat/lng available
+    if (booking.client_lat && booking.client_lng) {
+      const { data: nearest } = await supabase.rpc("find_nearest_providers" as any, {
+        _lat: booking.client_lat,
+        _lng: booking.client_lng,
+        _limit: 1,
+      });
+
+      if (nearest && (nearest as NearestProvider[]).length > 0) {
+        const provider = (nearest as NearestProvider[])[0];
+        const { error } = await supabase
+          .from("bookings")
+          .update({
+            assigned_provider_id: provider.provider_id,
+            status: "ASSIGNED",
+            assigned_at: new Date().toISOString(),
+            assigned_by: `cs_auto (${provider.distance_km} كم)`,
+          })
+          .eq("id", booking.id);
+
+        setAssigning(false);
+        if (error) {
+          toast({ title: "خطأ", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: `تم الإسناد تلقائياً إلى ${provider.full_name || "مزوّد"} (${provider.distance_km} كم) ✅` });
+          fetchData();
+        }
+        return;
+      }
+    }
+
+    // Fallback: city-based matching
     const matching = getMatchingProviders(booking.city);
     if (matching.length === 0) {
-      toast({ title: "لا يوجد مزوّدون متاحون في هذه المدينة", variant: "destructive" });
+      toast({ title: "لا يوجد مزوّدون متاحون في هذه المنطقة", variant: "destructive" });
+      setAssigning(false);
       return;
     }
-    // Pick the first available (nearest by sort)
     const nearest = matching[0];
-    setAssigning(true);
 
     const { error } = await supabase
       .from("bookings")
@@ -215,6 +275,23 @@ const CSDashboard = () => {
     }
   };
 
+  const openAssignDialog = async (booking: BookingRow) => {
+    setSelectedBooking(booking);
+    setAssignDialogOpen(true);
+
+    // If booking has lat/lng, fetch nearest providers with distance
+    if (booking.client_lat && booking.client_lng) {
+      const { data } = await supabase.rpc("find_nearest_providers" as any, {
+        _lat: booking.client_lat,
+        _lng: booking.client_lng,
+        _limit: 10,
+      });
+      setNearestProviders((data as NearestProvider[]) || []);
+    } else {
+      setNearestProviders([]);
+    }
+  };
+
   const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     const { customer_name, customer_phone, city, service_id, scheduled_at } = newBooking;
@@ -232,6 +309,9 @@ const CSDashboard = () => {
       customer_name: customer_name.trim(),
       customer_phone: customer_phone.trim(),
       city: city.trim(),
+      client_address_text: newBooking.client_address_text.trim() || null,
+      client_lat: newBooking.client_lat ? parseFloat(newBooking.client_lat) : null,
+      client_lng: newBooking.client_lng ? parseFloat(newBooking.client_lng) : null,
       service_id,
       scheduled_at: new Date(scheduled_at).toISOString(),
       notes: newBooking.notes.trim() || null,
@@ -239,14 +319,14 @@ const CSDashboard = () => {
       payment_method: "CASH",
       status: "NEW",
       customer_user_id: null,
-    });
+    } as any);
 
     setCreatingBooking(false);
     if (error) {
       toast({ title: "خطأ في إنشاء الحجز", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "تم إنشاء الحجز بنجاح ✅" });
-      setNewBooking({ customer_name: "", customer_phone: "", city: "", service_id: "", scheduled_at: "", notes: "" });
+      setNewBooking({ customer_name: "", customer_phone: "", city: "", client_address_text: "", client_lat: "", client_lng: "", service_id: "", scheduled_at: "", notes: "" });
       fetchData();
     }
   };
@@ -300,14 +380,13 @@ const CSDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* ========== Bookings Tab ========== */}
+          {/* ═══ Bookings Tab ═══ */}
           <TabsContent value="bookings" className="space-y-4">
-            {/* Filters */}
             <div className="flex gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="بحث بالاسم أو الهاتف أو المدينة..."
+                  placeholder="بحث بالاسم أو الهاتف أو المدينة أو رقم الحجز..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pr-9"
@@ -322,7 +401,7 @@ const CSDashboard = () => {
                   <SelectItem value="ALL">الكل</SelectItem>
                   <SelectItem value="NEW">جديد</SelectItem>
                   <SelectItem value="ASSIGNED">معيّن</SelectItem>
-                  <SelectItem value="CONFIRMED">مؤكد</SelectItem>
+                  <SelectItem value="ACCEPTED">مقبول</SelectItem>
                   <SelectItem value="COMPLETED">مكتمل</SelectItem>
                   <SelectItem value="CANCELLED">ملغي</SelectItem>
                 </SelectContent>
@@ -342,7 +421,12 @@ const CSDashboard = () => {
                     <CardContent className="py-4 px-4 space-y-2">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-medium text-sm">{serviceNames[b.service_id] || "خدمة"}</p>
+                          <p className="font-medium text-sm">
+                            {serviceNames[b.service_id] || "خدمة"}
+                            {b.booking_number && (
+                              <span className="ms-2 text-[10px] text-muted-foreground" dir="ltr">{b.booking_number}</span>
+                            )}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {b.customer_name} · <span dir="ltr">{b.customer_phone}</span>
                           </p>
@@ -353,6 +437,8 @@ const CSDashboard = () => {
                             b.status === "NEW"
                               ? "bg-info/10 text-info border-info/30"
                               : b.status === "COMPLETED"
+                              ? "bg-success/10 text-success border-success/30"
+                              : b.status === "ACCEPTED"
                               ? "bg-success/10 text-success border-success/30"
                               : ""
                           }
@@ -369,6 +455,12 @@ const CSDashboard = () => {
                         <span className="font-medium text-primary">{b.subtotal} د.أ</span>
                         {b.assigned_by && <span className="text-muted-foreground">إسناد: {b.assigned_by}</span>}
                       </div>
+                      {b.client_address_text && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          {b.client_address_text}
+                        </p>
+                      )}
                       {b.notes && <p className="text-xs bg-muted rounded p-2">{b.notes}</p>}
 
                       {/* Actions */}
@@ -388,10 +480,7 @@ const CSDashboard = () => {
                               size="sm"
                               variant="outline"
                               className="gap-1 h-7 text-xs"
-                              onClick={() => {
-                                setSelectedBooking(b);
-                                setAssignDialogOpen(true);
-                              }}
+                              onClick={() => openAssignDialog(b)}
                             >
                               إسناد يدوي
                             </Button>
@@ -415,7 +504,7 @@ const CSDashboard = () => {
             )}
           </TabsContent>
 
-          {/* ========== Providers Tab ========== */}
+          {/* ═══ Providers Tab ═══ */}
           <TabsContent value="providers" className="space-y-4">
             {providers.length === 0 ? (
               <Card>
@@ -474,6 +563,12 @@ const CSDashboard = () => {
                             نطاق {p.radius_km} كم
                           </span>
                         )}
+                        {p.lat && p.lng && (
+                          <span className="flex items-center gap-1">
+                            <Navigation className="h-3 w-3" />
+                            موقع مسجل
+                          </span>
+                        )}
                         {!p.profile_completed && (
                           <span className="text-warning">الملف غير مكتمل</span>
                         )}
@@ -498,7 +593,7 @@ const CSDashboard = () => {
             )}
           </TabsContent>
 
-          {/* ========== New Booking Tab ========== */}
+          {/* ═══ New Booking Tab ═══ */}
           <TabsContent value="new-booking">
             <Card>
               <CardHeader>
@@ -555,6 +650,39 @@ const CSDashboard = () => {
                       </Select>
                     </div>
                   </div>
+                  {/* Address + Location */}
+                  <div>
+                    <label className="text-sm font-medium">العنوان التفصيلي</label>
+                    <Input
+                      value={newBooking.client_address_text}
+                      onChange={(e) => setNewBooking({ ...newBooking, client_address_text: e.target.value })}
+                      placeholder="الحي، الشارع، رقم المبنى"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">خط العرض (Lat)</label>
+                      <Input
+                        type="number"
+                        step="any"
+                        value={newBooking.client_lat}
+                        onChange={(e) => setNewBooking({ ...newBooking, client_lat: e.target.value })}
+                        placeholder="31.9539"
+                        dir="ltr"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">خط الطول (Lng)</label>
+                      <Input
+                        type="number"
+                        step="any"
+                        value={newBooking.client_lng}
+                        onChange={(e) => setNewBooking({ ...newBooking, client_lng: e.target.value })}
+                        placeholder="35.9106"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="text-sm font-medium">موعد الخدمة *</label>
                     <Input
@@ -585,7 +713,7 @@ const CSDashboard = () => {
         </Tabs>
       </main>
 
-      {/* Assignment Dialog */}
+      {/* Assignment Dialog — with distance info */}
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -595,33 +723,68 @@ const CSDashboard = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {selectedBooking && getMatchingProviders(selectedBooking.city).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                لا يوجد مزوّدون معتمدون ومكتملو الملف في هذه المدينة
-              </p>
+            {/* Show distance-sorted providers if available */}
+            {nearestProviders.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">مرتبين حسب القرب:</p>
+                {nearestProviders.map((p) => (
+                  <Card key={p.provider_id} className="cursor-pointer hover:bg-accent/50 transition-colors">
+                    <CardContent className="py-3 px-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{p.full_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ROLE_TYPE_LABELS[p.role_type || ""] || ""} · {p.experience_years || 0} سنة
+                          {p.available_now && " · متاح الآن"}
+                          <span className="ms-1 font-medium text-primary">{p.distance_km} كم</span>
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="gap-1 h-7 text-xs"
+                        onClick={() => handleAssign(p.provider_id)}
+                        disabled={assigning}
+                      >
+                        {assigning ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserCheck className="h-3 w-3" />}
+                        إسناد
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
-            {selectedBooking && getMatchingProviders(selectedBooking.city).map((p) => (
-              <Card key={p.user_id} className="cursor-pointer hover:bg-accent/50 transition-colors">
-                <CardContent className="py-3 px-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{p.full_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {ROLE_TYPE_LABELS[p.role_type || ""] || ""} · {p.experience_years || 0} سنة
-                      {p.available_now && " · متاح الآن"}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="gap-1 h-7 text-xs"
-                    onClick={() => handleAssign(p.user_id)}
-                    disabled={assigning}
-                  >
-                    {assigning ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserCheck className="h-3 w-3" />}
-                    إسناد
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+
+            {/* Fallback: city-based providers */}
+            {nearestProviders.length === 0 && selectedBooking && (
+              <>
+                {getMatchingProviders(selectedBooking.city).length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    لا يوجد مزوّدون معتمدون ومكتملو الملف في هذه المدينة
+                  </p>
+                )}
+                {getMatchingProviders(selectedBooking.city).map((p) => (
+                  <Card key={p.user_id} className="cursor-pointer hover:bg-accent/50 transition-colors">
+                    <CardContent className="py-3 px-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{p.full_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ROLE_TYPE_LABELS[p.role_type || ""] || ""} · {p.experience_years || 0} سنة
+                          {p.available_now && " · متاح الآن"}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="gap-1 h-7 text-xs"
+                        onClick={() => handleAssign(p.user_id)}
+                        disabled={assigning}
+                      >
+                        {assigning ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserCheck className="h-3 w-3" />}
+                        إسناد
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

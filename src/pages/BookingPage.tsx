@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { useServices, DbService } from "@/hooks/useServices";
-import { calculateHourlyPricing, PeriodType } from "@/lib/services";
 import { buildBookingPayload, submitToGoogleSheets } from "@/lib/googleSheets";
 import BookingHeader from "@/components/booking/BookingHeader";
 import AppFooter from "@/components/AppFooter";
@@ -22,10 +19,11 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const INITIAL_PATIENT: PatientData = {
   name: "",
-  isEmergency: false,
   phone: "",
-  email: "",
   city: "",
+  address: "",
+  lat: null,
+  lng: null,
   date: undefined,
   time: "",
   hours: 1,
@@ -34,7 +32,6 @@ const INITIAL_PATIENT: PatientData = {
 
 const BookingPage = () => {
   const { t, lang, isRTL } = useLanguage();
-  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const { services, categories, loading: servicesLoading } = useServices(true);
@@ -45,17 +42,7 @@ const BookingPage = () => {
   const [patient, setPatient] = useState<PatientData>(INITIAL_PATIENT);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [settings, setSettings] = useState({ platform_fee_percent: 10, deposit_percent: 20 });
-
-  useEffect(() => {
-    supabase
-      .from("platform_settings")
-      .select("platform_fee_percent, deposit_percent")
-      .eq("id", 1)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setSettings(data); });
-  }, []);
+  const [bookingNumber, setBookingNumber] = useState<string>("");
 
   useEffect(() => {
     if (categories.length > 0 && !category) {
@@ -72,6 +59,7 @@ const BookingPage = () => {
         patient.name.trim() &&
         patient.phone.trim() &&
         patient.city.trim() &&
+        patient.address.trim() &&
         patient.date &&
         patient.time &&
         patient.hours >= 1
@@ -81,42 +69,41 @@ const BookingPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedService || isSubmitting || !user) return;
+    if (!selectedService || isSubmitting) return;
     setIsSubmitting(true);
-
-    const period: PeriodType = patient.time === "evening" ? "night" : "day";
-    const pricing = calculateHourlyPricing(period, patient.hours);
-
-    const subtotal = pricing.total;
 
     const scheduledAt = new Date(patient.date!);
     const timeMap: Record<string, number> = { morning: 9, afternoon: 13, evening: 20 };
     scheduledAt.setHours(timeMap[patient.time] || 9, 0, 0, 0);
 
-    // Financial fields (platform_fee, provider_payout) are calculated
-    // server-side by the database trigger — not sent from client
-    const booking = {
-      customer_user_id: user.id,
-      customer_name: patient.name.trim(),
-      customer_phone: patient.phone.trim(),
-      city: patient.city.trim(),
-      service_id: selectedService.id,
-      scheduled_at: scheduledAt.toISOString(),
-      notes: patient.notes.trim() || null,
-      payment_method: "CASH",
-      subtotal,
-    };
+    // Use edge function — supports both guest & logged-in users
+    const { data, error } = await supabase.functions.invoke("create-guest-booking", {
+      body: {
+        customer_name: patient.name.trim(),
+        customer_phone: patient.phone.trim(),
+        city: patient.city.trim(),
+        client_address_text: patient.address.trim(),
+        client_lat: patient.lat,
+        client_lng: patient.lng,
+        service_id: selectedService.id,
+        scheduled_at: scheduledAt.toISOString(),
+        hours: patient.hours,
+        time_slot: patient.time,
+        notes: patient.notes.trim() || null,
+      },
+    });
 
-    const { error } = await supabase.from("bookings").insert(booking);
-
+    // Also submit to Google Sheets (fire-and-forget)
     const payload = buildBookingPayload(selectedService, patient, lang);
-    await submitToGoogleSheets(payload);
+    submitToGoogleSheets(payload);
 
     setIsSubmitting(false);
 
-    if (error) {
-      toast({ title: t("status.error"), description: error.message, variant: "destructive" });
+    if (error || !data?.success) {
+      const errMsg = data?.error || error?.message || t("status.error.desc");
+      toast({ title: t("status.error"), description: errMsg, variant: "destructive" });
     } else {
+      setBookingNumber(data.booking_number || "");
       toast({ title: t("status.success"), description: t("status.success.desc") });
       setSubmitted(true);
     }
@@ -128,15 +115,11 @@ const BookingPage = () => {
     setSelectedService(null);
     setPatient(INITIAL_PATIENT);
     setSubmitted(false);
+    setBookingNumber("");
   };
 
   const NextIcon = isRTL ? ArrowLeft : ArrowRight;
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
-
-  // Require authentication — redirect to login if not signed in
-  if (!authLoading && !user) {
-    return <Navigate to="/auth" replace />;
-  }
 
   if (submitted) {
     return (
@@ -144,7 +127,7 @@ const BookingPage = () => {
         <BookingHeader />
         <main className="flex-1 flex items-center justify-center">
           <div className="container max-w-xl py-10">
-            <SuccessView onReset={handleReset} />
+            <SuccessView onReset={handleReset} bookingNumber={bookingNumber} />
           </div>
         </main>
         <AppFooter />
@@ -157,7 +140,6 @@ const BookingPage = () => {
       <BookingHeader />
 
       <main className="flex-1 container max-w-5xl py-8 space-y-8">
-        {/* Title */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl sm:text-3xl font-black text-foreground">{t("booking.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("booking.subtitle")}</p>
@@ -165,9 +147,7 @@ const BookingPage = () => {
 
         <StepIndicator currentStep={step} totalSteps={3} />
 
-        {/* 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
-          {/* Wizard */}
           <div className="space-y-6">
             <AnimatePresence mode="wait">
               <motion.div
@@ -177,7 +157,6 @@ const BookingPage = () => {
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25 }}
               >
-                {/* Step 1 */}
                 {step === 1 && (
                   <div className="space-y-4">
                     {servicesLoading ? (
@@ -211,17 +190,14 @@ const BookingPage = () => {
                   </div>
                 )}
 
-                {/* Step 2 */}
                 {step === 2 && <PatientForm data={patient} onChange={setPatient} />}
 
-                {/* Step 3 */}
                 {step === 3 && selectedService && (
                   <BookingConfirmation service={selectedService} patient={patient} />
                 )}
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation */}
             <div className="flex gap-3 pt-2">
               {step > 1 && (
                 <Button
@@ -255,7 +231,6 @@ const BookingPage = () => {
             </div>
           </div>
 
-          {/* Sidebar Summary */}
           {selectedService && (
             <div className="hidden lg:block lg:sticky lg:top-24">
               <BookingSummary service={selectedService} patient={patient} step={step} />
@@ -263,7 +238,6 @@ const BookingPage = () => {
           )}
         </div>
 
-        {/* Mobile Summary (below wizard) */}
         {selectedService && (
           <div className="lg:hidden">
             <BookingSummary service={selectedService} patient={patient} step={step} />
