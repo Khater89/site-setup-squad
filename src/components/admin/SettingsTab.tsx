@@ -4,16 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Percent, Wallet, AlertTriangle } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Loader2, Save, Percent, Wallet, AlertTriangle, Phone } from "lucide-react";
 
 const SettingsTab = () => {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     platform_fee_percent: 10,
     deposit_percent: 20,
     provider_debt_limit: -20,
+    coordinator_phone: "",
   });
 
   const fetchSettings = async () => {
@@ -27,6 +30,7 @@ const SettingsTab = () => {
         platform_fee_percent: data.platform_fee_percent,
         deposit_percent: data.deposit_percent,
         provider_debt_limit: data.provider_debt_limit,
+        coordinator_phone: (data as any).coordinator_phone || "",
       });
     }
     setLoading(false);
@@ -42,14 +46,15 @@ const SettingsTab = () => {
         platform_fee_percent: settings.platform_fee_percent,
         deposit_percent: settings.deposit_percent,
         provider_debt_limit: settings.provider_debt_limit,
-      })
+        coordinator_phone: settings.coordinator_phone.trim() || null,
+      } as any)
       .eq("id", 1);
 
     setSaving(false);
     if (error) {
-      toast({ title: "خطأ في الحفظ", description: error.message, variant: "destructive" });
+      toast({ title: t("settings.save_error"), description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "تم حفظ الإعدادات ✅" });
+      toast({ title: t("settings.saved") });
     }
   };
 
@@ -57,7 +62,7 @@ const SettingsTab = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-bold">إعدادات المنصة</h2>
+      <h2 className="text-lg font-bold">{t("settings.title")}</h2>
 
       <Card>
         <CardHeader>
@@ -133,9 +138,29 @@ const SettingsTab = () => {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Phone className="h-5 w-5 text-primary" />
+            {t("settings.coordinator_phone")}
+          </CardTitle>
+          <CardDescription>{t("settings.coordinator_phone_desc")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Input
+            type="tel"
+            value={settings.coordinator_phone}
+            onChange={(e) => setSettings({ ...settings, coordinator_phone: e.target.value })}
+            placeholder="07XXXXXXXX"
+            className="w-48"
+            dir="ltr"
+          />
+        </CardContent>
+      </Card>
+
       <Button onClick={handleSave} className="gap-2" disabled={saving}>
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        حفظ الإعدادات
+        {t("settings.save")}
       </Button>
     </div>
   );
