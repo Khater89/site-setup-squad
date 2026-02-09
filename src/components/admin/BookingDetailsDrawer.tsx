@@ -202,7 +202,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
               </Button>
             )}
             <a
-              href={`https://wa.me/${booking.customer_phone.replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${booking.customer_name}، نحن من فريق MFN.`)}`}
+              href={`https://wa.me/${(booking.customer_phone || "").replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${booking.customer_name || ""}، نحن من فريق MFN.`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1"
