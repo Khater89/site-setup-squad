@@ -79,6 +79,7 @@ const ProviderDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
 
   // Profile editing state
   const [availableNow, setAvailableNow] = useState(false);
@@ -114,12 +115,16 @@ const ProviderDashboard = () => {
     const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
     setOrders((ordersData as unknown as ProviderOrder[]) || []);
 
-    const [ledgerRes, balanceRes] = await Promise.all([
+    const [ledgerRes, balanceRes, settingsRes] = await Promise.all([
       supabase.from("provider_wallet_ledger").select("*").eq("provider_id", user.id).order("created_at", { ascending: false }),
       supabase.rpc("get_provider_balance", { _provider_id: user.id }),
+      supabase.from("platform_settings").select("*").eq("id", 1).maybeSingle(),
     ]);
     setLedger((ledgerRes.data as LedgerEntry[]) || []);
     setBalance(balanceRes.data || 0);
+    if (settingsRes.data) {
+      setCoordinatorPhone((settingsRes.data as any).coordinator_phone || null);
+    }
     setLoading(false);
   };
 
@@ -343,10 +348,12 @@ const ProviderDashboard = () => {
                           <div className="flex items-center gap-1.5 text-xs font-medium text-success">
                             <ShieldCheck className="h-3.5 w-3.5" /> {t("provider.dashboard.contact_info")}
                           </div>
-                          {o.customer_phone && (
+                          {/* Coordinator phone instead of customer phone */}
+                          {coordinatorPhone && (
                             <p className="text-sm flex items-center gap-1.5">
                               <Phone className="h-3 w-3 text-muted-foreground" />
-                              <span dir="ltr">{o.customer_phone}</span>
+                              <span className="text-xs text-muted-foreground">{t("provider.dashboard.coordinator_phone")}:</span>
+                              <span dir="ltr" className="font-medium">{coordinatorPhone}</span>
                             </p>
                           )}
                           {o.client_address_text && (
@@ -392,14 +399,14 @@ const ProviderDashboard = () => {
                             <CheckCircle className="h-3 w-3" /> {t("provider.dashboard.complete")}
                           </Button>
                         )}
-                        {isAccepted(o) && o.customer_phone && (
+                        {isAccepted(o) && coordinatorPhone && (
                           <a
-                            href={`https://wa.me/${o.customer_phone.replace(/^0/, "962")}?text=${encodeURIComponent("مرحباً، أنا مقدم الخدمة من MFN.")}`}
+                            href={`https://wa.me/${coordinatorPhone.replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً، أنا مقدم الخدمة من MFN بخصوص الطلب ${o.booking_number || o.id.slice(0, 8)}.`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
                             <Button size="sm" variant="outline" className="gap-1 h-7 text-xs">
-                              <MessageCircle className="h-3 w-3" /> {t("provider.dashboard.whatsapp")}
+                              <MessageCircle className="h-3 w-3" /> {t("provider.dashboard.whatsapp_coordinator")}
                             </Button>
                           </a>
                         )}

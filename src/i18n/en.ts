@@ -353,6 +353,19 @@ const en: Record<string, string> = {
   "landing.step2.desc": "Pick your preferred date, time, and location",
   "landing.step3.title": "We Come to You",
   "landing.step3.desc": "Our certified medical team arrives at your doorstep",
+
+  // Settings
+  "settings.title": "Platform Settings",
+  "settings.coordinator_phone": "Coordinator Phone",
+  "settings.coordinator_phone_desc": "The phone number shown to providers for coordination (instead of customer's number)",
+  "settings.save": "Save Settings",
+  "settings.saved": "Settings saved ✅",
+  "settings.save_error": "Error saving settings",
+
+  // Provider Dashboard - Coordinator
+  "provider.dashboard.coordinator_phone": "Coordinator",
+  "provider.dashboard.whatsapp_coordinator": "WhatsApp Coordinator",
+  "provider.dashboard.contact_coordinator": "Contact coordinator for coordination",
 };
 
 export default en;

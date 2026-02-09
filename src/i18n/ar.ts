@@ -353,6 +353,19 @@ const ar: Record<string, string> = {
   "landing.step2.desc": "اختر التاريخ والوقت والمكان المناسب لك",
   "landing.step3.title": "نصلك فوراً",
   "landing.step3.desc": "فريقنا الطبي المعتمد يصل إلى باب منزلك",
+
+  // Settings
+  "settings.title": "إعدادات المنصة",
+  "settings.coordinator_phone": "رقم المنسق",
+  "settings.coordinator_phone_desc": "الرقم الذي يظهر للمزوّد للتنسيق (بدلاً من رقم الزبون)",
+  "settings.save": "حفظ الإعدادات",
+  "settings.saved": "تم حفظ الإعدادات ✅",
+  "settings.save_error": "خطأ في الحفظ",
+
+  // Provider Dashboard - Coordinator
+  "provider.dashboard.coordinator_phone": "رقم المنسق",
+  "provider.dashboard.whatsapp_coordinator": "واتساب المنسق",
+  "provider.dashboard.contact_coordinator": "تواصل مع المنسق للتنسيق",
 };
 
 export default ar;

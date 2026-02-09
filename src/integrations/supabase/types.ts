@@ -197,6 +197,7 @@ export type Database = {
       }
       platform_settings: {
         Row: {
+          coordinator_phone: string | null
           deposit_percent: number
           id: number
           platform_fee_percent: number
@@ -205,6 +206,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          coordinator_phone?: string | null
           deposit_percent?: number
           id?: number
           platform_fee_percent?: number
@@ -213,6 +215,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          coordinator_phone?: string | null
           deposit_percent?: number
           id?: number
           platform_fee_percent?: number
