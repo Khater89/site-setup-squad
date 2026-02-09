@@ -9,14 +9,13 @@ const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzN9ddKC
 
 export interface BookingPayload {
   patientName: string;
-  isEmergency: string;
   phone: string;
   city: string;
+  address: string;
   service: string;
   date: string;
   notes: string;
   time: string;
-  email: string;
   hours: number;
   period: string;
   basePrice: number;
@@ -28,10 +27,9 @@ export function buildBookingPayload(
   service: DbService,
   patient: {
     name: string;
-    isEmergency: boolean;
     phone: string;
-    email: string;
     city: string;
+    address: string;
     date: Date | undefined;
     time: string;
     hours: number;
@@ -49,14 +47,13 @@ export function buildBookingPayload(
 
   return {
     patientName: patient.name.trim(),
-    isEmergency: patient.isEmergency ? "نعم" : "لا",
     phone: patient.phone.trim(),
     city: patient.city.trim(),
+    address: patient.address.trim(),
     service: service.name,
     date: patient.date ? patient.date.toISOString().split("T")[0] : "",
     notes: patient.notes.trim(),
     time: timeLabels[lang][patient.time] || patient.time,
-    email: patient.email.trim(),
     hours: patient.hours,
     period: period === "day" ? "نهاري (6ص - 9م)" : "ليلي (9م - 6ص)",
     basePrice: pricing.basePrice,

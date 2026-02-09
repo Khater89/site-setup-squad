@@ -1,1 +1,4 @@
 project_id = "pasfkwniarukkdfdclah"
+
+[functions.create-guest-booking]
+verify_jwt = false
