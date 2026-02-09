@@ -96,10 +96,8 @@ Deno.serve(async (req) => {
 
     // ── Insert booking ──
     const booking = {
-      customer_name: customer_name.trim().substring(0, 200),
-      customer_phone: customer_phone.trim().substring(0, 20),
+      customer_display_name: customer_name.trim().substring(0, 200),
       city: city.trim().substring(0, 100),
-      client_address_text: client_address_text?.trim()?.substring(0, 500) || null,
       client_lat: client_lat != null ? parseFloat(String(client_lat)) : null,
       client_lng: client_lng != null ? parseFloat(String(client_lng)) : null,
       service_id,
@@ -122,6 +120,20 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // ── Insert sensitive contact info into booking_contacts ──
+    const { error: contactError } = await supabaseAdmin
+      .from("booking_contacts")
+      .insert({
+        booking_id: data.id,
+        customer_name: customer_name.trim().substring(0, 200),
+        customer_phone: customer_phone.trim().substring(0, 20),
+        client_address_text: client_address_text?.trim()?.substring(0, 500) || null,
+      });
+
+    if (contactError) {
+      console.error("Contact insert error:", contactError);
     }
 
     return new Response(
