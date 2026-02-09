@@ -20,7 +20,8 @@ import {
 interface BookingRow {
   id: string;
   booking_number: string | null;
-  customer_name: string;
+  customer_name?: string | null;
+  customer_display_name?: string | null;
   city: string;
   client_lat: number | null;
   client_lng: number | null;

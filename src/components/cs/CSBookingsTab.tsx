@@ -17,8 +17,7 @@ import CSAssignmentDialog from "./CSAssignmentDialog";
 export interface BookingRow {
   id: string;
   booking_number: string | null;
-  customer_name: string;
-  customer_phone: string;
+  customer_display_name: string | null;
   city: string;
   client_address_text: string | null;
   client_lat: number | null;
@@ -37,6 +36,9 @@ export interface BookingRow {
   assigned_at: string | null;
   accepted_at: string | null;
   service_id: string;
+  // From booking_contacts join
+  customer_name?: string | null;
+  customer_phone?: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -68,13 +70,26 @@ const CSBookingsTab = () => {
   const [assignBooking, setAssignBooking] = useState<BookingRow | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [bookingsRes, servicesRes, profilesRes] = await Promise.all([
+    const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
+      supabase.from("booking_contacts").select("*"),
       supabase.from("services").select("id, name"),
       supabase.from("profiles").select("user_id, full_name"),
     ]);
 
-    setBookings((bookingsRes.data as unknown as BookingRow[]) || []);
+    const contactMap: Record<string, any> = {};
+    (contactsRes.data || []).forEach((c: any) => { contactMap[c.booking_id] = c; });
+
+    const merged = (bookingsRes.data || []).map((b: any) => {
+      const contact = contactMap[b.id];
+      return {
+        ...b,
+        customer_name: contact?.customer_name || b.customer_display_name || "",
+        customer_phone: contact?.customer_phone || "",
+        client_address_text: contact?.client_address_text || null,
+      };
+    });
+    setBookings(merged as BookingRow[]);
 
     const svcMap: Record<string, string> = {};
     (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; });
@@ -94,8 +109,8 @@ const CSBookingsTab = () => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
-        b.customer_name.toLowerCase().includes(q) ||
-        b.customer_phone.includes(q) ||
+        (b.customer_name || "").toLowerCase().includes(q) ||
+        (b.customer_phone || "").includes(q) ||
         b.city.toLowerCase().includes(q) ||
         (b.booking_number || "").toLowerCase().includes(q)
       );
@@ -161,7 +176,7 @@ const CSBookingsTab = () => {
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {b.customer_name} · <span dir="ltr">{b.customer_phone}</span>
+                      {b.customer_name || b.customer_display_name || "—"} · <span dir="ltr">{b.customer_phone || "—"}</span>
                     </p>
                   </div>
                   <Badge variant="outline" className={STATUS_COLORS[b.status] || ""}>
@@ -228,7 +243,7 @@ const CSBookingsTab = () => {
                   )}
 
                   <a
-                    href={`https://wa.me/${b.customer_phone.replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${b.customer_name}، نحن من فريق MFN.`)}`}
+                    href={`https://wa.me/${(b.customer_phone || "").replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${b.customer_name || ""}، نحن من فريق MFN.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
