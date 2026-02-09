@@ -17,6 +17,7 @@ export type Database = {
       bookings: {
         Row: {
           accepted_at: string | null
+          agreed_price: number | null
           assigned_at: string | null
           assigned_by: string | null
           assigned_provider_id: string | null
@@ -34,6 +35,7 @@ export type Database = {
           deposit_amount: number | null
           deposit_status: string | null
           id: string
+          internal_note: string | null
           notes: string | null
           payment_method: string
           payment_status: string
@@ -52,6 +54,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          agreed_price?: number | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_provider_id?: string | null
@@ -69,6 +72,7 @@ export type Database = {
           deposit_amount?: number | null
           deposit_status?: string | null
           id?: string
+          internal_note?: string | null
           notes?: string | null
           payment_method?: string
           payment_status?: string
@@ -87,6 +91,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          agreed_price?: number | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_provider_id?: string | null
@@ -104,6 +109,7 @@ export type Database = {
           deposit_amount?: number | null
           deposit_status?: string | null
           id?: string
+          internal_note?: string | null
           notes?: string | null
           payment_method?: string
           payment_status?: string
@@ -226,6 +232,7 @@ export type Database = {
           experience_years: number | null
           full_name: string | null
           languages: string[] | null
+          last_active_at: string | null
           lat: number | null
           license_id: string | null
           lng: number | null
@@ -235,6 +242,7 @@ export type Database = {
           radius_km: number | null
           role_type: string | null
           schedule_json: Json | null
+          specialties: string[] | null
           stripe_connect_account_id: string | null
           stripe_connect_onboarding_status: string | null
           tools: string[] | null
@@ -249,6 +257,7 @@ export type Database = {
           experience_years?: number | null
           full_name?: string | null
           languages?: string[] | null
+          last_active_at?: string | null
           lat?: number | null
           license_id?: string | null
           lng?: number | null
@@ -258,6 +267,7 @@ export type Database = {
           radius_km?: number | null
           role_type?: string | null
           schedule_json?: Json | null
+          specialties?: string[] | null
           stripe_connect_account_id?: string | null
           stripe_connect_onboarding_status?: string | null
           tools?: string[] | null
@@ -272,6 +282,7 @@ export type Database = {
           experience_years?: number | null
           full_name?: string | null
           languages?: string[] | null
+          last_active_at?: string | null
           lat?: number | null
           license_id?: string | null
           lng?: number | null
@@ -281,6 +292,7 @@ export type Database = {
           radius_km?: number | null
           role_type?: string | null
           schedule_json?: Json | null
+          specialties?: string[] | null
           stripe_connect_account_id?: string | null
           stripe_connect_onboarding_status?: string | null
           tools?: string[] | null
@@ -406,6 +418,7 @@ export type Database = {
         Args: never
         Returns: {
           accepted_at: string
+          agreed_price: number
           assigned_at: string
           assigned_provider_id: string
           booking_number: string

@@ -18,6 +18,8 @@ interface Profile {
   experience_years: number | null;
   tools: string[] | null;
   languages: string[] | null;
+  specialties: string[] | null;
+  last_active_at: string | null;
   available_now: boolean;
   schedule_json: any | null;
   radius_km: number | null;

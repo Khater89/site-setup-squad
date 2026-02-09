@@ -4,15 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, MapPin, Clock, Briefcase, X } from "lucide-react";
+import { Loader2, CheckCircle, MapPin, Clock, Briefcase, X, Stethoscope } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 
 const TOOL_SUGGESTIONS = ["جهاز ضغط", "سماعة طبية", "جهاز سكر", "أدوات تضميد", "جهاز أكسجين", "حقن وريدي"];
 const LANGUAGE_OPTIONS = ["العربية", "الإنجليزية", "التركية", "الفرنسية"];
+const SPECIALTY_OPTIONS = [
+  "باطني", "أطفال", "جروح", "قسطرة", "حقن وريدي",
+  "علاج طبيعي", "رعاية مسنين", "تمريض منزلي",
+  "قياس ضغط وسكر", "تحاليل منزلية",
+];
 
 const ProviderOnboarding = () => {
   const navigate = useNavigate();
@@ -23,6 +28,7 @@ const ProviderOnboarding = () => {
   const [toolInput, setToolInput] = useState("");
   const [tools, setTools] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>(["العربية"]);
+  const [specialties, setSpecialties] = useState<string[]>([]);
   const [availableNow, setAvailableNow] = useState(false);
   const [radiusKm, setRadiusKm] = useState(20);
   const [addressText, setAddressText] = useState("");
@@ -33,13 +39,14 @@ const ProviderOnboarding = () => {
       setExperienceYears(profile.experience_years || 0);
       setTools(profile.tools || []);
       setLanguages(profile.languages || ["العربية"]);
+      setSpecialties(profile.specialties || []);
       setAvailableNow(profile.available_now || false);
       setRadiusKm(profile.radius_km || 20);
       setAddressText(profile.address_text || "");
     }
   }, [profile]);
 
-  // Redirect if profile already completed
+  // Redirect if profile already completed and approved
   useEffect(() => {
     if (profile?.profile_completed && profile?.provider_status === "approved") {
       navigate("/provider");
@@ -56,9 +63,7 @@ const ProviderOnboarding = () => {
 
   const addTool = (tool: string) => {
     const trimmed = tool.trim();
-    if (trimmed && !tools.includes(trimmed)) {
-      setTools([...tools, trimmed]);
-    }
+    if (trimmed && !tools.includes(trimmed)) setTools([...tools, trimmed]);
     setToolInput("");
   };
 
@@ -70,6 +75,10 @@ const ProviderOnboarding = () => {
     } else {
       setLanguages([...languages, lang]);
     }
+  };
+
+  const toggleSpecialty = (s: string) => {
+    setSpecialties((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,11 +97,12 @@ const ProviderOnboarding = () => {
         experience_years: experienceYears,
         tools: tools.length > 0 ? tools : null,
         languages: languages.length > 0 ? languages : null,
+        specialties: specialties.length > 0 ? specialties : null,
         available_now: availableNow,
         radius_km: radiusKm,
         address_text: addressText.trim(),
         profile_completed: true,
-      })
+      } as any)
       .eq("user_id", user.id);
 
     setSaving(false);
@@ -102,7 +112,6 @@ const ProviderOnboarding = () => {
     } else {
       await refreshUserData();
       toast({ title: "تم إكمال الملف الشخصي بنجاح! ✅" });
-      // If approved, go to dashboard; otherwise back to register for status
       if (profile?.provider_status === "approved") {
         navigate("/provider");
       } else {
@@ -125,22 +134,18 @@ const ProviderOnboarding = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Briefcase className="h-4 w-4" />
-                الخبرة المهنية
+                <Briefcase className="h-4 w-4" /> الخبرة المهنية
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="text-sm font-medium">سنوات الخبرة</label>
                 <Input
-                  type="number"
-                  min={0}
-                  max={50}
-                  value={experienceYears}
-                  onChange={(e) => setExperienceYears(Number(e.target.value))}
-                  dir="ltr"
+                  type="number" min={0} max={50} value={experienceYears}
+                  onChange={(e) => setExperienceYears(Number(e.target.value))} dir="ltr"
                 />
               </div>
+
               <div>
                 <label className="text-sm font-medium">الأدوات والأجهزة</label>
                 <div className="flex gap-2 mt-1">
@@ -148,25 +153,13 @@ const ProviderOnboarding = () => {
                     value={toolInput}
                     onChange={(e) => setToolInput(e.target.value)}
                     placeholder="أضف أداة..."
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addTool(toolInput);
-                      }
-                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTool(toolInput); } }}
                   />
-                  <Button type="button" variant="outline" size="sm" onClick={() => addTool(toolInput)}>
-                    إضافة
-                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => addTool(toolInput)}>إضافة</Button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {TOOL_SUGGESTIONS.filter((t) => !tools.includes(t)).slice(0, 4).map((t) => (
-                    <Badge
-                      key={t}
-                      variant="outline"
-                      className="cursor-pointer hover:bg-accent text-xs"
-                      onClick={() => addTool(t)}
-                    >
+                    <Badge key={t} variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => addTool(t)}>
                       + {t}
                     </Badge>
                   ))}
@@ -175,13 +168,13 @@ const ProviderOnboarding = () => {
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {tools.map((t) => (
                       <Badge key={t} variant="secondary" className="gap-1 text-xs">
-                        {t}
-                        <X className="h-3 w-3 cursor-pointer" onClick={() => removeTool(t)} />
+                        {t} <X className="h-3 w-3 cursor-pointer" onClick={() => removeTool(t)} />
                       </Badge>
                     ))}
                   </div>
                 )}
               </div>
+
               <div>
                 <label className="text-sm font-medium">اللغات</label>
                 <div className="flex flex-wrap gap-2 mt-1">
@@ -200,12 +193,35 @@ const ProviderOnboarding = () => {
             </CardContent>
           </Card>
 
+          {/* Specialties */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Stethoscope className="h-4 w-4" /> التخصصات
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-2">اختر التخصصات التي تقدمها</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SPECIALTY_OPTIONS.map((s) => (
+                  <Badge
+                    key={s}
+                    variant={specialties.includes(s) ? "default" : "outline"}
+                    className="cursor-pointer text-xs"
+                    onClick={() => toggleSpecialty(s)}
+                  >
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Availability */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                التوفر والعمل
+                <Clock className="h-4 w-4" /> التوفر والعمل
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -217,13 +233,9 @@ const ProviderOnboarding = () => {
                 <label className="text-sm font-medium">نطاق التغطية (كم)</label>
                 <div className="flex items-center gap-3 mt-1">
                   <Input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={radiusKm}
+                    type="number" min={1} max={100} value={radiusKm}
                     onChange={(e) => setRadiusKm(Number(e.target.value))}
-                    className="w-24"
-                    dir="ltr"
+                    className="w-24" dir="ltr"
                   />
                   <span className="text-sm text-muted-foreground">كم من موقعك</span>
                 </div>
@@ -235,8 +247,7 @@ const ProviderOnboarding = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                الموقع
+                <MapPin className="h-4 w-4" /> الموقع
               </CardTitle>
             </CardHeader>
             <CardContent>
