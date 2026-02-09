@@ -147,10 +147,48 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
     }
   };
 
+  // City name mapping for Arabic/English matching
+  const CITY_ALIASES: Record<string, string[]> = {
+    "amman": ["عمان", "amman", "عمّان"],
+    "irbid": ["اربد", "إربد", "irbid"],
+    "zarqa": ["الزرقاء", "zarqa", "الزرقا"],
+    "aqaba": ["العقبة", "aqaba"],
+    "salt": ["السلط", "salt"],
+    "madaba": ["مادبا", "madaba"],
+    "jerash": ["جرش", "jerash"],
+    "ajloun": ["عجلون", "ajloun"],
+    "karak": ["الكرك", "karak"],
+    "tafilah": ["الطفيلة", "tafilah"],
+    "maan": ["معان", "maan"],
+    "mafraq": ["المفرق", "mafraq"],
+  };
+
+  const normalizeCity = (city: string) => city?.toLowerCase().trim().replace(/[\u0650\u064E\u064F\u0651\u0652\u064B\u064C\u064D]/g, "");
+
+  const citiesMatch = (city1: string | null, city2: string) => {
+    if (!city1) return false;
+    const n1 = normalizeCity(city1);
+    const n2 = normalizeCity(city2);
+    if (n1.includes(n2) || n2.includes(n1)) return true;
+    // Check aliases
+    for (const aliases of Object.values(CITY_ALIASES)) {
+      const normalizedAliases = aliases.map(normalizeCity);
+      if (normalizedAliases.some(a => n1.includes(a) || a.includes(n1)) &&
+          normalizedAliases.some(a => n2.includes(a) || a.includes(n2))) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   // Filter fallback providers not in nearest list
   const nearestIds = new Set(nearestProviders.map((p) => p.provider_id));
-  const otherProviders = fallbackProviders.filter(
-    (p) => !nearestIds.has(p.user_id) && p.city?.toLowerCase().includes(booking.city.toLowerCase())
+  const sameCityProviders = fallbackProviders.filter(
+    (p) => !nearestIds.has(p.user_id) && citiesMatch(p.city, booking.city)
+  );
+  // Also show all other approved providers as a last fallback
+  const otherCityProviders = fallbackProviders.filter(
+    (p) => !nearestIds.has(p.user_id) && !citiesMatch(p.city, booking.city)
   );
 
   return (
@@ -236,10 +274,10 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
                 )}
 
                 {/* City-based fallback */}
-                {otherProviders.length > 0 && (
+                {sameCityProviders.length > 0 && (
                   <div className="space-y-1.5">
                     <p className="text-xs text-muted-foreground font-medium">📍 في نفس المدينة:</p>
-                    {otherProviders.map((p) => {
+                    {sameCityProviders.map((p) => {
                       const warnings: string[] = [];
                       if (!p.available_now) warnings.push("غير متاح حالياً");
 
@@ -279,9 +317,41 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
                   </div>
                 )}
 
-                {nearestProviders.length === 0 && otherProviders.length === 0 && (
+                {/* Other cities fallback */}
+                {otherCityProviders.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground font-medium">🌍 مزوّدون في مدن أخرى:</p>
+                    {otherCityProviders.map((p) => (
+                      <Card
+                        key={p.user_id}
+                        className={`cursor-pointer transition-colors ${selectedProvider === p.user_id ? "ring-2 ring-primary bg-primary/5" : "hover:bg-accent/50"}`}
+                        onClick={() => setSelectedProvider(p.user_id)}
+                      >
+                        <CardContent className="py-2.5 px-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium">{p.full_name || "بدون اسم"}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{ROLE_TYPE_LABELS[p.role_type || ""] || ""}</span>
+                                <span>·</span>
+                                <span>{p.city || "—"}</span>
+                                <span>·</span>
+                                <span>{p.experience_years || 0} سنة</span>
+                              </div>
+                            </div>
+                            {p.available_now && (
+                              <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-[10px] py-0">متاح</Badge>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {nearestProviders.length === 0 && sameCityProviders.length === 0 && otherCityProviders.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    لا يوجد مزوّدون معتمدون في هذه المنطقة
+                    لا يوجد مزوّدون معتمدون
                   </p>
                 )}
               </>
