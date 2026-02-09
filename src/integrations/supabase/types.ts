@@ -406,6 +406,24 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_users: {
+        Row: {
+          created_at: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -485,6 +503,7 @@ export type Database = {
       is_cs: { Args: never; Returns: boolean }
       is_customer: { Args: never; Returns: boolean }
       is_provider: { Args: never; Returns: boolean }
+      mfn_is_staff: { Args: never; Returns: boolean }
       provider_orders_safe: {
         Args: never
         Returns: {
