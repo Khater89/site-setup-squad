@@ -14,23 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_contacts: {
+        Row: {
+          booking_id: string
+          client_address_text: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+        }
+        Insert: {
+          booking_id: string
+          client_address_text?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+        }
+        Update: {
+          booking_id?: string
+          client_address_text?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_contacts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           accepted_at: string | null
           agreed_price: number | null
+          area_public: string | null
           assigned_at: string | null
           assigned_by: string | null
           assigned_provider_id: string | null
           booking_number: string | null
           city: string
-          client_address_text: string | null
           client_lat: number | null
           client_lng: number | null
           connect_charge_type: string | null
           contact_revealed_at: string | null
           created_at: string
-          customer_name: string
-          customer_phone: string
+          customer_display_name: string | null
           customer_user_id: string | null
           deposit_amount: number | null
           deposit_status: string | null
@@ -55,19 +86,18 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           agreed_price?: number | null
+          area_public?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_provider_id?: string | null
           booking_number?: string | null
           city: string
-          client_address_text?: string | null
           client_lat?: number | null
           client_lng?: number | null
           connect_charge_type?: string | null
           contact_revealed_at?: string | null
           created_at?: string
-          customer_name: string
-          customer_phone: string
+          customer_display_name?: string | null
           customer_user_id?: string | null
           deposit_amount?: number | null
           deposit_status?: string | null
@@ -92,19 +122,18 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           agreed_price?: number | null
+          area_public?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_provider_id?: string | null
           booking_number?: string | null
           city?: string
-          client_address_text?: string | null
           client_lat?: number | null
           client_lng?: number | null
           connect_charge_type?: string | null
           contact_revealed_at?: string | null
           created_at?: string
-          customer_name?: string
-          customer_phone?: string
+          customer_display_name?: string | null
           customer_user_id?: string | null
           deposit_amount?: number | null
           deposit_status?: string | null
@@ -456,6 +485,23 @@ export type Database = {
       is_cs: { Args: never; Returns: boolean }
       is_customer: { Args: never; Returns: boolean }
       is_provider: { Args: never; Returns: boolean }
+      provider_orders_safe: {
+        Args: never
+        Returns: {
+          accepted_at: string
+          agreed_price: number
+          area_public: string
+          assigned_at: string
+          booking_number: string
+          city: string
+          customer_display_name: string
+          id: string
+          reveal_contact_allowed: boolean
+          scheduled_at: string
+          service_id: string
+          status: string
+        }[]
+      }
       remove_user_role: {
         Args: {
           old_role: Database["public"]["Enums"]["app_role"]
