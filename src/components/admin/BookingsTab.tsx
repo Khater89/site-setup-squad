@@ -1,46 +1,23 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CalendarDays, User, Phone, MapPin, UserCheck } from "lucide-react";
+import { Loader2, Search, UserCheck } from "lucide-react";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import BookingDetailsDrawer, { type BookingRow } from "./BookingDetailsDrawer";
 import CSAssignmentDialog from "@/components/cs/CSAssignmentDialog";
 
-interface BookingRow {
-  id: string;
-  booking_number: string | null;
-  customer_name: string;
-  customer_phone: string;
-  city: string;
-  client_address_text: string | null;
-  client_lat: number | null;
-  client_lng: number | null;
-  scheduled_at: string;
-  status: string;
-  payment_method: string;
-  payment_status: string;
-  subtotal: number;
-  platform_fee: number;
-  provider_payout: number;
-  agreed_price: number | null;
-  internal_note: string | null;
-  notes: string | null;
-  assigned_provider_id: string | null;
-  assigned_by: string | null;
-  created_at: string;
-  service_id: string;
-  services: { name: string } | null;
-}
-
 const STATUS_COLORS: Record<string, string> = {
-  NEW: "bg-info text-info-foreground",
-  CONFIRMED: "bg-primary/20 text-primary",
-  ASSIGNED: "bg-warning/20 text-warning-foreground",
-  ACCEPTED: "bg-success/20 text-success",
+  NEW: "bg-info/10 text-info border-info/30",
+  CONFIRMED: "bg-primary/20 text-primary border-primary/30",
+  ASSIGNED: "bg-warning/10 text-warning border-warning/30",
+  ACCEPTED: "bg-success/10 text-success border-success/30",
   COMPLETED: "bg-success text-success-foreground",
-  CANCELLED: "bg-destructive text-destructive-foreground",
+  CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -55,18 +32,28 @@ const STATUS_LABELS: Record<string, string> = {
 const BookingsTab = () => {
   const { toast } = useToast();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [providerNames, setProviderNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
+
+  // Drawers
+  const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
   const [assignBooking, setAssignBooking] = useState<BookingRow | null>(null);
 
   const fetchBookings = async () => {
-    const [bookingsRes, profilesRes] = await Promise.all([
-      supabase.from("bookings").select("*, services(name)").order("created_at", { ascending: false }),
+    const [bookingsRes, servicesRes, profilesRes] = await Promise.all([
+      supabase.from("bookings").select("*").order("created_at", { ascending: false }),
+      supabase.from("services").select("id, name"),
       supabase.from("profiles").select("user_id, full_name"),
     ]);
 
     setBookings((bookingsRes.data as unknown as BookingRow[]) || []);
+
+    const svcMap: Record<string, string> = {};
+    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; });
+    setServiceNames(svcMap);
 
     const pMap: Record<string, string> = {};
     (profilesRes.data || []).forEach((p: any) => { pMap[p.user_id] = p.full_name || "بدون اسم"; });
@@ -77,130 +64,148 @@ const BookingsTab = () => {
 
   useEffect(() => { fetchBookings(); }, []);
 
-  const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: `تم تحديث الحالة إلى ${STATUS_LABELS[status]}` });
-      fetchBookings();
+  const filtered = bookings.filter((b) => {
+    if (filter !== "ALL" && b.status !== filter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        b.customer_name.toLowerCase().includes(q) ||
+        b.customer_phone.includes(q) ||
+        b.city.toLowerCase().includes(q) ||
+        (b.booking_number || "").toLowerCase().includes(q)
+      );
     }
-  };
+    return true;
+  });
 
-  const filtered = filter === "ALL" ? bookings : bookings.filter((b) => b.status === filter);
+  const handleAssignFromDetails = (booking: BookingRow) => {
+    setSelectedBooking(null);
+    setAssignBooking(booking);
+  };
 
   if (loading) return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Filters */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="text-lg font-bold">الحجوزات ({bookings.length})</h2>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">الكل</SelectItem>
-            <SelectItem value="NEW">جديد</SelectItem>
-            <SelectItem value="ASSIGNED">معيّن</SelectItem>
-            <SelectItem value="ACCEPTED">مقبول</SelectItem>
-            <SelectItem value="COMPLETED">مكتمل</SelectItem>
-            <SelectItem value="CANCELLED">ملغي</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="بحث..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-9 w-[200px]"
+            />
+          </div>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">الكل</SelectItem>
+              <SelectItem value="NEW">جديد</SelectItem>
+              <SelectItem value="ASSIGNED">معيّن</SelectItem>
+              <SelectItem value="ACCEPTED">مقبول</SelectItem>
+              <SelectItem value="COMPLETED">مكتمل</SelectItem>
+              <SelectItem value="CANCELLED">ملغي</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
+      {/* Table */}
       {filtered.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد حجوزات</CardContent></Card>
+        <div className="text-center py-10 text-muted-foreground">لا توجد حجوزات</div>
       ) : (
-        <div className="grid gap-3">
-          {filtered.map((b) => (
-            <Card key={b.id}>
-              <CardContent className="py-4 px-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium text-sm">
-                      {b.services?.name || "خدمة محذوفة"}
-                      {b.booking_number && <span className="ms-2 text-[10px] text-muted-foreground" dir="ltr">{b.booking_number}</span>}
-                    </p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><User className="h-3 w-3" />{b.customer_name}</span>
-                      <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{b.customer_phone}</span>
-                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{b.city}</span>
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="text-right">رقم الحجز</TableHead>
+                <TableHead className="text-right">الخدمة</TableHead>
+                <TableHead className="text-right">العميل</TableHead>
+                <TableHead className="text-right">المدينة</TableHead>
+                <TableHead className="text-right">الموعد</TableHead>
+                <TableHead className="text-right">المبلغ</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-right">المزوّد</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((b) => (
+                <TableRow
+                  key={b.id}
+                  className="cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => setSelectedBooking(b)}
+                >
+                  <TableCell className="text-xs font-mono" dir="ltr">
+                    {b.booking_number || b.id.slice(0, 8)}
+                  </TableCell>
+                  <TableCell className="text-sm font-medium">
+                    {serviceNames[b.service_id] || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="text-sm">{b.customer_name}</p>
+                      <p className="text-xs text-muted-foreground" dir="ltr">{b.customer_phone}</p>
                     </div>
-                  </div>
-                  <Badge className={STATUS_COLORS[b.status] || ""}>{STATUS_LABELS[b.status] || b.status}</Badge>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <CalendarDays className="h-3 w-3" />
-                  {new Date(b.scheduled_at).toLocaleDateString("ar-JO", {
-                    weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                  })}
-                </div>
-
-                <div className="flex items-center gap-2 text-xs flex-wrap">
-                  <Badge variant="outline">{b.payment_method}</Badge>
-                  <Badge variant="outline">{b.payment_status}</Badge>
-                  <span className="text-muted-foreground">المجموع: {b.subtotal} د.أ</span>
-                  <span className="text-muted-foreground">العمولة: {b.platform_fee} د.أ</span>
-                  {b.agreed_price != null && (
-                    <span className="text-success font-medium">المتفق: {b.agreed_price} د.أ</span>
-                  )}
-                </div>
-
-                {b.notes && <p className="text-xs text-muted-foreground bg-muted rounded p-2">{b.notes}</p>}
-                {b.internal_note && (
-                  <p className="text-xs bg-warning/10 border border-warning/20 rounded p-2 text-warning-foreground">
-                    📝 ملاحظة داخلية: {b.internal_note}
-                  </p>
-                )}
-
-                {/* Assignment info */}
-                {b.assigned_provider_id && (
-                  <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    <UserCheck className="h-3 w-3" />
-                    مُسند إلى: <span className="font-medium">{providerNames[b.assigned_provider_id] || "مزوّد"}</span>
-                    {b.assigned_by && <span>({b.assigned_by})</span>}
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 pt-1">
-                  <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)}>
-                    <SelectTrigger className="h-8 text-xs w-28">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {b.status === "NEW" && !b.assigned_provider_id && (
-                    <Button
-                      size="sm"
-                      className="gap-1 h-8 text-xs"
-                      onClick={() => setAssignBooking(b)}
-                    >
-                      <UserCheck className="h-3 w-3" /> تعيين وتسعير
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </TableCell>
+                  <TableCell className="text-sm">{b.city}</TableCell>
+                  <TableCell className="text-xs">
+                    {new Date(b.scheduled_at).toLocaleDateString("ar-JO", {
+                      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
+                  </TableCell>
+                  <TableCell className="text-sm font-medium">
+                    {b.agreed_price != null ? (
+                      <span className="text-success">{b.agreed_price}</span>
+                    ) : (
+                      b.subtotal
+                    )} د.أ
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`text-[10px] ${STATUS_COLORS[b.status] || ""}`}>
+                      {STATUS_LABELS[b.status] || b.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {b.assigned_provider_id ? (
+                      <span className="flex items-center gap-1">
+                        <UserCheck className="h-3 w-3 text-success" />
+                        {providerNames[b.assigned_provider_id] || "—"}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 
-      {/* Assignment Dialog (shared with CS) */}
+      {/* Booking Details Drawer */}
+      <BookingDetailsDrawer
+        booking={selectedBooking}
+        open={!!selectedBooking}
+        onOpenChange={(open) => { if (!open) setSelectedBooking(null); }}
+        serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || "خدمة" : ""}
+        providerName={selectedBooking?.assigned_provider_id ? providerNames[selectedBooking.assigned_provider_id] || null : null}
+        onAssign={handleAssignFromDetails}
+      />
+
+      {/* Assignment Dialog */}
       {assignBooking && (
         <CSAssignmentDialog
           booking={assignBooking}
           open={!!assignBooking}
           onOpenChange={(open) => { if (!open) setAssignBooking(null); }}
           onAssigned={() => { setAssignBooking(null); fetchBookings(); }}
-          serviceName={assignBooking.services?.name || "خدمة"}
+          serviceName={serviceNames[assignBooking.service_id] || "خدمة"}
         />
       )}
     </div>
