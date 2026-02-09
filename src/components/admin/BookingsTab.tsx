@@ -37,13 +37,27 @@ const BookingsTab = () => {
   const [assignBooking, setAssignBooking] = useState<BookingRow | null>(null);
 
   const fetchBookings = async () => {
-    const [bookingsRes, servicesRes, profilesRes] = await Promise.all([
+    const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
+      supabase.from("booking_contacts").select("*"),
       supabase.from("services").select("id, name"),
       supabase.from("profiles").select("user_id, full_name"),
     ]);
 
-    setBookings((bookingsRes.data as unknown as BookingRow[]) || []);
+    // Merge contact info into bookings
+    const contactMap: Record<string, any> = {};
+    (contactsRes.data || []).forEach((c: any) => { contactMap[c.booking_id] = c; });
+
+    const merged = (bookingsRes.data || []).map((b: any) => {
+      const contact = contactMap[b.id];
+      return {
+        ...b,
+        customer_name: contact?.customer_name || b.customer_display_name || "",
+        customer_phone: contact?.customer_phone || "",
+        client_address_text: contact?.client_address_text || null,
+      };
+    });
+    setBookings(merged as BookingRow[]);
 
     const svcMap: Record<string, string> = {};
     (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; });
@@ -63,8 +77,8 @@ const BookingsTab = () => {
     if (search) {
       const q = search.toLowerCase();
       return (
-        b.customer_name.toLowerCase().includes(q) ||
-        b.customer_phone.includes(q) ||
+        (b.customer_name || "").toLowerCase().includes(q) ||
+        (b.customer_phone || "").includes(q) ||
         b.city.toLowerCase().includes(q) ||
         (b.booking_number || "").toLowerCase().includes(q)
       );
@@ -142,8 +156,8 @@ const BookingsTab = () => {
                   </TableCell>
                   <TableCell>
                     <div>
-                      <p className="text-sm">{b.customer_name}</p>
-                      <p className="text-xs text-muted-foreground" dir="ltr">{b.customer_phone}</p>
+                      <p className="text-sm">{b.customer_name || b.customer_display_name || "—"}</p>
+                      <p className="text-xs text-muted-foreground" dir="ltr">{b.customer_phone || "—"}</p>
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{b.city}</TableCell>

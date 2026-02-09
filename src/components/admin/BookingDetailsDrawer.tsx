@@ -12,10 +12,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 export interface BookingRow {
   id: string;
   booking_number: string | null;
-  customer_name: string;
-  customer_phone: string;
+  customer_display_name: string | null;
   city: string;
-  client_address_text: string | null;
   client_lat: number | null;
   client_lng: number | null;
   scheduled_at: string;
@@ -34,6 +32,10 @@ export interface BookingRow {
   accepted_at: string | null;
   created_at: string;
   service_id: string;
+  // From booking_contacts join
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  client_address_text?: string | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
