@@ -1,10 +1,9 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { DbService } from "@/hooks/useServices";
 import { PatientData } from "./PatientForm";
-import { PeriodType, calculateHourlyPricing, HOURLY_PRICING } from "@/lib/services";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { Stethoscope, User, Phone, MapPin, CalendarDays, Clock, Receipt, Home } from "lucide-react";
+import { Stethoscope, User, Phone, MapPin, CalendarDays, Clock, Receipt, Home, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface BookingSummaryProps {
@@ -17,11 +16,6 @@ const BookingSummary = ({ service, patient, step }: BookingSummaryProps) => {
   const { t, lang } = useLanguage();
 
   if (!service) return null;
-
-  const period: PeriodType = patient.time === "evening" ? "night" : "day";
-  const pricing = calculateHourlyPricing(period, patient.hours);
-  const config = HOURLY_PRICING[period];
-  const currency = t("price.currency");
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
@@ -92,30 +86,12 @@ const BookingSummary = ({ service, patient, step }: BookingSummaryProps) => {
 
       <Separator />
 
-      {/* Price breakdown */}
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">{t("price.first_hour")}</span>
-          <span className="font-medium">{config.firstHour} {currency}</span>
-        </div>
-        {patient.hours > 1 && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">
-              {patient.hours - 1} × {t("price.additional_hour")}
-            </span>
-            <span className="font-medium">{(patient.hours - 1) * config.additionalHour} {currency}</span>
-          </div>
-        )}
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">{t("price.commission")}</span>
-          <span className="font-medium">{pricing.commission} {currency}</span>
-        </div>
-        <Separator />
-        <div className="flex justify-between items-center">
-          <span className="font-bold text-foreground">{t("price.total")}</span>
-          <span className="text-lg font-black text-primary">{pricing.total} {currency}</span>
-        </div>
-        <p className="text-[10px] text-muted-foreground text-center pt-1">{t("price.materials_note")}</p>
+      {/* Price note instead of price breakdown */}
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border">
+        <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {t("price.determined_later")}
+        </p>
       </div>
     </div>
   );

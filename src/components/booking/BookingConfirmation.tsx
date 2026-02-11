@@ -1,11 +1,9 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { DbService } from "@/hooks/useServices";
-import { PeriodType } from "@/lib/services";
 import { PatientData } from "./PatientForm";
-import PriceSummary from "./PriceSummary";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { User, Phone, MapPin, CalendarIcon, Clock, FileText, Home } from "lucide-react";
+import { User, Phone, MapPin, CalendarIcon, Clock, FileText, Home, Info } from "lucide-react";
 
 interface BookingConfirmationProps {
   service: DbService;
@@ -20,8 +18,6 @@ const BookingConfirmation = ({ service, patient }: BookingConfirmationProps) => 
     afternoon: t("time.afternoon"),
     evening: t("time.evening"),
   };
-
-  const period: PeriodType = patient.time === "evening" ? "night" : "day";
 
   const infoRows = [
     { icon: User, label: t("form.patient_name"), value: patient.name },
@@ -54,7 +50,13 @@ const BookingConfirmation = ({ service, patient }: BookingConfirmationProps) => 
         ))}
       </div>
 
-      <PriceSummary service={service} hours={patient.hours} period={period} />
+      {/* Price note */}
+      <div className="flex items-start gap-2 p-4 rounded-xl border-2 border-border bg-muted/50">
+        <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {t("price.determined_later")}
+        </p>
+      </div>
     </div>
   );
 };

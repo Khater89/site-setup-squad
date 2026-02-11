@@ -2,11 +2,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { CalendarCheck, Users, PlusCircle, LogOut } from "lucide-react";
+import { CalendarCheck, Users, PlusCircle, LogOut, RefreshCw } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 import CSBookingsTab from "@/components/cs/CSBookingsTab";
 import CSProviderDirectory from "@/components/cs/CSProviderDirectory";
 import CSNewBookingForm from "@/components/cs/CSNewBookingForm";
+import SyncMonitorTab from "@/components/admin/SyncMonitorTab";
 
 const CSDashboard = () => {
   const { user, signOut } = useAuth();
@@ -36,7 +37,7 @@ const CSDashboard = () => {
 
       <main className="container py-6 px-4">
         <Tabs defaultValue="bookings" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="bookings" className="gap-1.5 text-xs">
               <CalendarCheck className="h-4 w-4" /> الحجوزات
             </TabsTrigger>
@@ -46,11 +47,15 @@ const CSDashboard = () => {
             <TabsTrigger value="new-booking" className="gap-1.5 text-xs">
               <PlusCircle className="h-4 w-4" /> حجز جديد
             </TabsTrigger>
+            <TabsTrigger value="sync" className="gap-1.5 text-xs">
+              <RefreshCw className="h-4 w-4" /> المزامنة
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings"><CSBookingsTab /></TabsContent>
           <TabsContent value="providers"><CSProviderDirectory /></TabsContent>
           <TabsContent value="new-booking"><CSNewBookingForm /></TabsContent>
+          <TabsContent value="sync"><SyncMonitorTab /></TabsContent>
         </Tabs>
       </main>
     </div>

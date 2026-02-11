@@ -107,16 +107,9 @@ const ServiceCard = ({ service, isSelected, onSelect }: ServiceCardProps) => {
               {service.description}
             </p>
           )}
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-sm font-bold text-primary">
-              {service.base_price} {t("price.currency")}
-            </span>
-            {service.duration_minutes && (
-              <span className="text-xs text-muted-foreground">
-                / {service.duration_minutes} {t("form.hours.single") || "دقيقة"}
-              </span>
-            )}
-          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("price.determined_later")}
+          </p>
         </div>
       </div>
     </button>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useServices, DbService } from "@/hooks/useServices";
-import { buildBookingPayload, submitToGoogleSheets } from "@/lib/googleSheets";
+
 import BookingHeader from "@/components/booking/BookingHeader";
 import AppFooter from "@/components/AppFooter";
 import StepIndicator from "@/components/booking/StepIndicator";
@@ -93,9 +93,7 @@ const BookingPage = () => {
       },
     });
 
-    // Also submit to Google Sheets (fire-and-forget)
-    const payload = buildBookingPayload(selectedService, patient, lang);
-    submitToGoogleSheets(payload);
+    // Google Sheets sync is now handled via the outbox pattern in the edge function
 
     setIsSubmitting(false);
 

@@ -46,6 +46,53 @@ export type Database = {
           },
         ]
       }
+      booking_outbox: {
+        Row: {
+          attempts: number
+          booking_id: string
+          created_at: string
+          destination: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          booking_id: string
+          created_at?: string
+          destination?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          payload: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string
+          created_at?: string
+          destination?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_outbox_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           accepted_at: string | null

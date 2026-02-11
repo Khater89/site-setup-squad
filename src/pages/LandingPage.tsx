@@ -18,9 +18,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Phone,
-  Sun,
-  Moon,
-  Star,
   CheckCircle,
   ClipboardList,
   CalendarDays,
@@ -308,123 +305,25 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ═══════ PRICING ═══════ */}
+      {/* ═══════ PRICING NOTE ═══════ */}
       <section id="pricing" className="py-20 scroll-mt-20">
-        <div className="container max-w-4xl space-y-14">
+        <div className="container max-w-4xl">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-center space-y-3"
+            className="text-center space-y-4 bg-card border border-border rounded-2xl p-10"
           >
             <h2 className="text-2xl sm:text-3xl font-black text-foreground">{t("landing.pricing_title")}</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">{t("landing.pricing_sub")}</p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={stagger}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-6"
-          >
-            {/* Day */}
-            <motion.div
-              variants={fadeUp}
-              transition={{ duration: 0.5 }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="bg-card border border-border rounded-2xl p-6 space-y-5 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-warning/15 flex items-center justify-center">
-                  <Sun className="h-6 w-6 text-warning" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-foreground">{t("landing.pricing.day_label")}</h3>
-                  <p className="text-xs text-muted-foreground">{t("landing.pricing.day_time")}</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <span className="text-sm text-muted-foreground">{t("landing.pricing.first_hour")}</span>
-                  <span className="text-xl font-bold text-foreground">50 <span className="text-sm font-normal text-muted-foreground">{t("price.currency")}</span></span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-sm text-muted-foreground">{t("landing.pricing.extra_hour")}</span>
-                  <span className="text-xl font-bold text-foreground">20 <span className="text-sm font-normal text-muted-foreground">{t("price.currency")}</span></span>
-                </div>
-              </div>
-              <Link to="/booking" className="block">
-                <Button className="w-full gap-2 rounded-xl h-11 font-semibold">
-                  {t("action.book_now")}
-                  <ArrowIcon className="h-4 w-4" />
-                </Button>
-              </Link>
-            </motion.div>
-
-            {/* Night */}
-            <motion.div
-              variants={fadeUp}
-              transition={{ duration: 0.5 }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="bg-card border-2 border-primary/30 rounded-2xl p-6 space-y-5 relative hover:shadow-lg transition-shadow"
-            >
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: 0.3, type: "spring", stiffness: 200 }}
-                className="absolute -top-3 start-4"
-              >
-                <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                  <Star className="h-3 w-3" />
-                  24/7
-                </span>
-              </motion.div>
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center">
-                  <Moon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-foreground">{t("landing.pricing.night_label")}</h3>
-                  <p className="text-xs text-muted-foreground">{t("landing.pricing.night_time")}</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <span className="text-sm text-muted-foreground">{t("landing.pricing.first_hour")}</span>
-                  <span className="text-xl font-bold text-foreground">70 <span className="text-sm font-normal text-muted-foreground">{t("price.currency")}</span></span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-sm text-muted-foreground">{t("landing.pricing.extra_hour")}</span>
-                  <span className="text-xl font-bold text-foreground">20 <span className="text-sm font-normal text-muted-foreground">{t("price.currency")}</span></span>
-                </div>
-              </div>
-              <Link to="/booking" className="block">
-                <Button className="w-full gap-2 rounded-xl h-11 font-semibold">
-                  {t("action.book_now")}
-                  <ArrowIcon className="h-4 w-4" />
-                </Button>
-              </Link>
-            </motion.div>
-          </motion.div>
-
-          {/* notes */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={staggerFast}
-            className="flex flex-col items-center gap-2 text-center"
-          >
-            {[t("landing.pricing.commission_note"), t("landing.pricing.materials_note")].map((note, i) => (
-              <motion.div key={i} variants={fadeUp} transition={{ duration: 0.4 }} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                {note}
-              </motion.div>
-            ))}
+            <p className="text-muted-foreground max-w-xl mx-auto">{t("price.determined_later")}</p>
+            <Link to="/booking">
+              <Button size="lg" className="gap-2 rounded-full px-8 mt-4">
+                {t("landing.cta")}
+                <ArrowIcon className="h-4 w-4" />
+              </Button>
+            </Link>
           </motion.div>
         </div>
       </section>
