@@ -102,6 +102,8 @@ const ar: Record<string, string> = {
   "price.additional_hour": "ساعة إضافية",
   "price.subtotal": "المجموع الفرعي",
   "price.materials_note": "* الأسعار غير شاملة المواد الطبية",
+  "price.determined_later": "السعر يتم تحديده بعد التواصل والتأكيد",
+  "admin.tab.sync": "المزامنة",
   "price.starts_from": "يبدأ من",
   "price.per_hour": "ساعة",
   "price.period": "فترة الخدمة",

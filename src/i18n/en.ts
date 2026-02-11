@@ -102,6 +102,8 @@ const en: Record<string, string> = {
   "price.additional_hour": "Additional Hour",
   "price.subtotal": "Subtotal",
   "price.materials_note": "* Prices do not include medical materials",
+  "price.determined_later": "Price will be determined after consultation and confirmation",
+  "admin.tab.sync": "Sync",
   "price.starts_from": "From",
   "price.per_hour": "hr",
   "price.period": "Service Period",

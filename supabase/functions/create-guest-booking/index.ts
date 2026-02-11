@@ -136,6 +136,39 @@ Deno.serve(async (req) => {
       console.error("Contact insert error:", contactError);
     }
 
+    // ── Write to booking_outbox for Google Sheets sync ──
+    const outboxPayload = {
+      booking_id: data.id,
+      booking_number: data.booking_number,
+      service_id,
+      city: city.trim(),
+      scheduled_at: new Date(scheduled_at).toISOString(),
+      notes: notes?.trim() || null,
+      status: "NEW",
+      client_lat: client_lat != null ? parseFloat(String(client_lat)) : null,
+      client_lng: client_lng != null ? parseFloat(String(client_lng)) : null,
+      created_at: new Date().toISOString(),
+      source: "web",
+      customer_name: customer_name.trim(),
+      customer_phone: customer_phone.trim(),
+      client_address_text: client_address_text?.trim() || null,
+      hours: hourCount,
+      time_slot: time_slot || null,
+    };
+
+    const { error: outboxError } = await supabaseAdmin
+      .from("booking_outbox")
+      .insert({
+        booking_id: data.id,
+        destination: "google_sheets",
+        payload: outboxPayload,
+        status: "pending",
+      });
+
+    if (outboxError) {
+      console.error("Outbox insert error (non-blocking):", outboxError);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
