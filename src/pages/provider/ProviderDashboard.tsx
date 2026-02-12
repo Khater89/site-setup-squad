@@ -9,7 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Wallet, LogOut, Loader2, CheckCircle, XCircle,
   CalendarDays, MapPin, ClipboardList, Phone,
@@ -81,6 +89,9 @@ const ProviderDashboard = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
+  const [cancelDialogOrder, setCancelDialogOrder] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [completeDialogOrder, setCompleteDialogOrder] = useState<string | null>(null);
 
   // Profile editing state
   const [availableNow, setAvailableNow] = useState(false);
@@ -145,22 +156,23 @@ const ProviderDashboard = () => {
   const acceptOrder = async (id: string) => {
     if (!user) return;
     setActionLoading(id);
-    const { error } = await supabase.from("bookings").update({
-      accepted_at: new Date().toISOString(),
-      status: "ACCEPTED",
-    }).eq("id", id).eq("assigned_provider_id", user.id);
+    try {
+      const { error } = await supabase.from("bookings").update({
+        accepted_at: new Date().toISOString(),
+        status: "ACCEPTED",
+      }).eq("id", id).eq("assigned_provider_id", user.id);
 
-    if (!error) {
-      await Promise.all([
-        (supabase as any).from("data_access_log").insert({
-          booking_id: id, accessed_by: user.id, accessor_role: "provider", action: "accept_order",
-        }),
-        logHistory(id, "ACCEPTED", "تم قبول الطلب من قبل المزود"),
-      ]);
+      if (error) throw error;
+
+      await logHistory(id, "ACCEPTED", "تم قبول الطلب من قبل المزود");
       toast({ title: t("provider.dashboard.accepted_toast") });
-      fetchData();
-    } else {
-      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+      await fetchData();
+      // Auto-load history for this order
+      const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
+      setHistoryMap((prev) => ({ ...prev, [id]: data || [] }));
+    } catch (err: any) {
+      console.error("Accept error:", err);
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
     }
     setActionLoading(null);
   };
@@ -168,60 +180,80 @@ const ProviderDashboard = () => {
   const rejectOrder = async (id: string) => {
     if (!confirm(t("provider.dashboard.reject_confirm"))) return;
     setActionLoading(id);
-    await logHistory(id, "REJECTED", "تم رفض الطلب من قبل المزود");
-    const { error } = await supabase.from("bookings").update({
-      assigned_provider_id: null,
-      status: "NEW",
-      accepted_at: null,
-      assigned_at: null,
-    } as any).eq("id", id);
-
-    if (error) {
-      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await logHistory(id, "REJECTED", "تم رفض الطلب من قبل المزود");
+      const { error } = await supabase.from("bookings").update({
+        assigned_provider_id: null,
+        status: "NEW",
+        accepted_at: null,
+        assigned_at: null,
+      } as any).eq("id", id);
+      if (error) throw error;
       toast({ title: t("provider.dashboard.rejected_toast") });
-      fetchData();
+      await fetchData();
+    } catch (err: any) {
+      console.error("Reject error:", err);
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
     }
     setActionLoading(null);
   };
 
-  const markComplete = async (id: string) => {
+  const confirmComplete = async () => {
+    const id = completeDialogOrder;
+    if (!id || !user) return;
+    setCompleteDialogOrder(null);
     setActionLoading(id);
-    const { error } = await supabase.from("bookings").update({ status: "COMPLETED" }).eq("id", id);
-    if (error) {
-      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const { error } = await supabase.from("bookings").update({ status: "COMPLETED" }).eq("id", id).eq("assigned_provider_id", user.id);
+      if (error) throw error;
       await logHistory(id, "COMPLETED", "تم إكمال الطلب");
       toast({ title: t("provider.dashboard.completed_toast") });
-      fetchData();
+      await fetchData();
+      const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
+      setHistoryMap((prev) => ({ ...prev, [id]: data || [] }));
+    } catch (err: any) {
+      console.error("Complete error:", err);
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
     }
     setActionLoading(null);
   };
 
-  const cancelOrder = async (id: string) => {
-    if (!confirm("هل أنت متأكد من إلغاء هذا الطلب؟")) return;
+  const confirmCancel = async () => {
+    const id = cancelDialogOrder;
+    if (!id || !user) return;
+    const reason = cancelReason.trim() || "بدون سبب";
+    setCancelDialogOrder(null);
+    setCancelReason("");
     setActionLoading(id);
-    const { error } = await supabase.from("bookings").update({ status: "CANCELLED" }).eq("id", id);
-    if (error) {
-      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
-    } else {
-      await logHistory(id, "CANCELLED", "تم إلغاء الطلب بطلب من العميل");
+    try {
+      const { error } = await supabase.from("bookings").update({ status: "CANCELLED" }).eq("id", id).eq("assigned_provider_id", user.id);
+      if (error) throw error;
+      await logHistory(id, "CANCELLED", `سبب الإلغاء: ${reason}`);
       toast({ title: "تم إلغاء الطلب" });
-      fetchData();
+      await fetchData();
+      const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
+      setHistoryMap((prev) => ({ ...prev, [id]: data || [] }));
+    } catch (err: any) {
+      console.error("Cancel error:", err);
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
     }
     setActionLoading(null);
   };
 
   // History state
   const [historyMap, setHistoryMap] = useState<Record<string, any[]>>({});
-  const [showHistory, setShowHistory] = useState<string | null>(null);
 
   const loadHistory = async (bookingId: string) => {
-    if (showHistory === bookingId) { setShowHistory(null); return; }
     const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", bookingId).order("created_at", { ascending: true });
     setHistoryMap((prev) => ({ ...prev, [bookingId]: data || [] }));
-    setShowHistory(bookingId);
   };
+
+  // Load history for all orders on mount
+  useEffect(() => {
+    if (orders.length > 0) {
+      orders.forEach((o) => loadHistory(o.id));
+    }
+  }, [orders.length]);
 
   /* ── Profile Save ── */
 
@@ -436,10 +468,10 @@ const ProviderDashboard = () => {
                         )}
                         {isAccepted(o) && o.status !== "COMPLETED" && o.status !== "CANCELLED" && (
                           <>
-                            <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => markComplete(o.id)} disabled={actionLoading === o.id}>
+                            <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => setCompleteDialogOrder(o.id)} disabled={actionLoading === o.id}>
                               {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} {t("provider.dashboard.complete")}
                             </Button>
-                            <Button size="sm" variant="destructive" className="gap-1 h-7 text-xs" onClick={() => cancelOrder(o.id)} disabled={actionLoading === o.id}>
+                            <Button size="sm" variant="destructive" className="gap-1 h-7 text-xs" onClick={() => setCancelDialogOrder(o.id)} disabled={actionLoading === o.id}>
                               <Ban className="h-3 w-3" /> إلغاء
                             </Button>
                           </>
@@ -455,30 +487,31 @@ const ProviderDashboard = () => {
                             </Button>
                           </a>
                         )}
-                        {/* History toggle */}
-                        <Button size="sm" variant="ghost" className="gap-1 h-7 text-xs" onClick={() => loadHistory(o.id)}>
-                          <History className="h-3 w-3" /> سجل
-                        </Button>
                       </div>
 
-                      {/* History timeline */}
-                      {showHistory === o.id && (
+                      {/* History timeline - always visible */}
+                      {(historyMap[o.id] || []).length > 0 && (
                         <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/30">
                           <h5 className="text-xs font-bold text-muted-foreground flex items-center gap-1"><History className="h-3 w-3" /> سجل الطلب</h5>
-                          {(historyMap[o.id] || []).length === 0 ? (
-                            <p className="text-xs text-muted-foreground">لا يوجد سجل بعد</p>
-                          ) : (
-                            (historyMap[o.id] || []).map((h: any) => (
-                              <div key={h.id} className="flex items-start gap-2 text-xs">
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                                <div>
-                                  <span className="font-medium">{h.action}</span>
-                                  {h.note && <span className="text-muted-foreground ms-1">— {h.note}</span>}
-                                  <p className="text-[10px] text-muted-foreground" dir="ltr">{new Date(h.created_at).toLocaleString("ar-JO")}</p>
-                                </div>
+                          {(historyMap[o.id] || []).map((h: any) => (
+                            <div key={h.id} className="flex items-start gap-2 text-xs">
+                              <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
+                                h.action === "ACCEPTED" ? "bg-success" :
+                                h.action === "CANCELLED" ? "bg-destructive" :
+                                h.action === "COMPLETED" ? "bg-primary" : "bg-warning"
+                              }`} />
+                              <div>
+                                <span className="font-medium">{
+                                  h.action === "ACCEPTED" ? "✅ قبول" :
+                                  h.action === "COMPLETED" ? "✅ إكمال" :
+                                  h.action === "CANCELLED" ? "❌ إلغاء" :
+                                  h.action === "REJECTED" ? "↩️ رفض" : h.action
+                                }</span>
+                                {h.note && <span className="text-muted-foreground ms-1">— {h.note}</span>}
+                                <p className="text-[10px] text-muted-foreground" dir="ltr">{new Date(h.created_at).toLocaleString("ar-JO")}</p>
                               </div>
-                            ))
-                          )}
+                            </div>
+                          ))}
                         </div>
                       )}
                     </CardContent>
@@ -609,6 +642,40 @@ const ProviderDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Complete Confirmation Dialog */}
+      <AlertDialog open={!!completeDialogOrder} onOpenChange={(open) => { if (!open) setCompleteDialogOrder(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد إكمال الطلب</AlertDialogTitle>
+            <AlertDialogDescription>هل أنت متأكد أنك أتممت هذا الطلب بنجاح؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmComplete}>نعم، تم الإكمال</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Dialog with Reason */}
+      <Dialog open={!!cancelDialogOrder} onOpenChange={(open) => { if (!open) { setCancelDialogOrder(null); setCancelReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إلغاء الطلب</DialogTitle>
+            <DialogDescription>يرجى إدخال سبب الإلغاء</DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="اكتب سبب الإلغاء هنا..."
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            className="min-h-[80px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCancelDialogOrder(null); setCancelReason(""); }}>تراجع</Button>
+            <Button variant="destructive" onClick={confirmCancel}>تأكيد الإلغاء</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
