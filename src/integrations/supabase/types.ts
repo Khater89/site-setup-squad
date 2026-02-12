@@ -46,6 +46,44 @@ export type Database = {
           },
         ]
       }
+      booking_history: {
+        Row: {
+          action: string
+          booking_id: string
+          created_at: string
+          id: string
+          note: string | null
+          performed_by: string
+          performer_role: string
+        }
+        Insert: {
+          action: string
+          booking_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          performed_by: string
+          performer_role: string
+        }
+        Update: {
+          action?: string
+          booking_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          performed_by?: string
+          performer_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_outbox: {
         Row: {
           attempts: number

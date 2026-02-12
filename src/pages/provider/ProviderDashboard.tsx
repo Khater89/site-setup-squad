@@ -14,6 +14,7 @@ import {
   Wallet, LogOut, Loader2, CheckCircle, XCircle,
   CalendarDays, MapPin, ClipboardList, Phone,
   MessageCircle, ShieldCheck, Eye, Lock, User, X,
+  History, Ban,
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 
@@ -134,6 +135,13 @@ const ProviderDashboard = () => {
 
   /* ── Order Actions ── */
 
+  const logHistory = async (bookingId: string, action: string, note?: string) => {
+    if (!user) return;
+    await (supabase as any).from("booking_history").insert({
+      booking_id: bookingId, action, performed_by: user.id, performer_role: "provider", note,
+    });
+  };
+
   const acceptOrder = async (id: string) => {
     if (!user) return;
     setActionLoading(id);
@@ -143,9 +151,12 @@ const ProviderDashboard = () => {
     }).eq("id", id).eq("assigned_provider_id", user.id);
 
     if (!error) {
-      await (supabase as any).from("data_access_log").insert({
-        booking_id: id, accessed_by: user.id, accessor_role: "provider", action: "accept_order",
-      });
+      await Promise.all([
+        (supabase as any).from("data_access_log").insert({
+          booking_id: id, accessed_by: user.id, accessor_role: "provider", action: "accept_order",
+        }),
+        logHistory(id, "ACCEPTED", "تم قبول الطلب من قبل المزود"),
+      ]);
       toast({ title: t("provider.dashboard.accepted_toast") });
       fetchData();
     } else {
@@ -157,6 +168,7 @@ const ProviderDashboard = () => {
   const rejectOrder = async (id: string) => {
     if (!confirm(t("provider.dashboard.reject_confirm"))) return;
     setActionLoading(id);
+    await logHistory(id, "REJECTED", "تم رفض الطلب من قبل المزود");
     const { error } = await supabase.from("bookings").update({
       assigned_provider_id: null,
       status: "NEW",
@@ -174,13 +186,41 @@ const ProviderDashboard = () => {
   };
 
   const markComplete = async (id: string) => {
+    setActionLoading(id);
     const { error } = await supabase.from("bookings").update({ status: "COMPLETED" }).eq("id", id);
     if (error) {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     } else {
+      await logHistory(id, "COMPLETED", "تم إكمال الطلب");
       toast({ title: t("provider.dashboard.completed_toast") });
       fetchData();
     }
+    setActionLoading(null);
+  };
+
+  const cancelOrder = async (id: string) => {
+    if (!confirm("هل أنت متأكد من إلغاء هذا الطلب؟")) return;
+    setActionLoading(id);
+    const { error } = await supabase.from("bookings").update({ status: "CANCELLED" }).eq("id", id);
+    if (error) {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    } else {
+      await logHistory(id, "CANCELLED", "تم إلغاء الطلب بطلب من العميل");
+      toast({ title: "تم إلغاء الطلب" });
+      fetchData();
+    }
+    setActionLoading(null);
+  };
+
+  // History state
+  const [historyMap, setHistoryMap] = useState<Record<string, any[]>>({});
+  const [showHistory, setShowHistory] = useState<string | null>(null);
+
+  const loadHistory = async (bookingId: string) => {
+    if (showHistory === bookingId) { setShowHistory(null); return; }
+    const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", bookingId).order("created_at", { ascending: true });
+    setHistoryMap((prev) => ({ ...prev, [bookingId]: data || [] }));
+    setShowHistory(bookingId);
   };
 
   /* ── Profile Save ── */
@@ -297,7 +337,7 @@ const ProviderDashboard = () => {
           {/* ═══ Orders Tab ═══ */}
           <TabsContent value="orders" className="space-y-3">
             <div className="flex gap-2 flex-wrap">
-              {["ALL", "ASSIGNED", "ACCEPTED", "COMPLETED"].map((s) => (
+              {["ALL", "ASSIGNED", "ACCEPTED", "COMPLETED", "CANCELLED"].map((s) => (
                 <Button
                   key={s}
                   size="sm"
@@ -394,10 +434,15 @@ const ProviderDashboard = () => {
                             </Button>
                           </>
                         )}
-                        {isAccepted(o) && o.status !== "COMPLETED" && (
-                          <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => markComplete(o.id)}>
-                            <CheckCircle className="h-3 w-3" /> {t("provider.dashboard.complete")}
-                          </Button>
+                        {isAccepted(o) && o.status !== "COMPLETED" && o.status !== "CANCELLED" && (
+                          <>
+                            <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => markComplete(o.id)} disabled={actionLoading === o.id}>
+                              {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} {t("provider.dashboard.complete")}
+                            </Button>
+                            <Button size="sm" variant="destructive" className="gap-1 h-7 text-xs" onClick={() => cancelOrder(o.id)} disabled={actionLoading === o.id}>
+                              <Ban className="h-3 w-3" /> إلغاء
+                            </Button>
+                          </>
                         )}
                         {isAccepted(o) && coordinatorPhone && (
                           <a
@@ -410,7 +455,32 @@ const ProviderDashboard = () => {
                             </Button>
                           </a>
                         )}
+                        {/* History toggle */}
+                        <Button size="sm" variant="ghost" className="gap-1 h-7 text-xs" onClick={() => loadHistory(o.id)}>
+                          <History className="h-3 w-3" /> سجل
+                        </Button>
                       </div>
+
+                      {/* History timeline */}
+                      {showHistory === o.id && (
+                        <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/30">
+                          <h5 className="text-xs font-bold text-muted-foreground flex items-center gap-1"><History className="h-3 w-3" /> سجل الطلب</h5>
+                          {(historyMap[o.id] || []).length === 0 ? (
+                            <p className="text-xs text-muted-foreground">لا يوجد سجل بعد</p>
+                          ) : (
+                            (historyMap[o.id] || []).map((h: any) => (
+                              <div key={h.id} className="flex items-start gap-2 text-xs">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                                <div>
+                                  <span className="font-medium">{h.action}</span>
+                                  {h.note && <span className="text-muted-foreground ms-1">— {h.note}</span>}
+                                  <p className="text-[10px] text-muted-foreground" dir="ltr">{new Date(h.created_at).toLocaleString("ar-JO")}</p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
