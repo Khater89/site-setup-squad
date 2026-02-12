@@ -8,9 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-// Dialog removed — cancel is admin-only
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -88,6 +88,8 @@ const ProviderDashboard = () => {
   const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
   // Cancel is admin-only — removed from provider
   const [completeDialogOrder, setCompleteDialogOrder] = useState<string | null>(null);
+  const [closeOutNote, setCloseOutNote] = useState("");
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   // Profile editing state
   const [availableNow, setAvailableNow] = useState(false);
@@ -197,12 +199,17 @@ const ProviderDashboard = () => {
   const confirmComplete = async () => {
     const id = completeDialogOrder;
     if (!id || !user) return;
+    if (!closeOutNote.trim()) {
+      toast({ title: "مطلوب", description: "يرجى إدخال ملاحظة الإغلاق قبل الإكمال", variant: "destructive" });
+      return;
+    }
     setCompleteDialogOrder(null);
     setActionLoading(id);
     try {
       const { error } = await supabase.from("bookings").update({ status: "COMPLETED" }).eq("id", id).eq("assigned_provider_id", user.id);
       if (error) throw error;
-      await logHistory(id, "COMPLETED", "تم إكمال الطلب");
+      await logHistory(id, "COMPLETED", closeOutNote.trim());
+      setCloseOutNote("");
       toast({ title: t("provider.dashboard.completed_toast") });
       await fetchData();
       const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
@@ -363,9 +370,20 @@ const ProviderDashboard = () => {
               <Card><CardContent className="py-10 text-center text-muted-foreground">{t("provider.dashboard.no_orders")}</CardContent></Card>
             ) : (
               <div className="grid gap-3">
-                {filteredOrders.map((o) => (
-                  <Card key={o.id}>
+                {filteredOrders.map((o) => {
+                  const accepted = isAccepted(o);
+                  const isExpanded = expandedOrder === o.id;
+
+                  return (
+                  <Card
+                    key={o.id}
+                    className={`transition-all ${accepted ? "cursor-pointer hover:shadow-md" : ""}`}
+                    onClick={() => {
+                      if (accepted) setExpandedOrder(isExpanded ? null : o.id);
+                    }}
+                  >
                     <CardContent className="py-4 px-4 space-y-2">
+                      {/* Header row - always visible */}
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium text-sm">{serviceNames[o.service_id] || t("provider.dashboard.service")}</p>
@@ -390,38 +408,14 @@ const ProviderDashboard = () => {
                         </span>
                       </div>
 
-                      {/* Contact Details — Only After Acceptance */}
-                      {isAccepted(o) ? (
-                        <div className="rounded-lg border border-success/20 bg-success/5 p-3 space-y-1.5">
-                          <div className="flex items-center gap-1.5 text-xs font-medium text-success">
-                            <ShieldCheck className="h-3.5 w-3.5" /> {t("provider.dashboard.contact_info")}
+                      {/* Before acceptance: locked message + action buttons */}
+                      {!accepted && o.status === "ASSIGNED" && (
+                        <>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
+                            <Lock className="h-3.5 w-3.5" />
+                            {t("provider.dashboard.press_accept")}
                           </div>
-                          {/* Coordinator phone instead of customer phone */}
-                          {coordinatorPhone && (
-                            <p className="text-sm flex items-center gap-1.5">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">{t("provider.dashboard.coordinator_phone")}:</span>
-                              <span dir="ltr" className="font-medium">{coordinatorPhone}</span>
-                            </p>
-                          )}
-                          {o.client_address_text && (
-                            <p className="text-sm flex items-center gap-1.5">
-                              <MapPin className="h-3 w-3 text-muted-foreground" /> {o.client_address_text}
-                            </p>
-                          )}
-                          {o.notes && <p className="text-xs bg-muted rounded p-2 mt-1">{o.notes}</p>}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
-                          <Lock className="h-3.5 w-3.5" />
-                          {t("provider.dashboard.press_accept")}
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex gap-2 flex-wrap">
-                        {o.status === "ASSIGNED" && !isAccepted(o) && (
-                          <>
+                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                             <Button
                               size="sm"
                               className="gap-1 h-7 text-xs flex-1 bg-success hover:bg-success/90"
@@ -440,54 +434,89 @@ const ProviderDashboard = () => {
                             >
                               <XCircle className="h-3 w-3" /> {t("provider.dashboard.reject")}
                             </Button>
-                          </>
-                        )}
-                        {isAccepted(o) && o.status === "ACCEPTED" && (
-                          <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => setCompleteDialogOrder(o.id)} disabled={actionLoading === o.id}>
-                            {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} {t("provider.dashboard.complete")}
-                          </Button>
-                        )}
-                        {isAccepted(o) && coordinatorPhone && (
-                          <a
-                            href={`https://wa.me/${coordinatorPhone.replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً، أنا مقدم الخدمة من MFN بخصوص الطلب ${o.booking_number || o.id.slice(0, 8)}.`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Button size="sm" variant="outline" className="gap-1 h-7 text-xs">
-                              <MessageCircle className="h-3 w-3" /> {t("provider.dashboard.whatsapp_coordinator")}
-                            </Button>
-                          </a>
-                        )}
-                      </div>
+                          </div>
+                        </>
+                      )}
 
-                      {/* History timeline - always visible */}
-                      {(historyMap[o.id] || []).length > 0 && (
-                        <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/30">
-                          <h5 className="text-xs font-bold text-muted-foreground flex items-center gap-1"><History className="h-3 w-3" /> سجل الطلب</h5>
-                          {(historyMap[o.id] || []).map((h: any) => (
-                            <div key={h.id} className="flex items-start gap-2 text-xs">
-                              <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
-                                h.action === "ACCEPTED" ? "bg-success" :
-                                h.action === "CANCELLED" ? "bg-destructive" :
-                                h.action === "COMPLETED" ? "bg-primary" : "bg-warning"
-                              }`} />
-                              <div>
-                                <span className="font-medium">{
-                                  h.action === "ACCEPTED" ? "✅ قبول" :
-                                  h.action === "COMPLETED" ? "✅ إكمال" :
-                                  h.action === "CANCELLED" ? "❌ إلغاء" :
-                                  h.action === "REJECTED" ? "↩️ رفض" : h.action
-                                }</span>
-                                {h.note && <span className="text-muted-foreground ms-1">— {h.note}</span>}
-                                <p className="text-[10px] text-muted-foreground" dir="ltr">{new Date(h.created_at).toLocaleString("ar-JO")}</p>
-                              </div>
+                      {/* After acceptance: show hint to click */}
+                      {accepted && !isExpanded && (o.status === "ACCEPTED" || o.status === "COMPLETED") && (
+                        <p className="text-xs text-muted-foreground text-center">اضغط لعرض التفاصيل ▼</p>
+                      )}
+
+                      {/* Expanded details for accepted orders */}
+                      {accepted && isExpanded && (
+                        <div className="space-y-3 pt-2 border-t border-border" onClick={(e) => e.stopPropagation()}>
+                          {/* Contact Details */}
+                          <div className="rounded-lg border border-success/20 bg-success/5 p-3 space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-success">
+                              <ShieldCheck className="h-3.5 w-3.5" /> {t("provider.dashboard.contact_info")}
                             </div>
-                          ))}
+                            {coordinatorPhone && (
+                              <p className="text-sm flex items-center gap-1.5">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">{t("provider.dashboard.coordinator_phone")}:</span>
+                                <span dir="ltr" className="font-medium">{coordinatorPhone}</span>
+                              </p>
+                            )}
+                            {o.client_address_text && (
+                              <p className="text-sm flex items-center gap-1.5">
+                                <MapPin className="h-3 w-3 text-muted-foreground" /> {o.client_address_text}
+                              </p>
+                            )}
+                            {o.notes && <p className="text-xs bg-muted rounded p-2 mt-1">{o.notes}</p>}
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex gap-2 flex-wrap">
+                            {o.status === "ACCEPTED" && (
+                              <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => setCompleteDialogOrder(o.id)} disabled={actionLoading === o.id}>
+                                {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} {t("provider.dashboard.complete")}
+                              </Button>
+                            )}
+                            {coordinatorPhone && (
+                              <a
+                                href={`https://wa.me/${coordinatorPhone.replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً، أنا مقدم الخدمة من MFN بخصوص الطلب ${o.booking_number || o.id.slice(0, 8)}.`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button size="sm" variant="outline" className="gap-1 h-7 text-xs">
+                                  <MessageCircle className="h-3 w-3" /> {t("provider.dashboard.whatsapp_coordinator")}
+                                </Button>
+                              </a>
+                            )}
+                          </div>
+
+                          {/* History timeline */}
+                          {(historyMap[o.id] || []).length > 0 && (
+                            <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/30">
+                              <h5 className="text-xs font-bold text-muted-foreground flex items-center gap-1"><History className="h-3 w-3" /> سجل الطلب</h5>
+                              {(historyMap[o.id] || []).map((h: any) => (
+                                <div key={h.id} className="flex items-start gap-2 text-xs">
+                                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
+                                    h.action === "ACCEPTED" ? "bg-success" :
+                                    h.action === "CANCELLED" ? "bg-destructive" :
+                                    h.action === "COMPLETED" ? "bg-primary" : "bg-warning"
+                                  }`} />
+                                  <div>
+                                    <span className="font-medium">{
+                                      h.action === "ACCEPTED" ? "✅ قبول" :
+                                      h.action === "COMPLETED" ? "✅ إكمال" :
+                                      h.action === "CANCELLED" ? "❌ إلغاء" :
+                                      h.action === "REJECTED" ? "↩️ رفض" : h.action
+                                    }</span>
+                                    {h.note && <span className="text-muted-foreground ms-1">— {h.note}</span>}
+                                    <p className="text-[10px] text-muted-foreground" dir="ltr">{new Date(h.created_at).toLocaleString("ar-JO")}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -614,16 +643,22 @@ const ProviderDashboard = () => {
         </Tabs>
       </main>
 
-      {/* Complete Confirmation Dialog */}
-      <AlertDialog open={!!completeDialogOrder} onOpenChange={(open) => { if (!open) setCompleteDialogOrder(null); }}>
+      {/* Complete Confirmation Dialog with Close-Out Note */}
+      <AlertDialog open={!!completeDialogOrder} onOpenChange={(open) => { if (!open) { setCompleteDialogOrder(null); setCloseOutNote(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد إكمال الطلب</AlertDialogTitle>
-            <AlertDialogDescription>هل أنت متأكد أنك أتممت هذا الطلب بنجاح؟ لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription>
+            <AlertDialogDescription>يرجى كتابة ملاحظة الإغلاق (Close-out Note) ثم الضغط على "إكمال".</AlertDialogDescription>
           </AlertDialogHeader>
+          <Textarea
+            placeholder="اكتب ملاحظة الإغلاق هنا... (مثلاً: تم تقديم الخدمة بنجاح)"
+            value={closeOutNote}
+            onChange={(e) => setCloseOutNote(e.target.value)}
+            className="min-h-[80px]"
+          />
           <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmComplete}>نعم، تم الإكمال</AlertDialogAction>
+            <AlertDialogCancel>رجوع</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmComplete} disabled={!closeOutNote.trim()}>إكمال الطلب ✅</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
