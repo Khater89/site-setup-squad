@@ -9,10 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -22,7 +21,7 @@ import {
   Wallet, LogOut, Loader2, CheckCircle, XCircle,
   CalendarDays, MapPin, ClipboardList, Phone,
   MessageCircle, ShieldCheck, Eye, Lock, User, X,
-  History, Ban,
+  History,
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 
@@ -89,8 +88,7 @@ const ProviderDashboard = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
-  const [cancelDialogOrder, setCancelDialogOrder] = useState<string | null>(null);
-  const [cancelReason, setCancelReason] = useState("");
+  // Cancel is admin-only — removed from provider
   const [completeDialogOrder, setCompleteDialogOrder] = useState<string | null>(null);
 
   // Profile editing state
@@ -218,27 +216,7 @@ const ProviderDashboard = () => {
     setActionLoading(null);
   };
 
-  const confirmCancel = async () => {
-    const id = cancelDialogOrder;
-    if (!id || !user) return;
-    const reason = cancelReason.trim() || "بدون سبب";
-    setCancelDialogOrder(null);
-    setCancelReason("");
-    setActionLoading(id);
-    try {
-      const { error } = await supabase.from("bookings").update({ status: "CANCELLED" }).eq("id", id).eq("assigned_provider_id", user.id);
-      if (error) throw error;
-      await logHistory(id, "CANCELLED", `سبب الإلغاء: ${reason}`);
-      toast({ title: "تم إلغاء الطلب" });
-      await fetchData();
-      const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
-      setHistoryMap((prev) => ({ ...prev, [id]: data || [] }));
-    } catch (err: any) {
-      console.error("Cancel error:", err);
-      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
-    }
-    setActionLoading(null);
-  };
+  // Cancel is admin-only — no cancel logic in provider dashboard
 
   // History state
   const [historyMap, setHistoryMap] = useState<Record<string, any[]>>({});
@@ -466,15 +444,10 @@ const ProviderDashboard = () => {
                             </Button>
                           </>
                         )}
-                        {isAccepted(o) && o.status !== "COMPLETED" && o.status !== "CANCELLED" && (
-                          <>
-                            <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => setCompleteDialogOrder(o.id)} disabled={actionLoading === o.id}>
-                              {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} {t("provider.dashboard.complete")}
-                            </Button>
-                            <Button size="sm" variant="destructive" className="gap-1 h-7 text-xs" onClick={() => setCancelDialogOrder(o.id)} disabled={actionLoading === o.id}>
-                              <Ban className="h-3 w-3" /> إلغاء
-                            </Button>
-                          </>
+                        {isAccepted(o) && o.status === "ACCEPTED" && (
+                          <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => setCompleteDialogOrder(o.id)} disabled={actionLoading === o.id}>
+                            {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} {t("provider.dashboard.complete")}
+                          </Button>
                         )}
                         {isAccepted(o) && coordinatorPhone && (
                           <a
@@ -657,25 +630,7 @@ const ProviderDashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Cancel Dialog with Reason */}
-      <Dialog open={!!cancelDialogOrder} onOpenChange={(open) => { if (!open) { setCancelDialogOrder(null); setCancelReason(""); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إلغاء الطلب</DialogTitle>
-            <DialogDescription>يرجى إدخال سبب الإلغاء</DialogDescription>
-          </DialogHeader>
-          <Textarea
-            placeholder="اكتب سبب الإلغاء هنا..."
-            value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-            className="min-h-[80px]"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setCancelDialogOrder(null); setCancelReason(""); }}>تراجع</Button>
-            <Button variant="destructive" onClick={confirmCancel}>تأكيد الإلغاء</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Cancel is admin-only — removed from provider */}
     </div>
   );
 };
