@@ -1,13 +1,24 @@
+import { useState, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import {
   Phone, MapPin, Briefcase, Navigation, Stethoscope,
-  CheckCircle, XCircle, Wallet, Clock, Globe,
+  CheckCircle, XCircle, Wallet, Clock, Globe, Search, Loader2,
+  CalendarCheck, UserCheck,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
+import BookingDetailsDrawer, { type BookingRow } from "./BookingDetailsDrawer";
+import CSAssignmentDialog from "@/components/cs/CSAssignmentDialog";
 
 export interface ProviderProfile {
   user_id: string;
@@ -33,11 +44,23 @@ export interface ProviderProfile {
   balance: number;
 }
 
-const STATUS_COLORS: Record<string, string> = {
+const PROVIDER_STATUS_COLORS: Record<string, string> = {
   pending: "bg-warning/10 text-warning border-warning/30",
   approved: "bg-success/10 text-success border-success/30",
   suspended: "bg-destructive/10 text-destructive border-destructive/30",
 };
+
+const BOOKING_STATUS_COLORS: Record<string, string> = {
+  NEW: "bg-info/10 text-info border-info/30",
+  CONFIRMED: "bg-primary/20 text-primary border-primary/30",
+  ASSIGNED: "bg-warning/10 text-warning border-warning/30",
+  ACCEPTED: "bg-success/10 text-success border-success/30",
+  COMPLETED: "bg-success text-success-foreground",
+  CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
+  REJECTED: "bg-destructive/10 text-destructive border-destructive/30",
+};
+
+const BOOKING_FILTER_STATUSES = ["ALL", "NEW", "ASSIGNED", "ACCEPTED", "COMPLETED", "CANCELLED", "REJECTED"];
 
 interface Props {
   provider: ProviderProfile | null;
@@ -49,7 +72,94 @@ interface Props {
 }
 
 const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSuspend, onSettlement }: Props) => {
-  const { t, formatCurrency, formatDate, formatDateShort } = useLanguage();
+  const { t, formatCurrency, formatDate, formatDateShort, isRTL } = useLanguage();
+
+  // Bookings tab state
+  const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
+  const [providerNames, setProviderNames] = useState<Record<string, string>>({});
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingFilter, setBookingFilter] = useState("ALL");
+  const [bookingSearch, setBookingSearch] = useState("");
+
+  const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
+  const [assignBooking, setAssignBooking] = useState<BookingRow | null>(null);
+
+  // Fetch bookings when provider changes
+  useEffect(() => {
+    if (!provider || !open) {
+      setBookings([]);
+      return;
+    }
+    fetchProviderBookings(provider.user_id);
+  }, [provider?.user_id, open]);
+
+  const fetchProviderBookings = async (providerId: string) => {
+    setBookingsLoading(true);
+    const [bookingsRes, contactsRes, servicesRes] = await Promise.all([
+      supabase.from("bookings").select("*").eq("assigned_provider_id", providerId).order("scheduled_at", { ascending: false }),
+      supabase.from("booking_contacts").select("*"),
+      supabase.from("services").select("id, name"),
+    ]);
+
+    const contactMap: Record<string, any> = {};
+    (contactsRes.data || []).forEach((c: any) => { contactMap[c.booking_id] = c; });
+
+    const merged = (bookingsRes.data || []).map((b: any) => {
+      const contact = contactMap[b.id];
+      return {
+        ...b,
+        customer_name: contact?.customer_name || b.customer_display_name || "",
+        customer_phone: contact?.customer_phone || "",
+        client_address_text: contact?.client_address_text || null,
+      };
+    });
+    setBookings(merged as BookingRow[]);
+
+    const svcMap: Record<string, string> = {};
+    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; });
+    setServiceNames(svcMap);
+
+    // Provider name for details drawer
+    const pMap: Record<string, string> = {};
+    if (provider) {
+      pMap[provider.user_id] = provider.full_name || t("admin.providers.no_name");
+    }
+    setProviderNames(pMap);
+
+    setBookingsLoading(false);
+  };
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      if (bookingFilter !== "ALL" && b.status !== bookingFilter) return false;
+      if (bookingSearch) {
+        const q = bookingSearch.toLowerCase();
+        return (
+          (b.customer_name || "").toLowerCase().includes(q) ||
+          (b.customer_phone || "").includes(q) ||
+          b.city.toLowerCase().includes(q) ||
+          (b.booking_number || "").toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [bookings, bookingFilter, bookingSearch]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    BOOKING_FILTER_STATUSES.forEach((s) => { counts[s] = 0; });
+    bookings.forEach((b) => {
+      if (counts[b.status] !== undefined) counts[b.status]++;
+      counts["ALL"]++;
+    });
+    return counts;
+  }, [bookings]);
+
+  const handleAssignFromDetails = (booking: BookingRow) => {
+    setSelectedBooking(null);
+    setAssignBooking(booking);
+  };
 
   if (!provider) return null;
 
@@ -62,173 +172,315 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
     : "—";
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader className="pb-4">
-          <SheetTitle className="text-base">{provider.full_name || t("admin.providers.no_name")}</SheetTitle>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-base">{provider.full_name || t("admin.providers.no_name")}</SheetTitle>
+          </SheetHeader>
 
-        <div className="space-y-5">
-          {/* Status & Role */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className={STATUS_COLORS[provider.provider_status] || ""}>
-                {t(`provider_status.${provider.provider_status}`)}
-              </Badge>
-              {provider.available_now && (
-                <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
-                  {t("admin.providers.available")}
-                </Badge>
-              )}
-              {!provider.profile_completed && (
-                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">
-                  {t("provider.details.profile_incomplete")}
-                </Badge>
-              )}
-            </div>
-            <span className="text-xs text-muted-foreground">{roleTypeLabel}</span>
-          </div>
+          <Tabs defaultValue="profile" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2 h-auto">
+              <TabsTrigger value="profile" className="text-xs py-2">
+                {t("provider.details.tab.profile")}
+              </TabsTrigger>
+              <TabsTrigger value="bookings" className="text-xs py-2 gap-1">
+                <CalendarCheck className="h-3.5 w-3.5" />
+                {t("provider.details.tab.bookings")} ({bookings.length})
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Basic Info */}
-          <div className="rounded-lg border border-border p-3 space-y-3">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.basic_info")}</h4>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              {provider.phone && (
-                <div className="flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span dir="ltr">{provider.phone}</span>
+            {/* Profile Tab */}
+            <TabsContent value="profile">
+              <div className="space-y-5">
+                {/* Status & Role */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={PROVIDER_STATUS_COLORS[provider.provider_status] || ""}>
+                      {t(`provider_status.${provider.provider_status}`)}
+                    </Badge>
+                    {provider.available_now && (
+                      <Badge variant="outline" className="bg-success/10 text-success border-success/30 text-xs">
+                        {t("admin.providers.available")}
+                      </Badge>
+                    )}
+                    {!provider.profile_completed && (
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">
+                        {t("provider.details.profile_incomplete")}
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">{roleTypeLabel}</span>
                 </div>
-              )}
-              {provider.city && (
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                  {provider.city}
+
+                {/* Basic Info */}
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.basic_info")}</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {provider.phone && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span dir="ltr">{provider.phone}</span>
+                      </div>
+                    )}
+                    {provider.city && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                        {provider.city}
+                      </div>
+                    )}
+                    {age != null && (
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        {age} {t("admin.providers.years")}
+                      </div>
+                    )}
+                    {provider.experience_years != null && (
+                      <div className="flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                        {provider.experience_years} {t("admin.providers.years")}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {age != null && (
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  {age} {t("admin.providers.years")}
+
+                {/* Location */}
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.location")}</h4>
+                  {provider.address_text && (
+                    <div className="flex items-start gap-1.5 text-sm">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
+                      {provider.address_text}
+                    </div>
+                  )}
+                  {provider.radius_km && (
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <Navigation className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t("provider.details.coverage_radius")}: {provider.radius_km} {t("provider.details.km")}
+                    </div>
+                  )}
+                  {provider.lat && provider.lng && (
+                    <p className="text-xs text-muted-foreground" dir="ltr">📍 {provider.lat}, {provider.lng}</p>
+                  )}
                 </div>
-              )}
-              {provider.experience_years != null && (
-                <div className="flex items-center gap-1.5">
-                  <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-                  {provider.experience_years} {t("admin.providers.years")}
+
+                {/* Specialties */}
+                {provider.specialties && provider.specialties.length > 0 && (
+                  <div className="rounded-lg border border-border p-3 space-y-2">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <Stethoscope className="h-3 w-3" /> {t("provider.details.specialties")}
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {provider.specialties.map((s) => (
+                        <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tools */}
+                {provider.tools && provider.tools.length > 0 && (
+                  <div className="rounded-lg border border-border p-3 space-y-2">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.tools")}</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {provider.tools.map((tool) => (
+                        <Badge key={tool} variant="outline" className="text-xs">{tool}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Languages */}
+                {provider.languages && provider.languages.length > 0 && (
+                  <div className="rounded-lg border border-border p-3 space-y-2">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <Globe className="h-3 w-3" /> {t("provider.details.languages")}
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {provider.languages.map((l) => (
+                        <Badge key={l} variant="outline" className="text-xs">{l}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Wallet */}
+                {provider.hasProviderRole && (
+                  <div className="rounded-lg border border-border p-3 space-y-2">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <Wallet className="h-3 w-3" /> {t("provider.details.wallet")}
+                    </h4>
+                    <p className={`text-lg font-bold ${provider.balance < 0 ? "text-destructive" : "text-success"}`}>
+                      {formatCurrency(provider.balance)}
+                    </p>
+                  </div>
+                )}
+
+                {/* Activity */}
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.activity")}</h4>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>{t("provider.details.registered")}: {formatDate(provider.created_at)}</p>
+                    {provider.last_active_at && (
+                      <p>{t("provider.details.last_active")}: {formatDateShort(provider.last_active_at)}</p>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Location */}
-          <div className="rounded-lg border border-border p-3 space-y-3">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.location")}</h4>
-            {provider.address_text && (
-              <div className="flex items-start gap-1.5 text-sm">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
-                {provider.address_text}
+                {/* Actions */}
+                <div className="flex gap-2 pt-2 flex-wrap">
+                  {provider.provider_status === "pending" && (
+                    <Button size="sm" className="gap-1.5 flex-1" onClick={() => onApprove(provider.user_id)}>
+                      <CheckCircle className="h-4 w-4" /> {t("provider.details.approve")}
+                    </Button>
+                  )}
+                  {provider.provider_status === "approved" && (
+                    <>
+                      <Button size="sm" variant="destructive" className="gap-1.5 flex-1" onClick={() => onSuspend(provider.user_id)}>
+                        <XCircle className="h-4 w-4" /> {t("provider.details.suspend")}
+                      </Button>
+                      <Button size="sm" variant="outline" className="gap-1.5 flex-1" onClick={() => onSettlement(provider.user_id)}>
+                        <Wallet className="h-4 w-4" /> {t("provider.details.settlement")}
+                      </Button>
+                    </>
+                  )}
+                  {provider.provider_status === "suspended" && (
+                    <Button size="sm" className="gap-1.5 flex-1" onClick={() => onApprove(provider.user_id)}>
+                      <CheckCircle className="h-4 w-4" /> {t("provider.details.reactivate")}
+                    </Button>
+                  )}
+                </div>
               </div>
-            )}
-            {provider.radius_km && (
-              <div className="flex items-center gap-1.5 text-sm">
-                <Navigation className="h-3.5 w-3.5 text-muted-foreground" />
-                {t("provider.details.coverage_radius")}: {provider.radius_km} {t("provider.details.km")}
+            </TabsContent>
+
+            {/* Bookings Tab */}
+            <TabsContent value="bookings">
+              <div className="space-y-4">
+                {/* Filters */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative flex-1 min-w-[150px]">
+                    <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`} />
+                    <Input
+                      placeholder={t("admin.bookings.search")}
+                      value={bookingSearch}
+                      onChange={(e) => setBookingSearch(e.target.value)}
+                      className={`${isRTL ? "pr-9" : "pl-9"}`}
+                    />
+                  </div>
+                  <Select value={bookingFilter} onValueChange={setBookingFilter}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BOOKING_FILTER_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s === "ALL" ? t("admin.bookings.filter_all") : t(`status.${s}`)} ({statusCounts[s] || 0})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Status chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {BOOKING_FILTER_STATUSES.filter(s => s !== "ALL").map((s) => (
+                    <Badge
+                      key={s}
+                      variant="outline"
+                      className={`text-[10px] cursor-pointer ${bookingFilter === s ? BOOKING_STATUS_COLORS[s] || "" : "opacity-50"}`}
+                      onClick={() => setBookingFilter(bookingFilter === s ? "ALL" : s)}
+                    >
+                      {t(`status.${s}`)} ({statusCounts[s] || 0})
+                    </Badge>
+                  ))}
+                </div>
+
+                {/* Bookings list */}
+                {bookingsLoading ? (
+                  <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                ) : filteredBookings.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground text-sm">{t("admin.bookings.no_bookings")}</div>
+                ) : (
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs">{t("admin.bookings.col.number")}</TableHead>
+                          <TableHead className="text-xs">{t("admin.bookings.col.service")}</TableHead>
+                          <TableHead className="text-xs">{t("admin.bookings.col.customer")}</TableHead>
+                          <TableHead className="text-xs">{t("admin.bookings.col.date")}</TableHead>
+                          <TableHead className="text-xs">{t("admin.bookings.col.amount")}</TableHead>
+                          <TableHead className="text-xs">{t("admin.bookings.col.status")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredBookings.map((b) => (
+                          <TableRow
+                            key={b.id}
+                            className="cursor-pointer hover:bg-accent/50 transition-colors"
+                            onClick={() => setSelectedBooking(b)}
+                          >
+                            <TableCell className="text-xs font-mono" dir="ltr">
+                              {b.booking_number || b.id.slice(0, 8)}
+                            </TableCell>
+                            <TableCell className="text-xs font-medium">
+                              {serviceNames[b.service_id] || "—"}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {b.customer_name || b.customer_display_name || "—"}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {formatDateShort(b.scheduled_at)}
+                            </TableCell>
+                            <TableCell className="text-xs font-medium">
+                              {b.agreed_price != null ? (
+                                <span className="text-success">{formatCurrency(b.agreed_price)}</span>
+                              ) : formatCurrency(b.subtotal)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-[10px] ${BOOKING_STATUS_COLORS[b.status] || ""}`}>
+                                {t(`status.${b.status}`)}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
-            )}
-            {provider.lat && provider.lng && (
-              <p className="text-xs text-muted-foreground" dir="ltr">📍 {provider.lat}, {provider.lng}</p>
-            )}
-          </div>
+            </TabsContent>
+          </Tabs>
+        </SheetContent>
+      </Sheet>
 
-          {/* Specialties */}
-          {provider.specialties && provider.specialties.length > 0 && (
-            <div className="rounded-lg border border-border p-3 space-y-2">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <Stethoscope className="h-3 w-3" /> {t("provider.details.specialties")}
-              </h4>
-              <div className="flex flex-wrap gap-1.5">
-                {provider.specialties.map((s) => (
-                  <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Booking Details Drawer (opens on top) */}
+      <BookingDetailsDrawer
+        booking={selectedBooking}
+        open={!!selectedBooking}
+        onOpenChange={(o) => { if (!o) setSelectedBooking(null); }}
+        serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || t("provider.dashboard.service") : ""}
+        providerName={provider?.full_name || null}
+        onAssign={handleAssignFromDetails}
+        onStatusChange={() => {
+          setSelectedBooking(null);
+          if (provider) fetchProviderBookings(provider.user_id);
+        }}
+      />
 
-          {/* Tools */}
-          {provider.tools && provider.tools.length > 0 && (
-            <div className="rounded-lg border border-border p-3 space-y-2">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.tools")}</h4>
-              <div className="flex flex-wrap gap-1.5">
-                {provider.tools.map((tool) => (
-                  <Badge key={tool} variant="outline" className="text-xs">{tool}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Languages */}
-          {provider.languages && provider.languages.length > 0 && (
-            <div className="rounded-lg border border-border p-3 space-y-2">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <Globe className="h-3 w-3" /> {t("provider.details.languages")}
-              </h4>
-              <div className="flex flex-wrap gap-1.5">
-                {provider.languages.map((l) => (
-                  <Badge key={l} variant="outline" className="text-xs">{l}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Wallet */}
-          {provider.hasProviderRole && (
-            <div className="rounded-lg border border-border p-3 space-y-2">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <Wallet className="h-3 w-3" /> {t("provider.details.wallet")}
-              </h4>
-              <p className={`text-lg font-bold ${provider.balance < 0 ? "text-destructive" : "text-success"}`}>
-                {formatCurrency(provider.balance)}
-              </p>
-            </div>
-          )}
-
-          {/* Activity */}
-          <div className="rounded-lg border border-border p-3 space-y-2">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.activity")}</h4>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>{t("provider.details.registered")}: {formatDate(provider.created_at)}</p>
-              {provider.last_active_at && (
-                <p>{t("provider.details.last_active")}: {formatDateShort(provider.last_active_at)}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 pt-2 flex-wrap">
-            {provider.provider_status === "pending" && (
-              <Button size="sm" className="gap-1.5 flex-1" onClick={() => onApprove(provider.user_id)}>
-                <CheckCircle className="h-4 w-4" /> {t("provider.details.approve")}
-              </Button>
-            )}
-            {provider.provider_status === "approved" && (
-              <>
-                <Button size="sm" variant="destructive" className="gap-1.5 flex-1" onClick={() => onSuspend(provider.user_id)}>
-                  <XCircle className="h-4 w-4" /> {t("provider.details.suspend")}
-                </Button>
-                <Button size="sm" variant="outline" className="gap-1.5 flex-1" onClick={() => onSettlement(provider.user_id)}>
-                  <Wallet className="h-4 w-4" /> {t("provider.details.settlement")}
-                </Button>
-              </>
-            )}
-            {provider.provider_status === "suspended" && (
-              <Button size="sm" className="gap-1.5 flex-1" onClick={() => onApprove(provider.user_id)}>
-                <CheckCircle className="h-4 w-4" /> {t("provider.details.reactivate")}
-              </Button>
-            )}
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+      {assignBooking && (
+        <CSAssignmentDialog
+          booking={assignBooking}
+          open={!!assignBooking}
+          onOpenChange={(o) => { if (!o) setAssignBooking(null); }}
+          onAssigned={() => {
+            setAssignBooking(null);
+            if (provider) fetchProviderBookings(provider.user_id);
+          }}
+          serviceName={serviceNames[assignBooking.service_id] || t("provider.dashboard.service")}
+        />
+      )}
+    </>
   );
 };
 
