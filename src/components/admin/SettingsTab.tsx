@@ -3,9 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Loader2, Save, Percent, Wallet, AlertTriangle, Phone } from "lucide-react";
+import { Loader2, Save, Percent, Wallet, AlertTriangle, Phone, Trash2 } from "lucide-react";
 
 const SettingsTab = () => {
   const { toast } = useToast();
@@ -18,6 +21,13 @@ const SettingsTab = () => {
     provider_debt_limit: -20,
     coordinator_phone: "",
   });
+
+  // Clear bookings state
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [clearCounts, setClearCounts] = useState<Record<string, number> | null>(null);
+  const [clearCountsLoading, setClearCountsLoading] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [clearing, setClearing] = useState(false);
 
   const fetchSettings = async () => {
     const { data } = await supabase
@@ -58,7 +68,53 @@ const SettingsTab = () => {
     }
   };
 
+  const openClearDialog = async () => {
+    setClearDialogOpen(true);
+    setClearCountsLoading(true);
+    setConfirmText("");
+    setClearCounts(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("admin-clear-all-bookings", {
+        body: { action: "count" },
+      });
+      if (res.error) throw res.error;
+      setClearCounts(res.data.counts);
+    } catch (err: any) {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+      setClearDialogOpen(false);
+    } finally {
+      setClearCountsLoading(false);
+    }
+  };
+
+  const handleClearAll = async () => {
+    setClearing(true);
+    try {
+      const res = await supabase.functions.invoke("admin-clear-all-bookings", {
+        body: { action: "delete" },
+      });
+      if (res.error) throw res.error;
+
+      const deleted = res.data.deleted;
+      toast({
+        title: t("settings.clear_success"),
+        description: `${t("settings.clear_deleted_bookings")}: ${deleted.bookings}, ${t("settings.clear_deleted_history")}: ${deleted.booking_history}`,
+      });
+      setClearDialogOpen(false);
+      setConfirmText("");
+    } catch (err: any) {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    } finally {
+      setClearing(false);
+    }
+  };
+
   if (loading) return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+
+  const CONFIRM_PHRASE = "DELETE ALL BOOKINGS";
+  const canDelete = confirmText === CONFIRM_PHRASE;
 
   return (
     <div className="space-y-6">
@@ -162,6 +218,89 @@ const SettingsTab = () => {
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         {t("settings.save")}
       </Button>
+
+      {/* Danger Zone */}
+      <div className="pt-6 border-t border-destructive/20">
+        <Card className="border-destructive/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-destructive">
+              <Trash2 className="h-5 w-5" />
+              {t("settings.clear_bookings_title")}
+            </CardTitle>
+            <CardDescription className="text-destructive/80">
+              {t("settings.clear_bookings_desc")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="destructive" className="gap-2" onClick={openClearDialog}>
+              <Trash2 className="h-4 w-4" />
+              {t("settings.clear_bookings_btn")}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Clear Confirmation Dialog */}
+      <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              {t("settings.clear_confirm_title")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("settings.clear_confirm_desc")}
+            </DialogDescription>
+          </DialogHeader>
+
+          {clearCountsLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-destructive" />
+            </div>
+          ) : clearCounts ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 space-y-1 text-sm">
+                <p>{t("settings.clear_count_bookings")}: <strong>{clearCounts.bookings}</strong></p>
+                <p>{t("settings.clear_count_history")}: <strong>{clearCounts.booking_history}</strong></p>
+                <p>{t("settings.clear_count_contacts")}: <strong>{clearCounts.booking_contacts}</strong></p>
+                <p>{t("settings.clear_count_outbox")}: <strong>{clearCounts.booking_outbox}</strong></p>
+                <p>{t("settings.clear_count_notifications")}: <strong>{clearCounts.notifications_log}</strong></p>
+                <p>{t("settings.clear_count_wallet")}: <strong>{clearCounts.provider_wallet_ledger}</strong></p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  {t("settings.clear_type_confirm")} <code className="bg-muted px-1.5 py-0.5 rounded text-destructive font-bold">{CONFIRM_PHRASE}</code>
+                </p>
+                <Input
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder={CONFIRM_PHRASE}
+                  dir="ltr"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClearDialogOpen(false)}>
+              {t("action.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!canDelete || clearing}
+              onClick={handleClearAll}
+            >
+              {clearing ? (
+                <><Loader2 className="h-4 w-4 animate-spin me-1" />{t("settings.clear_deleting")}</>
+              ) : (
+                <><Trash2 className="h-4 w-4 me-1" />{t("settings.clear_confirm_btn")}</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

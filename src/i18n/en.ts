@@ -365,6 +365,29 @@ const en: Record<string, string> = {
   "settings.saved": "Settings saved ✅",
   "settings.save_error": "Error saving settings",
 
+  // Clear Bookings
+  "settings.clear_bookings_title": "Clear All Bookings",
+  "settings.clear_bookings_desc": "Permanently delete all bookings and related records. This action cannot be undone!",
+  "settings.clear_bookings_btn": "Clear All Bookings",
+  "settings.clear_confirm_title": "⚠️ Confirm Permanent Deletion",
+  "settings.clear_confirm_desc": "All bookings and associated records will be permanently deleted. This cannot be undone.",
+  "settings.clear_count_bookings": "Bookings",
+  "settings.clear_count_history": "History records",
+  "settings.clear_count_contacts": "Contact records",
+  "settings.clear_count_outbox": "Outbox messages",
+  "settings.clear_count_notifications": "Notifications",
+  "settings.clear_count_wallet": "Wallet entries",
+  "settings.clear_type_confirm": "To confirm, type exactly:",
+  "settings.clear_confirm_btn": "Delete Permanently",
+  "settings.clear_deleting": "Deleting...",
+  "settings.clear_success": "All bookings cleared successfully ✅",
+  "settings.clear_deleted_bookings": "Bookings deleted",
+  "settings.clear_deleted_history": "History deleted",
+
+  // Provider Details Tabs
+  "provider.details.tab.profile": "Profile",
+  "provider.details.tab.bookings": "Provider Bookings",
+
   // Provider Dashboard - Coordinator
   "provider.dashboard.coordinator_phone": "Coordinator",
   "provider.dashboard.whatsapp_coordinator": "WhatsApp Coordinator",

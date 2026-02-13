@@ -365,6 +365,29 @@ const ar: Record<string, string> = {
   "settings.saved": "تم حفظ الإعدادات ✅",
   "settings.save_error": "خطأ في الحفظ",
 
+  // Clear Bookings
+  "settings.clear_bookings_title": "مسح جميع الطلبات",
+  "settings.clear_bookings_desc": "حذف نهائي لجميع الطلبات وسجلاتها. هذا الإجراء لا يمكن التراجع عنه!",
+  "settings.clear_bookings_btn": "مسح جميع الطلبات",
+  "settings.clear_confirm_title": "⚠️ تأكيد المسح النهائي",
+  "settings.clear_confirm_desc": "سيتم حذف جميع الطلبات والسجلات المرتبطة بها نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+  "settings.clear_count_bookings": "الطلبات",
+  "settings.clear_count_history": "سجل العمليات",
+  "settings.clear_count_contacts": "بيانات الاتصال",
+  "settings.clear_count_outbox": "صندوق الإرسال",
+  "settings.clear_count_notifications": "الإشعارات",
+  "settings.clear_count_wallet": "حركات المحفظة",
+  "settings.clear_type_confirm": "للتأكيد، اكتب بالضبط:",
+  "settings.clear_confirm_btn": "حذف نهائي",
+  "settings.clear_deleting": "جاري الحذف...",
+  "settings.clear_success": "تم مسح جميع الطلبات بنجاح ✅",
+  "settings.clear_deleted_bookings": "طلبات محذوفة",
+  "settings.clear_deleted_history": "سجلات محذوفة",
+
+  // Provider Details Tabs
+  "provider.details.tab.profile": "الملف الشخصي",
+  "provider.details.tab.bookings": "طلبات هذا المزود",
+
   // Provider Dashboard - Coordinator
   "provider.dashboard.coordinator_phone": "رقم المنسق",
   "provider.dashboard.whatsapp_coordinator": "واتساب المنسق",
