@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   CalendarDays, MapPin, Phone, User, CreditCard, UserCheck,
-  MessageCircle, FileText, StickyNote, Ban, Loader2,
+  MessageCircle, FileText, StickyNote, Ban, Loader2, ClipboardCheck,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,11 @@ export interface BookingRow {
   accepted_at: string | null;
   created_at: string;
   service_id: string;
+  // New columns
+  close_out_note: string | null;
+  close_out_at: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
   // From booking_contacts join
   customer_name?: string | null;
   customer_phone?: string | null;
@@ -53,6 +58,7 @@ const STATUS_COLORS: Record<string, string> = {
   ACCEPTED: "bg-success/10 text-success border-success/30",
   COMPLETED: "bg-success text-success-foreground",
   CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
+  REJECTED: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 interface Props {
@@ -240,6 +246,27 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
                 <StickyNote className="h-3 w-3" /> {t("booking.details.internal_note")}
               </div>
               <p className="text-sm">{booking.internal_note}</p>
+            </div>
+          )}
+
+          {/* Close-out Note (shown for COMPLETED bookings) */}
+          {booking.status === "COMPLETED" && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                <ClipboardCheck className="h-3 w-3" /> {t("booking.details.close_out_note") || "ملاحظة الإغلاق"}
+              </div>
+              {booking.close_out_note ? (
+                <>
+                  <p className="text-sm">{booking.close_out_note}</p>
+                  {booking.close_out_at && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {formatDateShort(booking.close_out_at)}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-warning">⚠️ {t("booking.details.no_close_out_note") || "لا توجد ملاحظة إغلاق"}</p>
+              )}
             </div>
           )}
 
