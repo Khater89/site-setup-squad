@@ -163,7 +163,18 @@ const ProviderDashboard = () => {
       } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ASSIGNED").select().maybeSingle();
 
       if (error) throw error;
-      if (!updated) throw new Error("لم يتم تحديث الطلب — قد يكون مقبولاً بالفعل أو غير مسند إليك");
+      if (!updated) {
+        // Diagnose the real reason
+        const { data: check } = await supabase.rpc("get_provider_bookings" as any);
+        const booking = (check as unknown as ProviderOrder[])?.find((b) => b.id === id);
+        if (!booking) {
+          throw new Error("الطلب غير مُسند إليك أو غير موجود");
+        } else if (booking.status !== "ASSIGNED") {
+          throw new Error(`تم تغيير حالة الطلب مسبقاً إلى: ${booking.status}`);
+        } else {
+          throw new Error("لم يتم تحديث الطلب — يرجى المحاولة مرة أخرى");
+        }
+      }
 
       // Optimistic state update: replace the order in local state
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "ACCEPTED", accepted_at: now } : o));
