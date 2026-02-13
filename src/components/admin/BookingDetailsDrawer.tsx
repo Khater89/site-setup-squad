@@ -1,13 +1,21 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
   CalendarDays, MapPin, Phone, User, CreditCard, UserCheck,
-  MessageCircle, FileText, StickyNote,
+  MessageCircle, FileText, StickyNote, Ban,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface BookingRow {
   id: string;
@@ -54,6 +62,7 @@ interface Props {
   serviceName: string;
   providerName: string | null;
   onAssign: (booking: BookingRow) => void;
+  onStatusChange?: () => void;
 }
 
 const InfoRow = ({ icon: Icon, label, value, dir }: { icon: any; label: string; value: string | null | undefined; dir?: string }) => {
@@ -69,8 +78,42 @@ const InfoRow = ({ icon: Icon, label, value, dir }: { icon: any; label: string; 
   );
 };
 
-const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, providerName, onAssign }: Props) => {
+const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, providerName, onAssign, onStatusChange }: Props) => {
   const { t, formatCurrency, formatDate, formatDateTime, formatDateShort } = useLanguage();
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancel = async () => {
+    if (!booking || !cancelReason.trim()) return;
+    setCancelling(true);
+    try {
+      const { error: updateError } = await supabase
+        .from("bookings")
+        .update({ status: "CANCELLED" })
+        .eq("id", booking.id);
+      if (updateError) throw updateError;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("booking_history").insert({
+        booking_id: booking.id,
+        action: "CANCELLED",
+        performed_by: user!.id,
+        performer_role: "admin",
+        note: cancelReason.trim(),
+      });
+
+      toast.success(t("booking.details.cancelled_success") || "تم إلغاء الطلب");
+      setCancelDialogOpen(false);
+      setCancelReason("");
+      onOpenChange(false);
+      onStatusChange?.();
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (!booking) return null;
 
@@ -203,6 +246,15 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
                 <UserCheck className="h-4 w-4" /> {t("booking.details.assign_provider")}
               </Button>
             )}
+            {booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
+              <Button
+                variant="destructive"
+                className="flex-1 gap-1.5"
+                onClick={() => setCancelDialogOpen(true)}
+              >
+                <Ban className="h-4 w-4" /> {t("booking.details.cancel") || "إلغاء الطلب"}
+              </Button>
+            )}
             <a
               href={`https://wa.me/${(booking.customer_phone || "").replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${booking.customer_name || ""}، نحن من فريق MFN.`)}`}
               target="_blank"
@@ -215,6 +267,39 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
             </a>
           </div>
         </div>
+
+        {/* Cancel Dialog */}
+        <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("booking.details.cancel") || "إلغاء الطلب"}</DialogTitle>
+              <DialogDescription>
+                {t("booking.details.cancel_confirm") || "هل أنت متأكد من إلغاء هذا الطلب؟ يرجى إدخال سبب الإلغاء."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label>{t("booking.details.cancel_reason") || "سبب الإلغاء"}</Label>
+              <Textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder={t("booking.details.cancel_reason_placeholder") || "اكتب سبب الإلغاء هنا..."}
+                rows={3}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                {t("common.cancel") || "تراجع"}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={!cancelReason.trim() || cancelling}
+                onClick={handleCancel}
+              >
+                {cancelling ? "..." : (t("booking.details.confirm_cancel") || "تأكيد الإلغاء")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
   );
