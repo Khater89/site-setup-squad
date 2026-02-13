@@ -60,6 +60,7 @@ const STATUS_COLORS: Record<string, string> = {
   ACCEPTED: "bg-info/10 text-info border-info/30",
   COMPLETED: "bg-success/10 text-success border-success/30",
   CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
+  REJECTED: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 const SPECIALTY_OPTIONS = [
@@ -158,7 +159,7 @@ const ProviderDashboard = () => {
       const { error } = await supabase.from("bookings").update({
         accepted_at: new Date().toISOString(),
         status: "ACCEPTED",
-      }).eq("id", id).eq("assigned_provider_id", user.id);
+      } as any).eq("id", id).eq("assigned_provider_id", user.id);
 
       if (error) throw error;
 
@@ -182,9 +183,11 @@ const ProviderDashboard = () => {
       await logHistory(id, "REJECTED", "تم رفض الطلب من قبل المزود");
       const { error } = await supabase.from("bookings").update({
         assigned_provider_id: null,
-        status: "NEW",
+        status: "REJECTED",
         accepted_at: null,
         assigned_at: null,
+        rejected_at: new Date().toISOString(),
+        rejected_by: user.id,
       } as any).eq("id", id);
       if (error) throw error;
       toast({ title: t("provider.dashboard.rejected_toast") });
@@ -199,14 +202,21 @@ const ProviderDashboard = () => {
   const confirmComplete = async () => {
     const id = completeDialogOrder;
     if (!id || !user) return;
-    if (!closeOutNote.trim()) {
-      toast({ title: "مطلوب", description: "يرجى إدخال ملاحظة الإغلاق قبل الإكمال", variant: "destructive" });
+    if (!closeOutNote.trim() || closeOutNote.trim().length < 5) {
+      toast({ title: "مطلوب", description: "يرجى إدخال ملاحظة الإغلاق (5 أحرف على الأقل)", variant: "destructive" });
       return;
     }
     setCompleteDialogOrder(null);
     setActionLoading(id);
     try {
-      const { error } = await supabase.from("bookings").update({ status: "COMPLETED" }).eq("id", id).eq("assigned_provider_id", user.id);
+      const now = new Date().toISOString();
+      const { error } = await supabase.from("bookings").update({
+        status: "COMPLETED",
+        completed_at: now,
+        completed_by: user.id,
+        close_out_note: closeOutNote.trim(),
+        close_out_at: now,
+      } as any).eq("id", id).eq("assigned_provider_id", user.id);
       if (error) throw error;
       await logHistory(id, "COMPLETED", closeOutNote.trim());
       setCloseOutNote("");
@@ -352,7 +362,7 @@ const ProviderDashboard = () => {
           {/* ═══ Orders Tab ═══ */}
           <TabsContent value="orders" className="space-y-3">
             <div className="flex gap-2 flex-wrap">
-              {["ALL", "ASSIGNED", "ACCEPTED", "COMPLETED", "CANCELLED"].map((s) => (
+              {["ALL", "ASSIGNED", "ACCEPTED", "COMPLETED", "REJECTED", "CANCELLED"].map((s) => (
                 <Button
                   key={s}
                   size="sm"
@@ -651,14 +661,17 @@ const ProviderDashboard = () => {
             <AlertDialogDescription>يرجى كتابة ملاحظة الإغلاق (Close-out Note) ثم الضغط على "إكمال".</AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
-            placeholder="اكتب ملاحظة الإغلاق هنا... (مثلاً: تم تقديم الخدمة بنجاح)"
+            placeholder="اكتب ملاحظة الإغلاق هنا... (5 أحرف على الأقل)"
             value={closeOutNote}
             onChange={(e) => setCloseOutNote(e.target.value)}
             className="min-h-[80px]"
           />
+          {closeOutNote.trim().length > 0 && closeOutNote.trim().length < 5 && (
+            <p className="text-xs text-destructive">يجب أن تكون الملاحظة 5 أحرف على الأقل</p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>رجوع</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmComplete} disabled={!closeOutNote.trim()}>إكمال الطلب ✅</AlertDialogAction>
+            <AlertDialogAction onClick={confirmComplete} disabled={closeOutNote.trim().length < 5}>إكمال الطلب ✅</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

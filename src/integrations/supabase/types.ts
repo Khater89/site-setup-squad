@@ -143,6 +143,10 @@ export type Database = {
           city: string
           client_lat: number | null
           client_lng: number | null
+          close_out_at: string | null
+          close_out_note: string | null
+          completed_at: string | null
+          completed_by: string | null
           connect_charge_type: string | null
           contact_revealed_at: string | null
           created_at: string
@@ -157,6 +161,9 @@ export type Database = {
           payment_status: string
           platform_fee: number
           provider_payout: number
+          reject_reason: string | null
+          rejected_at: string | null
+          rejected_by: string | null
           remaining_cash_amount: number | null
           reveal_contact_allowed: boolean | null
           scheduled_at: string
@@ -179,6 +186,10 @@ export type Database = {
           city: string
           client_lat?: number | null
           client_lng?: number | null
+          close_out_at?: string | null
+          close_out_note?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           connect_charge_type?: string | null
           contact_revealed_at?: string | null
           created_at?: string
@@ -193,6 +204,9 @@ export type Database = {
           payment_status?: string
           platform_fee?: number
           provider_payout?: number
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
           remaining_cash_amount?: number | null
           reveal_contact_allowed?: boolean | null
           scheduled_at: string
@@ -215,6 +229,10 @@ export type Database = {
           city?: string
           client_lat?: number | null
           client_lng?: number | null
+          close_out_at?: string | null
+          close_out_note?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
           connect_charge_type?: string | null
           contact_revealed_at?: string | null
           created_at?: string
@@ -229,6 +247,9 @@ export type Database = {
           payment_status?: string
           platform_fee?: number
           provider_payout?: number
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
           remaining_cash_amount?: number | null
           reveal_contact_allowed?: boolean | null
           scheduled_at?: string
