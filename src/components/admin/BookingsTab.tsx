@@ -200,6 +200,7 @@ const BookingsTab = () => {
         serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || t("provider.dashboard.service") : ""}
         providerName={selectedBooking?.assigned_provider_id ? providerNames[selectedBooking.assigned_provider_id] || null : null}
         onAssign={handleAssignFromDetails}
+        onStatusChange={() => { setSelectedBooking(null); fetchBookings(); }}
       />
 
       {assignBooking && (

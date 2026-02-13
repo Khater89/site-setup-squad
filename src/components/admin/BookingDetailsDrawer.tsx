@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   CalendarDays, MapPin, Phone, User, CreditCard, UserCheck,
-  MessageCircle, FileText, StickyNote, Ban,
+  MessageCircle, FileText, StickyNote, Ban, Loader2,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,12 +94,16 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
         .eq("id", booking.id);
       if (updateError) throw updateError;
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      // Detect role for history logging
+      const { data: rolesData } = await supabase.from("user_roles").select("role").eq("user_id", authUser!.id);
+      const roles = (rolesData || []).map((r: any) => r.role);
+      const performerRole = roles.includes("admin") ? "admin" : roles.includes("cs") ? "cs" : "admin";
       await supabase.from("booking_history").insert({
         booking_id: booking.id,
         action: "CANCELLED",
-        performed_by: user!.id,
-        performer_role: "admin",
+        performed_by: authUser!.id,
+        performer_role: performerRole,
         note: cancelReason.trim(),
       });
 
@@ -241,9 +245,9 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">
-            {booking.status === "NEW" && !booking.assigned_provider_id && (
+            {(booking.status === "NEW" || booking.status === "ASSIGNED") && (
               <Button className="flex-1 gap-1.5" onClick={() => onAssign(booking)}>
-                <UserCheck className="h-4 w-4" /> {t("booking.details.assign_provider")}
+                <UserCheck className="h-4 w-4" /> {booking.assigned_provider_id ? (t("booking.details.reassign") || "إعادة تعيين") : t("booking.details.assign_provider")}
               </Button>
             )}
             {booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
@@ -295,7 +299,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
                 disabled={!cancelReason.trim() || cancelling}
                 onClick={handleCancel}
               >
-                {cancelling ? "..." : (t("booking.details.confirm_cancel") || "تأكيد الإلغاء")}
+                {cancelling ? <><Loader2 className="h-4 w-4 animate-spin me-1" />جاري الإلغاء...</> : (t("booking.details.confirm_cancel") || "تأكيد الإلغاء")}
               </Button>
             </DialogFooter>
           </DialogContent>
