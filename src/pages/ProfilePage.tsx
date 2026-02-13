@@ -8,10 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   User, CalendarCheck, Pencil, Save, X, Loader2,
-  MapPin, Phone, CalendarDays, Clock,
+  MapPin, Phone, CalendarDays, Clock, Ban,
 } from "lucide-react";
 
 interface BookingRow {
@@ -25,12 +29,14 @@ interface BookingRow {
   notes: string | null;
   service_id: string;
   created_at: string;
+  assigned_provider_id: string | null;
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   NEW: { label: "جديد", variant: "secondary" },
   ASSIGNED: { label: "معيّن", variant: "default" },
   CONFIRMED: { label: "مؤكد", variant: "default" },
+  ACCEPTED: { label: "مقبول", variant: "default" },
   COMPLETED: { label: "مكتمل", variant: "outline" },
   CANCELLED: { label: "ملغي", variant: "destructive" },
 };
@@ -52,6 +58,10 @@ const ProfilePage = () => {
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [loadingBookings, setLoadingBookings] = useState(true);
 
+  // Cancel state
+  const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
   useEffect(() => {
     if (profile) {
       setName(profile.full_name || "");
@@ -60,29 +70,29 @@ const ProfilePage = () => {
     }
   }, [profile]);
 
+  const fetchBookings = async () => {
+    if (!user) return;
+
+    const [bookingsRes, servicesRes] = await Promise.all([
+      supabase
+        .from("bookings")
+        .select("*")
+        .eq("customer_user_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("services").select("id, name"),
+    ]);
+
+    setBookings((bookingsRes.data as unknown as BookingRow[]) || []);
+
+    const svcMap: Record<string, string> = {};
+    (servicesRes.data || []).forEach((s: any) => {
+      svcMap[s.id] = s.name;
+    });
+    setServiceNames(svcMap);
+    setLoadingBookings(false);
+  };
+
   useEffect(() => {
-    const fetchBookings = async () => {
-      if (!user) return;
-
-      const [bookingsRes, servicesRes] = await Promise.all([
-        supabase
-          .from("bookings")
-          .select("*")
-          .eq("customer_user_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase.from("services").select("id, name"),
-      ]);
-
-      setBookings((bookingsRes.data as unknown as BookingRow[]) || []);
-
-      const svcMap: Record<string, string> = {};
-      (servicesRes.data || []).forEach((s: any) => {
-        svcMap[s.id] = s.name;
-      });
-      setServiceNames(svcMap);
-      setLoadingBookings(false);
-    };
-
     fetchBookings();
   }, [user]);
 
@@ -119,6 +129,30 @@ const ProfilePage = () => {
     setCity(profile?.city || "");
     setEditing(false);
   };
+
+  const handleCancelBooking = async () => {
+    if (!cancelBookingId || !user) return;
+    setCancellingId(cancelBookingId);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "CANCELLED" })
+        .eq("id", cancelBookingId)
+        .eq("customer_user_id", user.id);
+      if (error) throw error;
+
+      toast({ title: "تم إلغاء الحجز بنجاح" });
+      setCancelBookingId(null);
+      fetchBookings();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  // Client can cancel only NEW bookings (not yet assigned)
+  const canClientCancel = (b: BookingRow) => b.status === "NEW" && !b.assigned_provider_id;
 
   return (
     <div className="min-h-screen bg-background">
@@ -263,6 +297,22 @@ const ProfilePage = () => {
                         {b.notes && (
                           <p className="text-xs bg-muted rounded p-2">{b.notes}</p>
                         )}
+                        {canClientCancel(b) && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="gap-1 h-7 text-xs"
+                            disabled={cancellingId === b.id}
+                            onClick={() => setCancelBookingId(b.id)}
+                          >
+                            {cancellingId === b.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Ban className="h-3 w-3" />
+                            )}
+                            إلغاء الحجز
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   );
@@ -272,6 +322,24 @@ const ProfilePage = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={!!cancelBookingId} onOpenChange={(open) => { if (!open) setCancelBookingId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>إلغاء الحجز</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من إلغاء هذا الحجز؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelBooking} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              تأكيد الإلغاء
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

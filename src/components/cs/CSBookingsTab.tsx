@@ -4,11 +4,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   CalendarDays, MapPin, Search, Filter, Phone,
-  MessageCircle, UserCheck, Loader2,
+  MessageCircle, UserCheck, Loader2, Ban,
 } from "lucide-react";
 import CSAssignmentDialog from "./CSAssignmentDialog";
 
@@ -36,7 +41,6 @@ export interface BookingRow {
   assigned_at: string | null;
   accepted_at: string | null;
   service_id: string;
-  // From booking_contacts join
   customer_name?: string | null;
   customer_phone?: string | null;
 }
@@ -68,6 +72,11 @@ const CSBookingsTab = () => {
 
   // Assignment dialog
   const [assignBooking, setAssignBooking] = useState<BookingRow | null>(null);
+
+  // Cancel dialog
+  const [cancelBooking, setCancelBooking] = useState<BookingRow | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
@@ -118,13 +127,35 @@ const CSBookingsTab = () => {
     return true;
   });
 
-  const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: `تم تحديث الحالة إلى ${STATUS_LABELS[status]}` });
+  const handleCancel = async () => {
+    if (!cancelBooking || !cancelReason.trim()) return;
+    setCancelling(true);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "CANCELLED" })
+        .eq("id", cancelBooking.id);
+      if (error) throw error;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("booking_history").insert({
+          booking_id: cancelBooking.id,
+          action: "CANCELLED",
+          performed_by: user.id,
+          performer_role: "cs",
+          note: cancelReason.trim(),
+        });
+      }
+
+      toast({ title: "تم إلغاء الطلب بنجاح" });
+      setCancelBooking(null);
+      setCancelReason("");
       fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -219,27 +250,26 @@ const CSBookingsTab = () => {
 
                 {/* Actions */}
                 <div className="flex gap-2 flex-wrap">
-                  {b.status === "NEW" && !b.assigned_provider_id && (
+                  {(b.status === "NEW" || b.status === "ASSIGNED") && (
                     <Button
                       size="sm"
                       className="gap-1 h-7 text-xs"
                       onClick={() => setAssignBooking(b)}
                     >
-                      <UserCheck className="h-3 w-3" /> تعيين مزوّد وتسعير
+                      <UserCheck className="h-3 w-3" />
+                      {b.assigned_provider_id ? "إعادة تعيين" : "تعيين مزوّد وتسعير"}
                     </Button>
                   )}
 
                   {b.status !== "COMPLETED" && b.status !== "CANCELLED" && (
-                    <Select onValueChange={(v) => updateStatus(b.id, v)}>
-                      <SelectTrigger className="h-7 text-xs w-28">
-                        <SelectValue placeholder="تغيير الحالة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="gap-1 h-7 text-xs"
+                      onClick={() => setCancelBooking(b)}
+                    >
+                      <Ban className="h-3 w-3" /> إلغاء
+                    </Button>
                   )}
 
                   <a
@@ -268,6 +298,39 @@ const CSBookingsTab = () => {
           serviceName={serviceNames[assignBooking.service_id] || "خدمة"}
         />
       )}
+
+      {/* Cancel Dialog */}
+      <Dialog open={!!cancelBooking} onOpenChange={(open) => { if (!open) { setCancelBooking(null); setCancelReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إلغاء الطلب</DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من إلغاء الطلب {cancelBooking?.booking_number || ""}؟ يرجى إدخال سبب الإلغاء.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>سبب الإلغاء</Label>
+            <Textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="اكتب سبب الإلغاء هنا..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCancelBooking(null); setCancelReason(""); }}>
+              تراجع
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!cancelReason.trim() || cancelling}
+              onClick={handleCancel}
+            >
+              {cancelling ? <><Loader2 className="h-4 w-4 animate-spin me-1" />جاري الإلغاء...</> : "تأكيد الإلغاء"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

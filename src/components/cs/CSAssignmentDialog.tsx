@@ -126,25 +126,39 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
     }
 
     setAssigning(true);
-    const { error } = await supabase
-      .from("bookings")
-      .update({
-        assigned_provider_id: selectedProvider,
-        status: "ASSIGNED",
-        assigned_at: new Date().toISOString(),
-        assigned_by: isAdmin ? "admin" : "cs",
-        agreed_price: agreedPrice,
-        internal_note: internalNote.trim() || null,
-      } as any)
-      .eq("id", booking.id);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          assigned_provider_id: selectedProvider,
+          status: "ASSIGNED",
+          assigned_at: new Date().toISOString(),
+          assigned_by: isAdmin ? "admin" : "cs",
+          agreed_price: agreedPrice,
+          internal_note: internalNote.trim() || null,
+        } as any)
+        .eq("id", booking.id);
 
-    setAssigning(false);
+      if (error) throw error;
 
-    if (error) {
-      toast({ title: "خطأ في الإسناد", description: error.message, variant: "destructive" });
-    } else {
+      // Log to booking_history
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        await supabase.from("booking_history").insert({
+          booking_id: booking.id,
+          action: "ASSIGNED",
+          performed_by: authUser.id,
+          performer_role: isAdmin ? "admin" : "cs",
+          note: `تم الإسناد إلى مزوّد بسعر ${agreedPrice} د.أ${internalNote.trim() ? ` — ${internalNote.trim()}` : ""}`,
+        });
+      }
+
       toast({ title: "تم الإسناد بنجاح ✅" });
       onAssigned();
+    } catch (err: any) {
+      toast({ title: "خطأ في الإسناد", description: err.message, variant: "destructive" });
+    } finally {
+      setAssigning(false);
     }
   };
 
