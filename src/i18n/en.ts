@@ -303,6 +303,7 @@ const en: Record<string, string> = {
   "provider.status.ACCEPTED": "Accepted",
   "provider.status.COMPLETED": "Completed",
   "provider.status.CANCELLED": "Cancelled",
+  "provider.status.REJECTED": "Rejected",
   "provider.status.ALL": "All",
 
   // Common / Generic

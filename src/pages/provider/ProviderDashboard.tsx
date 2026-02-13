@@ -156,19 +156,27 @@ const ProviderDashboard = () => {
     if (!user) return;
     setActionLoading(id);
     try {
-      const { error } = await supabase.from("bookings").update({
-        accepted_at: new Date().toISOString(),
+      const now = new Date().toISOString();
+      const { data: updated, error } = await supabase.from("bookings").update({
+        accepted_at: now,
         status: "ACCEPTED",
-      } as any).eq("id", id).eq("assigned_provider_id", user.id);
+      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ASSIGNED").select().maybeSingle();
 
       if (error) throw error;
+      if (!updated) throw new Error("لم يتم تحديث الطلب — قد يكون مقبولاً بالفعل أو غير مسند إليك");
+
+      // Optimistic state update: replace the order in local state
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "ACCEPTED", accepted_at: now } : o));
 
       await logHistory(id, "ACCEPTED", "تم قبول الطلب من قبل المزود");
       toast({ title: t("provider.dashboard.accepted_toast") });
-      await fetchData();
-      // Auto-load history for this order
-      const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
-      setHistoryMap((prev) => ({ ...prev, [id]: data || [] }));
+
+      // Background refetch to sync full data (e.g. contact info from RPC)
+      const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
+      if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
+
+      const { data: histData } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
+      setHistoryMap((prev) => ({ ...prev, [id]: histData || [] }));
     } catch (err: any) {
       console.error("Accept error:", err);
       toast({ title: t("common.error"), description: err.message, variant: "destructive" });
@@ -178,20 +186,30 @@ const ProviderDashboard = () => {
 
   const rejectOrder = async (id: string) => {
     if (!confirm(t("provider.dashboard.reject_confirm"))) return;
+    if (!user) return;
     setActionLoading(id);
     try {
+      // Log history BEFORE clearing assigned_provider_id (otherwise RLS blocks the insert)
       await logHistory(id, "REJECTED", "تم رفض الطلب من قبل المزود");
-      const { error } = await supabase.from("bookings").update({
-        assigned_provider_id: null,
+
+      const now = new Date().toISOString();
+      const { data: updated, error } = await supabase.from("bookings").update({
         status: "REJECTED",
-        accepted_at: null,
-        assigned_at: null,
-        rejected_at: new Date().toISOString(),
+        rejected_at: now,
         rejected_by: user.id,
-      } as any).eq("id", id);
+      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ASSIGNED").select().maybeSingle();
+
       if (error) throw error;
+      if (!updated) throw new Error("لم يتم تحديث الطلب — قد يكون مرفوضاً بالفعل");
+
+      // Optimistic: remove from local list (provider no longer sees rejected orders after refetch)
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "REJECTED" } : o));
+
       toast({ title: t("provider.dashboard.rejected_toast") });
-      await fetchData();
+
+      // Background refetch
+      const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
+      if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
     } catch (err: any) {
       console.error("Reject error:", err);
       toast({ title: t("common.error"), description: err.message, variant: "destructive" });
@@ -210,20 +228,30 @@ const ProviderDashboard = () => {
     setActionLoading(id);
     try {
       const now = new Date().toISOString();
-      const { error } = await supabase.from("bookings").update({
+      const { data: updated, error } = await supabase.from("bookings").update({
         status: "COMPLETED",
         completed_at: now,
         completed_by: user.id,
         close_out_note: closeOutNote.trim(),
         close_out_at: now,
-      } as any).eq("id", id).eq("assigned_provider_id", user.id);
+      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ACCEPTED").select().maybeSingle();
+
       if (error) throw error;
+      if (!updated) throw new Error("لم يتم تحديث الطلب — تأكد أنه مقبول أولاً");
+
+      // Optimistic state update
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "COMPLETED", completed_at: now } : o));
+
       await logHistory(id, "COMPLETED", closeOutNote.trim());
       setCloseOutNote("");
       toast({ title: t("provider.dashboard.completed_toast") });
-      await fetchData();
-      const { data } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
-      setHistoryMap((prev) => ({ ...prev, [id]: data || [] }));
+
+      // Background refetch
+      const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
+      if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
+
+      const { data: histData } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
+      setHistoryMap((prev) => ({ ...prev, [id]: histData || [] }));
     } catch (err: any) {
       console.error("Complete error:", err);
       toast({ title: t("common.error"), description: err.message, variant: "destructive" });

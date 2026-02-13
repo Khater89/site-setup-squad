@@ -303,6 +303,7 @@ const ar: Record<string, string> = {
   "provider.status.ACCEPTED": "مقبول",
   "provider.status.COMPLETED": "مكتمل",
   "provider.status.CANCELLED": "ملغي",
+  "provider.status.REJECTED": "مرفوض",
   "provider.status.ALL": "الكل",
 
   // Common / Generic
