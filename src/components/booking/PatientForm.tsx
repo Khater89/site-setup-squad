@@ -27,6 +27,7 @@ export interface PatientData {
   time: string;
   hours: number;
   notes: string;
+  payment_method: string;
 }
 
 interface PatientFormProps {
@@ -249,6 +250,35 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
             {t("price.determined_later")}
           </p>
         )}
+      </div>
+
+      {/* Payment Method */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">{t("form.payment_method")}</Label>
+        <RadioGroup
+          value={data.payment_method}
+          onValueChange={(v) => update("payment_method", v)}
+          className="grid grid-cols-3 gap-2"
+        >
+          {[
+            { value: "CASH", label: t("payment.CASH") },
+            { value: "CLIQ", label: t("payment.CLIQ") },
+            { value: "CARD", label: t("payment.CARD") },
+          ].map((method) => (
+            <label
+              key={method.value}
+              className={cn(
+                "flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all text-center",
+                data.payment_method === method.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card hover:border-primary/30"
+              )}
+            >
+              <RadioGroupItem value={method.value} className="sr-only" />
+              <span className="text-xs font-medium">{method.label}</span>
+            </label>
+          ))}
+        </RadioGroup>
       </div>
 
       {/* Notes */}

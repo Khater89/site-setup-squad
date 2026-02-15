@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
       hours,
       time_slot,
       notes,
+      payment_method,
     } = body;
 
     // ── Validate required fields ──
@@ -94,6 +95,10 @@ Deno.serve(async (req) => {
       if (user) customer_user_id = user.id;
     }
 
+    // ── Validate payment method ──
+    const validMethods = ["CASH", "CLIQ", "CARD"];
+    const finalPaymentMethod = validMethods.includes(payment_method) ? payment_method : "CASH";
+
     // ── Insert booking ──
     const booking = {
       customer_display_name: customer_name.trim().substring(0, 200),
@@ -104,7 +109,7 @@ Deno.serve(async (req) => {
       scheduled_at: new Date(scheduled_at).toISOString(),
       notes: notes?.trim()?.substring(0, 1000) || null,
       subtotal,
-      payment_method: "CASH",
+      payment_method: finalPaymentMethod,
       customer_user_id,
     };
 
@@ -154,6 +159,7 @@ Deno.serve(async (req) => {
       client_address_text: client_address_text?.trim() || null,
       hours: hourCount,
       time_slot: time_slot || null,
+      payment_method: finalPaymentMethod,
     };
 
     const { error: outboxError } = await supabaseAdmin

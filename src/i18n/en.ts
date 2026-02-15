@@ -166,6 +166,7 @@ const en: Record<string, string> = {
 
   // Payment
   "payment.CASH": "Cash",
+  "payment.CLIQ": "CliQ",
   "payment.CARD": "Card",
   "payment.UNPAID": "Unpaid",
   "payment.PAID": "Paid",
@@ -392,6 +393,19 @@ const en: Record<string, string> = {
   "provider.dashboard.coordinator_phone": "Coordinator",
   "provider.dashboard.whatsapp_coordinator": "WhatsApp Coordinator",
   "provider.dashboard.contact_coordinator": "Contact coordinator for coordination",
+
+  // Payment form
+  "form.payment_method": "Payment Method",
+
+  // Admin management
+  "settings.admins.title": "Administrators",
+  "settings.admins.desc": "Manage system administrators — add and remove",
+  "settings.admins.email_placeholder": "New admin email address",
+  "settings.admins.invite": "Add",
+  "settings.admins.remove": "Remove",
+  "settings.admins.invited": "Admin added ✅",
+  "settings.admins.removed": "Admin removed",
+  "settings.admins.last_admin": "Cannot remove the last admin",
 };
 
 export default en;

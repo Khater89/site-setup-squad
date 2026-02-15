@@ -166,6 +166,7 @@ const ar: Record<string, string> = {
 
   // Payment
   "payment.CASH": "نقداً",
+  "payment.CLIQ": "كليك (CliQ)",
   "payment.CARD": "بطاقة",
   "payment.UNPAID": "غير مدفوع",
   "payment.PAID": "مدفوع",
@@ -392,6 +393,19 @@ const ar: Record<string, string> = {
   "provider.dashboard.coordinator_phone": "رقم المنسق",
   "provider.dashboard.whatsapp_coordinator": "واتساب المنسق",
   "provider.dashboard.contact_coordinator": "تواصل مع المنسق للتنسيق",
+
+  // Payment form
+  "form.payment_method": "طريقة الدفع",
+
+  // Admin management
+  "settings.admins.title": "المسؤولون",
+  "settings.admins.desc": "إدارة مسؤولي النظام — إضافة وإزالة",
+  "settings.admins.email_placeholder": "البريد الإلكتروني للمسؤول الجديد",
+  "settings.admins.invite": "إضافة",
+  "settings.admins.remove": "إزالة",
+  "settings.admins.invited": "تمت إضافة المسؤول ✅",
+  "settings.admins.removed": "تمت إزالة المسؤول",
+  "settings.admins.last_admin": "لا يمكن إزالة آخر مسؤول",
 };
 
 export default ar;
