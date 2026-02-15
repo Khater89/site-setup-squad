@@ -28,6 +28,7 @@ const INITIAL_PATIENT: PatientData = {
   time: "",
   hours: 1,
   notes: "",
+  payment_method: "CASH",
 };
 
 const BookingPage = () => {
@@ -90,6 +91,7 @@ const BookingPage = () => {
         hours: patient.hours,
         time_slot: patient.time,
         notes: patient.notes.trim() || null,
+        payment_method: patient.payment_method,
       },
     });
 

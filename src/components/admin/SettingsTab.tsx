@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,122 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Loader2, Save, Percent, Wallet, AlertTriangle, Phone, Trash2 } from "lucide-react";
+import { Loader2, Save, Percent, Wallet, AlertTriangle, Phone, Trash2, ShieldCheck, UserPlus, UserMinus, Mail } from "lucide-react";
+
+interface AdminUser {
+  user_id: string;
+  email: string;
+}
+
+const AdminsSection = () => {
+  const { toast } = useToast();
+  const { t } = useLanguage();
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const fetchAdmins = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
+      body: { action: "list" },
+    });
+    if (data?.admins) setAdmins(data.admins);
+    if (error) toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    setLoading(false);
+  }, [toast, t]);
+
+  useEffect(() => { fetchAdmins(); }, [fetchAdmins]);
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
+      body: { action: "invite_admin", email: inviteEmail.trim() },
+    });
+    setInviting(false);
+    if (error || data?.error) {
+      toast({ title: t("common.error"), description: data?.error || error?.message, variant: "destructive" });
+    } else {
+      toast({ title: t("settings.admins.invited") });
+      setInviteEmail("");
+      fetchAdmins();
+    }
+  };
+
+  const handleRemove = async (userId: string) => {
+    setRemovingId(userId);
+    const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
+      body: { action: "remove_admin", user_id: userId },
+    });
+    setRemovingId(null);
+    if (error || data?.error) {
+      toast({ title: t("common.error"), description: data?.error || error?.message, variant: "destructive" });
+    } else {
+      toast({ title: t("settings.admins.removed") });
+      fetchAdmins();
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          {t("settings.admins.title")}
+        </CardTitle>
+        <CardDescription>{t("settings.admins.desc")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Invite */}
+        <div className="flex gap-2">
+          <Input
+            type="email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            placeholder={t("settings.admins.email_placeholder")}
+            className="flex-1"
+            dir="ltr"
+            onKeyDown={(e) => e.key === "Enter" && handleInvite()}
+          />
+          <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} size="sm" className="gap-1.5">
+            {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+            {t("settings.admins.invite")}
+          </Button>
+        </div>
+
+        {/* List */}
+        {loading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : admins.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-2">{t("common.no_data")}</p>
+        ) : (
+          <div className="space-y-2">
+            {admins.map((admin) => (
+              <div key={admin.user_id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium truncate" dir="ltr">{admin.email}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                  onClick={() => handleRemove(admin.user_id)}
+                  disabled={removingId === admin.user_id || admins.length <= 1}
+                  title={admins.length <= 1 ? t("settings.admins.last_admin") : t("settings.admins.remove")}
+                >
+                  {removingId === admin.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 const SettingsTab = () => {
   const { toast } = useToast();
@@ -75,7 +190,6 @@ const SettingsTab = () => {
     setClearCounts(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("admin-clear-all-bookings", {
         body: { action: "count" },
       });
@@ -119,6 +233,9 @@ const SettingsTab = () => {
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-bold">{t("settings.title")}</h2>
+
+      {/* Admins Section */}
+      <AdminsSection />
 
       <Card>
         <CardHeader>

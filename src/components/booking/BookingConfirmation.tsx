@@ -3,7 +3,7 @@ import type { DbService } from "@/hooks/useServices";
 import { PatientData } from "./PatientForm";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { User, Phone, MapPin, CalendarIcon, Clock, FileText, Home, Info } from "lucide-react";
+import { User, Phone, MapPin, CalendarIcon, Clock, FileText, Home, Info, CreditCard } from "lucide-react";
 
 interface BookingConfirmationProps {
   service: DbService;
@@ -33,6 +33,7 @@ const BookingConfirmation = ({ service, patient }: BookingConfirmationProps) => 
     },
     { icon: Clock, label: t("form.time"), value: timeLabels[patient.time] || "—" },
     { icon: Clock, label: t("form.hours"), value: `${patient.hours} ${patient.hours === 1 ? t("form.hours.single") : t("form.hours.plural")}` },
+    { icon: CreditCard, label: t("form.payment_method"), value: t(`payment.${patient.payment_method}`) },
     ...(patient.notes ? [{ icon: FileText, label: t("form.notes"), value: patient.notes }] : []),
   ];
 

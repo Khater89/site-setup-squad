@@ -3,7 +3,7 @@ import type { DbService } from "@/hooks/useServices";
 import { PatientData } from "./PatientForm";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { Stethoscope, User, Phone, MapPin, CalendarDays, Clock, Receipt, Home, Info } from "lucide-react";
+import { Stethoscope, User, Phone, MapPin, CalendarDays, Clock, Receipt, Home, Info, CreditCard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface BookingSummaryProps {
@@ -79,6 +79,12 @@ const BookingSummary = ({ service, patient, step }: BookingSummaryProps) => {
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span>{t(`time.${patient.time}`)}</span>
+            </div>
+          )}
+          {patient.payment_method && (
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span>{t(`payment.${patient.payment_method}`)}</span>
             </div>
           )}
         </div>
