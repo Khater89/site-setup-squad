@@ -17,7 +17,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 };
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { user, loading, rolesLoaded, isAdmin, isCS, isProvider } = useAuth();
+  const { user, loading, rolesLoaded, isAdmin, isCS, isProvider, profile } = useAuth();
 
   if (loading || (user && !rolesLoaded)) {
     return (
@@ -39,6 +39,17 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     : isProvider
     ? "provider"
     : "customer";
+
+  // Provider gatekeeper: if provider_status is not approved, redirect to review page
+  if (effectiveRole === "provider" && profile) {
+    const status = profile.provider_status;
+    if (status !== "approved") {
+      // Allow access to the review page itself
+      if (requiredRole === "provider") {
+        return <Navigate to="/account-review" replace />;
+      }
+    }
+  }
 
   // If a specific role is required and user's effective role doesn't match, redirect
   if (requiredRole && requiredRole !== effectiveRole) {

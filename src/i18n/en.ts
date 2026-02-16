@@ -499,6 +499,12 @@ const en: Record<string, string> = {
   "verify_email.message": "We've sent a verification link to your email. Please check your inbox and click the link to activate your account.",
   "verify_email.hint": "After verifying, return here to sign in and complete your registration.",
   "verify_email.login_link": "Go to Sign In",
+
+  // Account Review
+  "review.pending_title": "Account Under Review",
+  "review.pending_message": "Your account is currently under review by the administration. You will be notified once approved.",
+  "review.rejected_title": "Account Not Approved",
+  "review.rejected_message": "Unfortunately your account was not approved. Please contact support for more information.",
 };
 
 export default en;
