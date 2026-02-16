@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, Phone, MapPin, Briefcase, Navigation,
-  Search, Stethoscope,
+  Search, Stethoscope, ShieldAlert,
 } from "lucide-react";
+import CSSuspensionDialog from "./CSSuspensionDialog";
 
 /* ── Types ── */
 
@@ -45,18 +47,22 @@ const CSProviderDirectory = () => {
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [availableFilter, setAvailableFilter] = useState("ALL");
 
+  // Suspension dialog state
+  const [suspensionTarget, setSuspensionTarget] = useState<ProviderRow | null>(null);
+
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .not("phone", "is", null)
-        .order("created_at", { ascending: false });
-      setProviders((data as unknown as ProviderRow[]) || []);
-      setLoading(false);
-    };
-    fetch();
+    fetchProviders();
   }, []);
+
+  const fetchProviders = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .not("phone", "is", null)
+      .order("created_at", { ascending: false });
+    setProviders((data as unknown as ProviderRow[]) || []);
+    setLoading(false);
+  };
 
   const filtered = providers.filter((p) => {
     if (typeFilter !== "ALL" && p.role_type !== typeFilter) return false;
@@ -130,7 +136,7 @@ const CSProviderDirectory = () => {
                       {ROLE_TYPE_LABELS[p.role_type || ""] || p.role_type || "—"} · {p.city || "—"}
                     </p>
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1.5 items-center">
                     <Badge
                       variant="outline"
                       className={
@@ -145,6 +151,18 @@ const CSProviderDirectory = () => {
                     </Badge>
                     {p.available_now && (
                       <Badge variant="outline" className="bg-success/10 text-success border-success/30">متاح</Badge>
+                    )}
+                    {/* Request Suspension button for CS */}
+                    {p.provider_status === "approved" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-warning border-warning/30 hover:bg-warning/10 hover:text-warning gap-1"
+                        onClick={(e) => { e.stopPropagation(); setSuspensionTarget(p); }}
+                      >
+                        <ShieldAlert className="h-3.5 w-3.5" />
+                        <span className="text-[10px]">طلب إيقاف</span>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -209,6 +227,17 @@ const CSProviderDirectory = () => {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Suspension Request Dialog */}
+      {suspensionTarget && (
+        <CSSuspensionDialog
+          providerId={suspensionTarget.user_id}
+          providerName={suspensionTarget.full_name || "بدون اسم"}
+          open={!!suspensionTarget}
+          onOpenChange={(open) => { if (!open) setSuspensionTarget(null); }}
+          onSuccess={fetchProviders}
+        />
       )}
     </div>
   );

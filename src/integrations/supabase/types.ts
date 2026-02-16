@@ -530,6 +530,39 @@ export type Database = {
         }
         Relationships: []
       }
+      suspension_requests: {
+        Row: {
+          created_at: string
+          id: string
+          provider_id: string
+          reason: string
+          requested_by_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          provider_id: string
+          reason: string
+          requested_by_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          provider_id?: string
+          reason?: string
+          requested_by_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

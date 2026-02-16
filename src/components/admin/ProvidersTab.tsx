@@ -113,7 +113,28 @@ const ProvidersTab = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Safe-delete pre-check: count active bookings
+      const { count, error: countErr } = await supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("assigned_provider_id", deleteTarget.user_id)
+        .not("status", "eq", "COMPLETED")
+        .not("status", "eq", "CANCELLED")
+        .not("status", "eq", "REJECTED");
+
+      if (countErr) throw countErr;
+
+      if (count && count > 0) {
+        toast({
+          title: t("provider.delete.has_active_orders_title"),
+          description: t("provider.delete.has_active_orders_msg").replace("{count}", String(count)),
+          variant: "destructive",
+        });
+        setDeleting(false);
+        setDeleteTarget(null);
+        return;
+      }
+
       const res = await supabase.functions.invoke("admin-delete-provider", {
         body: { user_id: deleteTarget.user_id },
       });
