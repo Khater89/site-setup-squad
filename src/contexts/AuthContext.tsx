@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
@@ -52,27 +52,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [rolesLoaded, setRolesLoaded] = useState(false);
+  const initializedRef = useRef(false);
 
   const fetchUserData = useCallback(async (userId: string) => {
-    setRolesLoaded(false);
-    const [rolesResult, profileResult] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
-    ]);
-    if (rolesResult.data) {
-      setRoles(rolesResult.data.map((r) => r.role as AppRole));
+    try {
+      const [rolesResult, profileResult] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", userId),
+        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+      ]);
+      if (rolesResult.data) {
+        setRoles(rolesResult.data.map((r) => r.role as AppRole));
+      }
+      if (profileResult.data) {
+        setProfile(profileResult.data as Profile);
+      }
+    } catch {
+      // ignore fetch errors
+    } finally {
+      setRolesLoaded(true);
     }
-    if (profileResult.data) {
-      setProfile(profileResult.data as Profile);
-    }
-    setRolesLoaded(true);
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
+    // 1. Set up listener FIRST (but don't let it control initial loading)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
+        if (!isMounted) return;
+
         setSession(newSession);
         setUser(newSession?.user ?? null);
+
         if (newSession?.user) {
           // Apply pending provider profile on first verified sign-in
           if (_event === "SIGNED_IN") {
@@ -90,23 +101,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               localStorage.removeItem("pending_provider_profile");
             }
           }
-          setTimeout(() => fetchUserData(newSession.user.id), 0);
+          // Only refetch if initial load already completed (avoid double fetch)
+          if (initializedRef.current) {
+            setTimeout(() => fetchUserData(newSession.user.id), 0);
+          }
         } else {
           setRoles([]);
           setProfile(null);
+          setRolesLoaded(true);
         }
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) fetchUserData(s.user.id);
-      setLoading(false);
-    });
+    // 2. Initial load: getSession -> fetchUserData -> THEN set loading=false
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        if (!isMounted) return;
 
-    return () => subscription.unsubscribe();
+        setSession(s);
+        setUser(s?.user ?? null);
+
+        if (s?.user) {
+          await fetchUserData(s.user.id);
+        } else {
+          setRolesLoaded(true);
+        }
+      } catch {
+        if (isMounted) setRolesLoaded(true);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+          initializedRef.current = true;
+        }
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [fetchUserData]);
 
   const signOut = async () => {
@@ -120,14 +156,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await fetchUserData(user.id);
   };
 
+  const isAdmin = roles.includes("admin");
+  const isCS = roles.includes("cs");
+  const isProvider = roles.includes("provider");
+  const isCustomer = roles.includes("customer");
+
   return (
     <AuthContext.Provider
       value={{
         user, session, profile, roles, loading, rolesLoaded,
-        isAdmin: roles.includes("admin"),
-        isCS: roles.includes("cs"),
-        isProvider: roles.includes("provider"),
-        isCustomer: roles.includes("customer"),
+        isAdmin, isCS, isProvider, isCustomer,
         signOut, refreshUserData,
       }}
     >
