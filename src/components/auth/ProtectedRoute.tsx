@@ -19,7 +19,8 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const { user, loading, rolesLoaded, isAdmin, isCS, isProvider, profile } = useAuth();
 
-  if (loading || (user && !rolesLoaded)) {
+  // Only block on initial session check (loading). Never block on roles – treat as customer if not loaded yet.
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
