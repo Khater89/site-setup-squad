@@ -17,6 +17,7 @@ import ProviderDashboard from "./pages/provider/ProviderDashboard";
 import ProviderOnboarding from "./pages/provider/ProviderOnboarding";
 import CSDashboard from "./pages/cs/CSDashboard";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
+import AccountReviewPage from "./pages/AccountReviewPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +37,14 @@ const App = () => (
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/provider/register" element={<ProviderRegister />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
-
+              <Route
+                path="/account-review"
+                element={
+                  <ProtectedRoute>
+                    <AccountReviewPage />
+                  </ProtectedRoute>
+                }
+              />
               {/* Customer Profile (protected) */}
               <Route
                 path="/profile"
