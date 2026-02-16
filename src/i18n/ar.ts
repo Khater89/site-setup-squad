@@ -513,6 +513,24 @@ const ar: Record<string, string> = {
   "provider.delete.confirm": "نعم، احذف",
   "provider.delete.success": "تم حذف مقدم الخدمة بنجاح",
   "provider.delete.error": "فشل حذف مقدم الخدمة",
+  "provider.delete.has_active_orders_title": "لا يمكن حذف مقدم الخدمة",
+  "provider.delete.has_active_orders_msg": "لديه {count} طلب نشط. يرجى إلغاء تعيين الطلبات أولاً.",
+
+  // Suspension Requests
+  "admin.tab.suspensions": "طلبات الإيقاف",
+  "suspension.title": "طلبات الإيقاف",
+  "suspension.no_requests": "لا توجد طلبات إيقاف",
+  "suspension.col.provider": "المزوّد",
+  "suspension.col.requested_by": "مقدم الطلب",
+  "suspension.col.reason": "السبب",
+  "suspension.col.date": "التاريخ",
+  "suspension.col.status": "الحالة",
+  "suspension.col.actions": "إجراءات",
+  "suspension.status.pending": "قيد الانتظار",
+  "suspension.status.approved": "تمت الموافقة",
+  "suspension.status.rejected": "مرفوض",
+  "suspension.approved_success": "تمت الموافقة وإيقاف المزوّد ✅",
+  "suspension.rejected_success": "تم رفض طلب الإيقاف",
 };
 
 export default ar;

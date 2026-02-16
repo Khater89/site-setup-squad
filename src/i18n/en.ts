@@ -513,6 +513,24 @@ const en: Record<string, string> = {
   "provider.delete.confirm": "Yes, Delete",
   "provider.delete.success": "Provider deleted successfully",
   "provider.delete.error": "Failed to delete provider",
+  "provider.delete.has_active_orders_title": "Cannot delete provider",
+  "provider.delete.has_active_orders_msg": "They have {count} active orders. Please unassign/release these orders first.",
+
+  // Suspension Requests
+  "admin.tab.suspensions": "Suspensions",
+  "suspension.title": "Suspension Requests",
+  "suspension.no_requests": "No suspension requests",
+  "suspension.col.provider": "Provider",
+  "suspension.col.requested_by": "Requested By",
+  "suspension.col.reason": "Reason",
+  "suspension.col.date": "Date",
+  "suspension.col.status": "Status",
+  "suspension.col.actions": "Actions",
+  "suspension.status.pending": "Pending",
+  "suspension.status.approved": "Approved",
+  "suspension.status.rejected": "Rejected",
+  "suspension.approved_success": "Approved — provider suspended ✅",
+  "suspension.rejected_success": "Suspension request rejected",
 };
 
 export default en;
