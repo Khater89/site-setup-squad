@@ -87,6 +87,9 @@ const ar: Record<string, string> = {
   "form.time": "الوقت المفضل",
   "form.notes": "ملاحظات إضافية",
   "form.notes.placeholder": "أي معلومات إضافية تود إخبارنا بها...",
+  "form.case_details": "تفاصيل الحالة",
+  "form.case_details.placeholder": "اوصف الحالة الطبية بالتفصيل (مثال: الأعراض، التاريخ المرضي، الأدوية الحالية)...",
+  "form.case_details.required": "تفاصيل الحالة مطلوبة",
 
   // Time slots
   "time.morning": "صباحاً (8-12)",

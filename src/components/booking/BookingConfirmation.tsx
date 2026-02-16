@@ -34,7 +34,7 @@ const BookingConfirmation = ({ service, patient }: BookingConfirmationProps) => 
     { icon: Clock, label: t("form.time"), value: timeLabels[patient.time] || "—" },
     { icon: Clock, label: t("form.hours"), value: `${patient.hours} ${patient.hours === 1 ? t("form.hours.single") : t("form.hours.plural")}` },
     { icon: CreditCard, label: t("form.payment_method"), value: t(`payment.${patient.payment_method}`) },
-    ...(patient.notes ? [{ icon: FileText, label: t("form.notes"), value: patient.notes }] : []),
+    { icon: FileText, label: t("form.case_details"), value: patient.case_details },
   ];
 
   return (

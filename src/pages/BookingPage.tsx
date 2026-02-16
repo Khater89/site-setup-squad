@@ -27,7 +27,7 @@ const INITIAL_PATIENT: PatientData = {
   date: undefined,
   time: "",
   hours: 1,
-  notes: "",
+  case_details: "",
   payment_method: "CASH",
 };
 
@@ -63,7 +63,8 @@ const BookingPage = () => {
         patient.address.trim() &&
         patient.date &&
         patient.time &&
-        patient.hours >= 1
+        patient.hours >= 1 &&
+        patient.case_details.trim()
       );
     }
     return true;
@@ -90,7 +91,7 @@ const BookingPage = () => {
         scheduled_at: scheduledAt.toISOString(),
         hours: patient.hours,
         time_slot: patient.time,
-        notes: patient.notes.trim() || null,
+        notes: patient.case_details.trim(),
         payment_method: patient.payment_method,
       },
     });
