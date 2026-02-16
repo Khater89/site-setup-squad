@@ -16,6 +16,7 @@ import ProviderRegister from "./pages/provider/ProviderRegister";
 import ProviderDashboard from "./pages/provider/ProviderDashboard";
 import ProviderOnboarding from "./pages/provider/ProviderOnboarding";
 import CSDashboard from "./pages/cs/CSDashboard";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/provider/register" element={<ProviderRegister />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
 
               {/* Customer Profile (protected) */}
               <Route
