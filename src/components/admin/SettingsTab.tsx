@@ -125,6 +125,112 @@ const AdminsSection = () => {
   );
 };
 
+const CSAgentsSection = () => {
+  const { toast } = useToast();
+  const { t } = useLanguage();
+  const [agents, setAgents] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const fetchAgents = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
+      body: { action: "list", role: "cs" },
+    });
+    if (data?.admins) setAgents(data.admins);
+    if (error) toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    setLoading(false);
+  }, [toast, t]);
+
+  useEffect(() => { fetchAgents(); }, [fetchAgents]);
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
+      body: { action: "invite_admin", role: "cs", email: inviteEmail.trim() },
+    });
+    setInviting(false);
+    if (error || data?.error) {
+      toast({ title: t("common.error"), description: data?.error || error?.message, variant: "destructive" });
+    } else {
+      toast({ title: t("settings.cs.invited") });
+      setInviteEmail("");
+      fetchAgents();
+    }
+  };
+
+  const handleRemove = async (userId: string) => {
+    setRemovingId(userId);
+    const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
+      body: { action: "remove_admin", role: "cs", user_id: userId },
+    });
+    setRemovingId(null);
+    if (error || data?.error) {
+      toast({ title: t("common.error"), description: data?.error || error?.message, variant: "destructive" });
+    } else {
+      toast({ title: t("settings.cs.removed") });
+      fetchAgents();
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Phone className="h-5 w-5 text-primary" />
+          {t("settings.cs.title")}
+        </CardTitle>
+        <CardDescription>{t("settings.cs.desc")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Input
+            type="email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            placeholder={t("settings.cs.email_placeholder")}
+            className="flex-1"
+            dir="ltr"
+            onKeyDown={(e) => e.key === "Enter" && handleInvite()}
+          />
+          <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} size="sm" className="gap-1.5">
+            {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+            {t("settings.cs.invite")}
+          </Button>
+        </div>
+        {loading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : agents.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-2">{t("common.no_data")}</p>
+        ) : (
+          <div className="space-y-2">
+            {agents.map((agent) => (
+              <div key={agent.user_id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium truncate" dir="ltr">{agent.email}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                  onClick={() => handleRemove(agent.user_id)}
+                  disabled={removingId === agent.user_id}
+                >
+                  {removingId === agent.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const SettingsTab = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -236,6 +342,7 @@ const SettingsTab = () => {
 
       {/* Admins Section */}
       <AdminsSection />
+      <CSAgentsSection />
 
       <Card>
         <CardHeader>

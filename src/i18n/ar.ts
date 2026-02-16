@@ -409,6 +409,14 @@ const ar: Record<string, string> = {
   "settings.admins.invited": "تمت إضافة المسؤول ✅",
   "settings.admins.removed": "تمت إزالة المسؤول",
   "settings.admins.last_admin": "لا يمكن إزالة آخر مسؤول",
+
+  // CS Agents Management
+  "settings.cs.title": "إدارة موظفي خدمة العملاء",
+  "settings.cs.desc": "أضف أو أزل موظفي خدمة العملاء (صلاحية قراءة فقط)",
+  "settings.cs.email_placeholder": "البريد الإلكتروني للموظف",
+  "settings.cs.invite": "إضافة",
+  "settings.cs.invited": "تمت إضافة موظف خدمة العملاء ✅",
+  "settings.cs.removed": "تمت إزالة موظف خدمة العملاء",
 };
 
 export default ar;

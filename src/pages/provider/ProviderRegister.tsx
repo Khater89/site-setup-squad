@@ -221,13 +221,26 @@ const ProviderRegister = () => {
 
     const newUser = signUpData.user;
     if (!newUser) {
-      toast({ title: "تحقق من بريدك الإلكتروني لتأكيد الحساب", description: "بعد التأكيد، عد لهذه الصفحة لإكمال التسجيل." });
+      toast({ title: "خطأ غير متوقع", variant: "destructive" });
       setSaving(false);
       return;
     }
 
-    // Update profile with provider details
-    await supabase
+    // Check if we have an active session (auto-confirm enabled)
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      // Email confirmation required — can't update profile yet
+      setSaving(false);
+      toast({
+        title: "تم إنشاء الحساب بنجاح! ✅",
+        description: "تحقق من بريدك الإلكتروني لتأكيد الحساب، ثم عد لهذه الصفحة لإكمال بيانات الانضمام.",
+      });
+      setMode("login");
+      return;
+    }
+
+    // Session exists — update profile with provider details
+    const { error: updateError } = await supabase
       .from("profiles")
       .update({
         full_name: name.trim(),
@@ -240,8 +253,9 @@ const ProviderRegister = () => {
       })
       .eq("user_id", newUser.id);
 
-    // Add provider role
-    await supabase.from("user_roles").insert({ user_id: newUser.id, role: "provider" as const });
+    if (updateError) {
+      console.error("Profile update error:", updateError);
+    }
 
     await refreshUserData();
     setSaving(false);

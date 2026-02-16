@@ -6,6 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ALLOWED_ROLES = ["admin", "cs"] as const;
+type StaffRole = typeof ALLOWED_ROLES[number];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,38 +53,40 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action } = body;
+    const { action, role: targetRole } = body;
+
+    // Determine which role we're managing (default to "admin" for backward compat)
+    const managedRole: StaffRole = ALLOWED_ROLES.includes(targetRole) ? targetRole : "admin";
+    const roleLabel = managedRole === "cs" ? "CS agent" : "admin";
 
     // ── LIST ──
     if (action === "list") {
-      const { data: adminRoles } = await supabaseAdmin
+      const { data: roleRows } = await supabaseAdmin
         .from("user_roles")
         .select("user_id")
-        .eq("role", "admin");
+        .eq("role", managedRole);
 
-      if (!adminRoles || adminRoles.length === 0) {
+      if (!roleRows || roleRows.length === 0) {
         return new Response(JSON.stringify({ admins: [] }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const adminIds = adminRoles.map((r) => r.user_id);
-
-      // Get emails from auth.users via admin API
-      const admins = [];
-      for (const uid of adminIds) {
+      const ids = roleRows.map((r) => r.user_id);
+      const result = [];
+      for (const uid of ids) {
         const { data: { user: u } } = await supabaseAdmin.auth.admin.getUserById(uid);
         if (u) {
-          admins.push({ user_id: uid, email: u.email });
+          result.push({ user_id: uid, email: u.email });
         }
       }
 
-      return new Response(JSON.stringify({ admins }), {
+      return new Response(JSON.stringify({ admins: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ── INVITE ADMIN ──
+    // ── INVITE ──
     if (action === "invite_admin") {
       const { email } = body;
       if (!email?.trim()) {
@@ -91,7 +96,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Find user by email
       const { data: { users }, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
       if (listErr) throw listErr;
 
@@ -106,24 +110,22 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Check if already admin
       const { data: existing } = await supabaseAdmin
         .from("user_roles")
         .select("id")
         .eq("user_id", targetUser.id)
-        .eq("role", "admin");
+        .eq("role", managedRole);
 
       if (existing && existing.length > 0) {
         return new Response(
-          JSON.stringify({ error: "User is already an admin" }),
+          JSON.stringify({ error: `User is already a ${roleLabel}` }),
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Grant admin role
       const { error: insertErr } = await supabaseAdmin
         .from("user_roles")
-        .insert({ user_id: targetUser.id, role: "admin" });
+        .insert({ user_id: targetUser.id, role: managedRole });
 
       if (insertErr) throw insertErr;
 
@@ -133,7 +135,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── REMOVE ADMIN ──
+    // ── REMOVE ──
     if (action === "remove_admin") {
       const { user_id: targetId } = body;
       if (!targetId) {
@@ -143,32 +145,33 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Count total admins
-      const { data: allAdmins } = await supabaseAdmin
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
+      // For admin role: prevent removing last admin and self-removal
+      if (managedRole === "admin") {
+        const { data: allAdmins } = await supabaseAdmin
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "admin");
 
-      if (!allAdmins || allAdmins.length <= 1) {
-        return new Response(
-          JSON.stringify({ error: "Cannot remove the last admin" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+        if (!allAdmins || allAdmins.length <= 1) {
+          return new Response(
+            JSON.stringify({ error: "Cannot remove the last admin" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
 
-      // Prevent self-removal
-      if (targetId === user.id) {
-        return new Response(
-          JSON.stringify({ error: "Cannot remove yourself" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        if (targetId === user.id) {
+          return new Response(
+            JSON.stringify({ error: "Cannot remove yourself" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
 
       const { error: delErr } = await supabaseAdmin
         .from("user_roles")
         .delete()
         .eq("user_id", targetId)
-        .eq("role", "admin");
+        .eq("role", managedRole);
 
       if (delErr) throw delErr;
 
