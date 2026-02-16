@@ -87,6 +87,9 @@ const en: Record<string, string> = {
   "form.time": "Preferred Time",
   "form.notes": "Additional Notes",
   "form.notes.placeholder": "Any additional information you'd like to share...",
+  "form.case_details": "Case Details",
+  "form.case_details.placeholder": "Describe the medical case in detail (e.g. symptoms, medical history, current medications)...",
+  "form.case_details.required": "Case details are required",
 
   // Time slots
   "time.morning": "Morning (8-12)",

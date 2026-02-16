@@ -26,7 +26,7 @@ export interface PatientData {
   date: Date | undefined;
   time: string;
   hours: number;
-  notes: string;
+  case_details: string;
   payment_method: string;
 }
 
@@ -281,15 +281,21 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
         </RadioGroup>
       </div>
 
-      {/* Notes */}
+      {/* Case Details (required) */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">{t("form.notes")}</Label>
+        <Label className="text-sm font-medium">
+          {t("form.case_details")} <span className="text-destructive">*</span>
+        </Label>
         <Textarea
-          value={data.notes}
-          onChange={(e) => update("notes", e.target.value)}
-          placeholder={t("form.notes.placeholder")}
+          value={data.case_details}
+          onChange={(e) => update("case_details", e.target.value)}
+          placeholder={t("form.case_details.placeholder")}
           rows={3}
+          required
         />
+        {data.case_details !== undefined && data.case_details.trim() === "" && (
+          <p className="text-xs text-destructive">{t("form.case_details.required")}</p>
+        )}
       </div>
     </div>
   );
