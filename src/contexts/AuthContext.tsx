@@ -115,6 +115,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 2. Initial load: getSession -> fetchUserData -> THEN set loading=false
     const initializeAuth = async () => {
+      // Safety timeout: if auth takes more than 5s, stop loading anyway
+      const safetyTimeout = setTimeout(() => {
+        if (isMounted && loading) {
+          console.warn("Auth initialization timed out – forcing load complete");
+          setRolesLoaded(true);
+          setLoading(false);
+          initializedRef.current = true;
+        }
+      }, 5000);
+
       try {
         const { data: { session: s } } = await supabase.auth.getSession();
         if (!isMounted) return;
@@ -123,13 +133,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(s?.user ?? null);
 
         if (s?.user) {
+          console.log("Auth: session found, fetching user data for", s.user.id);
           await fetchUserData(s.user.id);
         } else {
           setRolesLoaded(true);
         }
-      } catch {
+      } catch (err) {
+        console.error("Auth initialization error:", err);
         if (isMounted) setRolesLoaded(true);
       } finally {
+        clearTimeout(safetyTimeout);
         if (isMounted) {
           setLoading(false);
           initializedRef.current = true;
