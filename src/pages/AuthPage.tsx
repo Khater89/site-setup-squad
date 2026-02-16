@@ -59,34 +59,41 @@ const AuthPage = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail.trim(),
-      password: loginPassword,
-    });
-    setLoading(false);
-    if (error) {
-      const isUnconfirmed = error.message?.toLowerCase().includes("email not confirmed");
-      if (isUnconfirmed) {
-        toast({
-          title: "البريد الإلكتروني غير مؤكد",
-          description: "يرجى التحقق من بريدك الإلكتروني أولاً. تحقق من صندوق الوارد.",
-          variant: "destructive",
-          action: (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={resendingEmail}
-              onClick={() => handleResendVerification(loginEmail.trim())}
-            >
-              {resendingEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : "إعادة إرسال"}
-            </Button>
-          ),
-        });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+      if (error) {
+        const isUnconfirmed = error.message?.toLowerCase().includes("email not confirmed");
+        if (isUnconfirmed) {
+          toast({
+            title: "البريد الإلكتروني غير مؤكد",
+            description: "يرجى التحقق من بريدك الإلكتروني أولاً. تحقق من صندوق الوارد.",
+            variant: "destructive",
+            action: (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={resendingEmail}
+                onClick={() => handleResendVerification(loginEmail.trim())}
+              >
+                {resendingEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : "إعادة إرسال"}
+              </Button>
+            ),
+          });
+        } else {
+          toast({ title: "خطأ في تسجيل الدخول", description: error.message, variant: "destructive" });
+        }
       } else {
-        toast({ title: "خطأ في تسجيل الدخول", description: error.message, variant: "destructive" });
+        console.log("Login successful, waiting for AuthProvider to resolve roles...");
+        toast({ title: "تم تسجيل الدخول بنجاح" });
       }
-    } else {
-      toast({ title: "تم تسجيل الدخول بنجاح" });
+    } catch (err: any) {
+      console.error("Unexpected login error:", err);
+      toast({ title: "خطأ غير متوقع", description: err?.message || "حدث خطأ أثناء تسجيل الدخول", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,25 +104,27 @@ const AuthPage = () => {
       return;
     }
     setLoading(true);
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email: signupEmail.trim(),
-      password: signupPassword,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { full_name: signupName.trim() },
-      },
-    });
-    
-    if (error) {
-      toast({ title: "خطأ في التسجيل", description: error.message, variant: "destructive" });
-    } else {
-      // Assign customer role
-      if (signUpData.user) {
-        await supabase.from("user_roles").insert({ user_id: signUpData.user.id, role: "customer" as const });
+    try {
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email: signupEmail.trim(),
+        password: signupPassword,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { full_name: signupName.trim() },
+        },
+      });
+      
+      if (error) {
+        toast({ title: "خطأ في التسجيل", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "تم التسجيل بنجاح!", description: "تحقق من بريدك الإلكتروني لتأكيد الحساب" });
       }
-      toast({ title: "تم التسجيل بنجاح!", description: "تحقق من بريدك الإلكتروني لتأكيد الحساب" });
+    } catch (err: any) {
+      console.error("Unexpected signup error:", err);
+      toast({ title: "خطأ غير متوقع", description: err?.message || "حدث خطأ أثناء التسجيل", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
