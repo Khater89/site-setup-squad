@@ -409,6 +409,14 @@ const en: Record<string, string> = {
   "settings.admins.invited": "Admin added ✅",
   "settings.admins.removed": "Admin removed",
   "settings.admins.last_admin": "Cannot remove the last admin",
+
+  // CS Agents Management
+  "settings.cs.title": "Customer Service Agents",
+  "settings.cs.desc": "Add or remove customer service agents (read-only access)",
+  "settings.cs.email_placeholder": "Agent email address",
+  "settings.cs.invite": "Add",
+  "settings.cs.invited": "CS agent added ✅",
+  "settings.cs.removed": "CS agent removed",
 };
 
 export default en;

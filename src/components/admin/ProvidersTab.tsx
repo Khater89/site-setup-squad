@@ -35,7 +35,6 @@ const ProvidersTab = () => {
     const { data: profiles } = await supabase
       .from("profiles")
       .select("*")
-      .not("phone", "is", null)
       .order("created_at", { ascending: false });
 
     if (!profiles) { setLoading(false); return; }
