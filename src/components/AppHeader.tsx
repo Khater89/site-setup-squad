@@ -40,7 +40,8 @@ const AppHeader = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/");
+    localStorage.clear();
+    window.location.href = "/";
   };
 
   const displayName = profile?.full_name || user?.email || "";
@@ -158,7 +159,9 @@ const AppHeader = () => {
             </Button>
           </Link>
 
-          {loading ? null : user ? (
+          {loading ? (
+            <div className="h-7 w-7 rounded-full bg-muted animate-pulse" />
+          ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-1.5 text-xs sm:text-sm max-w-[180px] rounded-full">
