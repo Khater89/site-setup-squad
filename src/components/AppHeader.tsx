@@ -159,9 +159,7 @@ const AppHeader = () => {
             </Button>
           </Link>
 
-          {loading ? (
-            <div className="h-7 w-7 rounded-full bg-muted animate-pulse" />
-          ) : user ? (
+          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-1.5 text-xs sm:text-sm max-w-[180px] rounded-full">
@@ -211,8 +209,8 @@ const AppHeader = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link to="/auth" className="hidden md:block">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs rounded-full">
+            <Link to="/auth" className="z-10">
+              <Button size="sm" className="gap-1.5 text-xs rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-md">
                 <LogIn className="h-3.5 w-3.5" />
                 {t("landing.login")}
               </Button>
