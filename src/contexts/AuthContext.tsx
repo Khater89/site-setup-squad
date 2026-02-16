@@ -70,10 +70,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
+      async (_event, newSession) => {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {
+          // Apply pending provider profile on first verified sign-in
+          if (_event === "SIGNED_IN") {
+            const pending = localStorage.getItem("pending_provider_profile");
+            if (pending) {
+              try {
+                const profileData = JSON.parse(pending);
+                await supabase.from("profiles").upsert({
+                  user_id: newSession.user.id,
+                  ...profileData,
+                });
+              } catch {
+                // ignore
+              }
+              localStorage.removeItem("pending_provider_profile");
+            }
+          }
           setTimeout(() => fetchUserData(newSession.user.id), 0);
         } else {
           setRoles([]);

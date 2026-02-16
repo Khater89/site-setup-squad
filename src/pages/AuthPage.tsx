@@ -43,6 +43,19 @@ const AuthPage = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupName, setSignupName] = useState("");
 
+  const [resendingEmail, setResendingEmail] = useState(false);
+
+  const handleResendVerification = async (email: string) => {
+    setResendingEmail(true);
+    const { error } = await supabase.auth.resend({ type: "signup", email });
+    setResendingEmail(false);
+    if (error) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "تم إرسال رابط التحقق", description: "تحقق من بريدك الإلكتروني" });
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -52,10 +65,28 @@ const AuthPage = () => {
     });
     setLoading(false);
     if (error) {
-      toast({ title: "خطأ في تسجيل الدخول", description: error.message, variant: "destructive" });
+      const isUnconfirmed = error.message?.toLowerCase().includes("email not confirmed");
+      if (isUnconfirmed) {
+        toast({
+          title: "البريد الإلكتروني غير مؤكد",
+          description: "يرجى التحقق من بريدك الإلكتروني أولاً. تحقق من صندوق الوارد.",
+          variant: "destructive",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={resendingEmail}
+              onClick={() => handleResendVerification(loginEmail.trim())}
+            >
+              {resendingEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : "إعادة إرسال"}
+            </Button>
+          ),
+        });
+      } else {
+        toast({ title: "خطأ في تسجيل الدخول", description: error.message, variant: "destructive" });
+      }
     } else {
       toast({ title: "تم تسجيل الدخول بنجاح" });
-      // useEffect will handle redirect based on role
     }
   };
 
