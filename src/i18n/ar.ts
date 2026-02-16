@@ -505,6 +505,14 @@ const ar: Record<string, string> = {
   "review.pending_message": "حسابك قيد المراجعة حالياً من قبل الإدارة. سيتم إشعارك فور الموافقة.",
   "review.rejected_title": "لم تتم الموافقة على الحساب",
   "review.rejected_message": "للأسف لم تتم الموافقة على حسابك. يرجى التواصل مع الدعم للمزيد من المعلومات.",
+
+  // Delete Provider
+  "provider.delete.confirm_title": "حذف مقدم الخدمة",
+  "provider.delete.confirm_message": "هل أنت متأكد من حذف مقدم الخدمة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.",
+  "provider.delete.cancel": "إلغاء",
+  "provider.delete.confirm": "نعم، احذف",
+  "provider.delete.success": "تم حذف مقدم الخدمة بنجاح",
+  "provider.delete.error": "فشل حذف مقدم الخدمة",
 };
 
 export default ar;

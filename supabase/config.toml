@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.admin-clear-all-bookings]
 verify_jwt = false
+
+[functions.admin-delete-provider]
+verify_jwt = false

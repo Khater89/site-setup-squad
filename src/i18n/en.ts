@@ -505,6 +505,14 @@ const en: Record<string, string> = {
   "review.pending_message": "Your account is currently under review by the administration. You will be notified once approved.",
   "review.rejected_title": "Account Not Approved",
   "review.rejected_message": "Unfortunately your account was not approved. Please contact support for more information.",
+
+  // Delete Provider
+  "provider.delete.confirm_title": "Delete Provider",
+  "provider.delete.confirm_message": "Are you sure you want to permanently delete this provider? This action cannot be undone.",
+  "provider.delete.cancel": "Cancel",
+  "provider.delete.confirm": "Yes, Delete",
+  "provider.delete.success": "Provider deleted successfully",
+  "provider.delete.error": "Failed to delete provider",
 };
 
 export default en;

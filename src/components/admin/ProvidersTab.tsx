@@ -1,14 +1,20 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Loader2, Search } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2, Search, Trash2 } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ProviderDetailsDrawer, { type ProviderProfile } from "./ProviderDetailsDrawer";
 
 const ROLE_TYPES = ["doctor", "nurse", "caregiver", "physiotherapist"];
@@ -23,6 +29,7 @@ const STATUS_COLORS: Record<string, string> = {
 const ProvidersTab = () => {
   const { toast } = useToast();
   const { t, formatCurrency, isRTL } = useLanguage();
+  const { isAdmin } = useAuth();
   const [providers, setProviders] = useState<ProviderProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -30,6 +37,8 @@ const ProvidersTab = () => {
   const [typeFilter, setTypeFilter] = useState("ALL");
 
   const [selectedProvider, setSelectedProvider] = useState<ProviderProfile | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProviderProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchProviders = async () => {
     const { data: profiles } = await supabase
@@ -97,6 +106,25 @@ const ProvidersTab = () => {
     } else {
       toast({ title: t("provider.details.settlement_success") });
       fetchProviders();
+    }
+  };
+
+  const deleteProvider = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("admin-delete-provider", {
+        body: { user_id: deleteTarget.user_id },
+      });
+      if (res.error) throw res.error;
+      toast({ title: t("provider.delete.success") });
+      setProviders((prev) => prev.filter((p) => p.user_id !== deleteTarget.user_id));
+    } catch (err: any) {
+      toast({ title: t("provider.delete.error"), description: err.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -173,6 +201,7 @@ const ProvidersTab = () => {
                 <TableHead>{t("admin.providers.col.status")}</TableHead>
                 <TableHead>{t("admin.providers.col.availability")}</TableHead>
                 <TableHead>{t("admin.providers.col.balance")}</TableHead>
+                {isAdmin && <TableHead className="w-10" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -210,6 +239,18 @@ const ProvidersTab = () => {
                   <TableCell className={`text-sm font-medium ${p.balance < 0 ? "text-destructive" : "text-success"}`}>
                     {p.hasProviderRole ? formatCurrency(p.balance) : "—"}
                   </TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -225,6 +266,25 @@ const ProvidersTab = () => {
         onSuspend={(id) => { suspendProvider(id); setSelectedProvider(null); }}
         onSettlement={(id) => { recordSettlement(id); setSelectedProvider(null); }}
       />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("provider.delete.confirm_title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("provider.delete.confirm_message")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>{t("provider.delete.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={deleteProvider}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("provider.delete.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
