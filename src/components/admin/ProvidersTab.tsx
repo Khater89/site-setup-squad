@@ -29,7 +29,7 @@ const STATUS_COLORS: Record<string, string> = {
 const ProvidersTab = () => {
   const { toast } = useToast();
   const { t, formatCurrency, isRTL } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [providers, setProviders] = useState<ProviderProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -239,7 +239,7 @@ const ProvidersTab = () => {
                   <TableCell className={`text-sm font-medium ${p.balance < 0 ? "text-destructive" : "text-success"}`}>
                     {p.hasProviderRole ? formatCurrency(p.balance) : "—"}
                   </TableCell>
-                  {isAdmin && (
+                  {isAdmin && p.user_id !== user?.id && (
                     <TableCell>
                       <Button
                         variant="ghost"
