@@ -209,6 +209,23 @@ const BookingsTab = () => {
         providerName={selectedBooking?.assigned_provider_id ? providerNames[selectedBooking.assigned_provider_id] || null : null}
         providerPhone={selectedBooking?.assigned_provider_id ? providerPhones[selectedBooking.assigned_provider_id] || null : null}
         onStatusChange={() => { setSelectedBooking(null); fetchBookings(); }}
+        onDataRefresh={async () => {
+          await fetchBookings();
+          // Re-select the same booking with updated data
+          if (selectedBooking) {
+            const updated = (await supabase.from("bookings").select("*").eq("id", selectedBooking.id).single()).data;
+            if (updated) {
+              const contactRes = await supabase.from("booking_contacts").select("*").eq("booking_id", updated.id).single();
+              const contact = contactRes.data;
+              setSelectedBooking({
+                ...updated,
+                customer_name: contact?.customer_name || updated.customer_display_name || "",
+                customer_phone: contact?.customer_phone || "",
+                client_address_text: contact?.client_address_text || null,
+              } as BookingRow);
+            }
+          }
+        }}
       />
     </div>
   );

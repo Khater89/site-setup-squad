@@ -73,6 +73,7 @@ interface Props {
   providerName: string | null;
   providerPhone?: string | null;
   onStatusChange?: () => void;
+  onDataRefresh?: () => void;
 }
 
 const InfoRow = ({ icon: Icon, label, value, dir }: { icon: any; label: string; value: string | null | undefined; dir?: string }) => {
@@ -88,7 +89,7 @@ const InfoRow = ({ icon: Icon, label, value, dir }: { icon: any; label: string; 
   );
 };
 
-const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servicePrice, providerName, providerPhone, onStatusChange }: Props) => {
+const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servicePrice, providerName, providerPhone, onStatusChange, onDataRefresh }: Props) => {
   const { t, formatCurrency, formatDate, formatDateTime, formatDateShort } = useLanguage();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -277,6 +278,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
                 onOpenChange(false);
                 onStatusChange?.();
               }}
+              onDataRefresh={onDataRefresh}
             />
           )}
 
