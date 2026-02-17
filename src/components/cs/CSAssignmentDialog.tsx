@@ -69,13 +69,14 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onAssigned: () => void;
   serviceName: string;
+  servicePrice?: number | null;
 }
 
-const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceName }: Props) => {
+const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceName, servicePrice }: Props) => {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
 
-  const [agreedPrice, setAgreedPrice] = useState(booking.subtotal);
+  const [agreedPrice, setAgreedPrice] = useState(servicePrice ?? booking.subtotal);
   const [internalNote, setInternalNote] = useState("");
   const [nearestProviders, setNearestProviders] = useState<NearestProvider[]>([]);
   const [fallbackProviders, setFallbackProviders] = useState<ProviderRow[]>([]);
@@ -85,7 +86,7 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
 
   useEffect(() => {
     if (!open) return;
-    setAgreedPrice(booking.subtotal);
+    setAgreedPrice(servicePrice ?? booking.subtotal);
     setInternalNote("");
     setSelectedProvider(null);
     fetchProviders();
@@ -224,7 +225,7 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground">السعر الأساسي</label>
-                <p className="text-sm font-medium">{booking.subtotal} د.أ</p>
+                <p className="text-sm font-medium">{servicePrice ?? booking.subtotal} د.أ</p>
               </div>
               <div>
                 <label className="text-xs font-medium">السعر المتفق عليه *</label>

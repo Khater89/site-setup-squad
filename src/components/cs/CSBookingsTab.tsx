@@ -65,6 +65,7 @@ const CSBookingsTab = () => {
   const { toast } = useToast();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
+  const [servicePrices, setServicePrices] = useState<Record<string, number>>({});
   const [providerNames, setProviderNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -82,7 +83,7 @@ const CSBookingsTab = () => {
     const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("booking_contacts").select("*"),
-      supabase.from("services").select("id, name"),
+      supabase.from("services").select("id, name, base_price"),
       supabase.from("profiles").select("user_id, full_name"),
     ]);
 
@@ -101,8 +102,10 @@ const CSBookingsTab = () => {
     setBookings(merged as BookingRow[]);
 
     const svcMap: Record<string, string> = {};
-    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; });
+    const priceMap: Record<string, number> = {};
+    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; priceMap[s.id] = s.base_price; });
     setServiceNames(svcMap);
+    setServicePrices(priceMap);
 
     const pMap: Record<string, string> = {};
     (profilesRes.data || []).forEach((p: any) => { pMap[p.user_id] = p.full_name || "بدون اسم"; });
@@ -221,7 +224,7 @@ const CSBookingsTab = () => {
                     {new Date(b.scheduled_at).toLocaleDateString("ar-JO", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{b.city}</span>
-                  <span className="font-medium text-primary">{b.subtotal} د.أ</span>
+                  <span className="font-medium text-primary">{servicePrices[b.service_id] ?? b.subtotal} د.أ</span>
                   {b.agreed_price != null && (
                     <span className="text-success font-medium">المتفق: {b.agreed_price} د.أ</span>
                   )}
@@ -296,6 +299,7 @@ const CSBookingsTab = () => {
           onOpenChange={(open) => { if (!open) setAssignBooking(null); }}
           onAssigned={() => { setAssignBooking(null); fetchData(); }}
           serviceName={serviceNames[assignBooking.service_id] || "خدمة"}
+          servicePrice={servicePrices[assignBooking.service_id] ?? null}
         />
       )}
 

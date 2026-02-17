@@ -41,9 +41,15 @@ const ProvidersTab = () => {
   const [deleting, setDeleting] = useState(false);
 
   const fetchProviders = async () => {
-    // First get provider user IDs
-    const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "provider");
-    const providerIds = roles?.map((r) => r.user_id) || [];
+    // Get provider user IDs, excluding users who also have cs or admin roles
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const allRoles = roles || [];
+    const csAdminIds = new Set(
+      allRoles.filter((r) => r.role === "cs" || r.role === "admin").map((r) => r.user_id)
+    );
+    const providerIds = allRoles
+      .filter((r) => r.role === "provider" && !csAdminIds.has(r.user_id))
+      .map((r) => r.user_id);
 
     if (providerIds.length === 0) { setProviders([]); setLoading(false); return; }
 

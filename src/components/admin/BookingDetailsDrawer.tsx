@@ -66,6 +66,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   serviceName: string;
+  servicePrice?: number | null;
   providerName: string | null;
   onAssign: (booking: BookingRow) => void;
   onStatusChange?: () => void;
@@ -84,7 +85,7 @@ const InfoRow = ({ icon: Icon, label, value, dir }: { icon: any; label: string; 
   );
 };
 
-const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, providerName, onAssign, onStatusChange }: Props) => {
+const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servicePrice, providerName, onAssign, onStatusChange }: Props) => {
   const { t, formatCurrency, formatDate, formatDateTime, formatDateShort } = useLanguage();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -181,7 +182,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, provid
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-xs text-muted-foreground">{t("booking.details.subtotal")}</span>
-                <p className="font-bold">{formatCurrency(booking.subtotal)}</p>
+                <p className="font-bold">{formatCurrency(servicePrice ?? booking.subtotal)}</p>
               </div>
               <div>
                 <span className="text-xs text-muted-foreground">{t("booking.details.platform_fee")}</span>
