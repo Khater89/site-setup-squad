@@ -104,6 +104,7 @@ const ProviderDashboard = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
+  const [coordinatorPhone2, setCoordinatorPhone2] = useState<string | null>(null);
   const [completeDialogOrder, setCompleteDialogOrder] = useState<string | null>(null);
   const [closeOutNote, setCloseOutNote] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -156,6 +157,7 @@ const ProviderDashboard = () => {
     setBalance(balanceRes.data || 0);
     if (settingsRes.data) {
       setCoordinatorPhone((settingsRes.data as any).coordinator_phone || null);
+      setCoordinatorPhone2((settingsRes.data as any).coordinator_phone_2 || null);
     }
     setLoading(false);
   };
@@ -677,8 +679,15 @@ const ProviderDashboard = () => {
                             {coordinatorPhone && (
                               <p className="text-sm flex items-center gap-1.5">
                                 <Phone className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">{t("provider.dashboard.coordinator_phone")}:</span>
+                                <span className="text-xs text-muted-foreground">{t("provider.dashboard.coordinator_phone")} 1:</span>
                                 <span dir="ltr" className="font-medium">{coordinatorPhone}</span>
+                              </p>
+                            )}
+                            {coordinatorPhone2 && (
+                              <p className="text-sm flex items-center gap-1.5">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">{t("provider.dashboard.coordinator_phone")} 2:</span>
+                                <span dir="ltr" className="font-medium">{coordinatorPhone2}</span>
                               </p>
                             )}
                             {o.client_address_text && (

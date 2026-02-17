@@ -66,6 +66,7 @@ const CSBookingsTab = () => {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [servicePrices, setServicePrices] = useState<Record<string, number>>({});
+  const [serviceCategories, setServiceCategories] = useState<Record<string, string>>({});
   const [providerNames, setProviderNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -83,7 +84,7 @@ const CSBookingsTab = () => {
     const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("booking_contacts").select("*"),
-      supabase.from("services").select("id, name, base_price"),
+      supabase.from("services").select("id, name, base_price, category"),
       supabase.from("profiles").select("user_id, full_name"),
     ]);
 
@@ -103,9 +104,11 @@ const CSBookingsTab = () => {
 
     const svcMap: Record<string, string> = {};
     const priceMap: Record<string, number> = {};
-    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; priceMap[s.id] = s.base_price; });
+    const catMap: Record<string, string> = {};
+    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; priceMap[s.id] = s.base_price; catMap[s.id] = s.category; });
     setServiceNames(svcMap);
     setServicePrices(priceMap);
+    setServiceCategories(catMap);
 
     const pMap: Record<string, string> = {};
     (profilesRes.data || []).forEach((p: any) => { pMap[p.user_id] = p.full_name || "بدون اسم"; });
@@ -198,12 +201,16 @@ const CSBookingsTab = () => {
         <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد حجوزات مطابقة</CardContent></Card>
       ) : (
         <div className="grid gap-3">
-          {filteredBookings.map((b) => (
-            <Card key={b.id}>
+          {filteredBookings.map((b) => {
+            const isEmergency = (serviceCategories[b.service_id] || "").toLowerCase() === "emergency" ||
+              (serviceNames[b.service_id] || "").includes("طوارئ");
+            return (
+            <Card key={b.id} className={isEmergency ? "border-destructive border-2 bg-destructive/5" : ""}>
               <CardContent className="py-4 px-4 space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium text-sm">
+                      {isEmergency && <span className="text-destructive me-1">🚨</span>}
                       {serviceNames[b.service_id] || "خدمة"}
                       {b.booking_number && (
                         <span className="ms-2 text-[10px] text-muted-foreground" dir="ltr">{b.booking_number}</span>
@@ -287,7 +294,8 @@ const CSBookingsTab = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

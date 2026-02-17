@@ -29,9 +29,14 @@ const CSDashboard = () => {
               <p className="text-[10px] text-muted-foreground">{user?.email}</p>
             </div>
           </Link>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
-            <LogOut className="h-4 w-4" /> خروج
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/book")}>
+              <PlusCircle className="h-4 w-4" /> حجز جديد
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
+              <LogOut className="h-4 w-4" /> خروج
+            </Button>
+          </div>
         </div>
       </header>
 

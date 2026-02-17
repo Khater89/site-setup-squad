@@ -28,7 +28,9 @@ const BookingsTab = () => {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [servicePrices, setServicePrices] = useState<Record<string, number>>({});
+  const [serviceCategories, setServiceCategories] = useState<Record<string, string>>({});
   const [providerNames, setProviderNames] = useState<Record<string, string>>({});
+  const [providerPhones, setProviderPhones] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
@@ -39,8 +41,8 @@ const BookingsTab = () => {
     const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("booking_contacts").select("*"),
-      supabase.from("services").select("id, name, base_price"),
-      supabase.from("profiles").select("user_id, full_name"),
+      supabase.from("services").select("id, name, base_price, category"),
+      supabase.from("profiles").select("user_id, full_name, phone"),
     ]);
 
     // Merge contact info into bookings
@@ -60,13 +62,17 @@ const BookingsTab = () => {
 
     const svcMap: Record<string, string> = {};
     const priceMap: Record<string, number> = {};
-    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; priceMap[s.id] = s.base_price; });
+    const catMap: Record<string, string> = {};
+    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; priceMap[s.id] = s.base_price; catMap[s.id] = s.category; });
     setServiceNames(svcMap);
     setServicePrices(priceMap);
+    setServiceCategories(catMap);
 
     const pMap: Record<string, string> = {};
-    (profilesRes.data || []).forEach((p: any) => { pMap[p.user_id] = p.full_name || t("admin.providers.no_name"); });
+    const phMap: Record<string, string> = {};
+    (profilesRes.data || []).forEach((p: any) => { pMap[p.user_id] = p.full_name || t("admin.providers.no_name"); phMap[p.user_id] = p.phone || ""; });
     setProviderNames(pMap);
+    setProviderPhones(phMap);
 
     setLoading(false);
   };
@@ -138,16 +144,20 @@ const BookingsTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((b) => (
+              {filtered.map((b) => {
+                const isEmergency = (serviceCategories[b.service_id] || "").toLowerCase() === "emergency" ||
+                  (serviceNames[b.service_id] || "").includes("طوارئ");
+                return (
                 <TableRow
                   key={b.id}
-                  className="cursor-pointer hover:bg-accent/50 transition-colors"
+                  className={`cursor-pointer hover:bg-accent/50 transition-colors ${isEmergency ? "bg-destructive/10 border-l-4 border-l-destructive" : ""}`}
                   onClick={() => setSelectedBooking(b)}
                 >
                   <TableCell className="text-xs font-mono" dir="ltr">
                     {b.booking_number || b.id.slice(0, 8)}
                   </TableCell>
                   <TableCell className="text-sm font-medium">
+                    {isEmergency && <span className="text-destructive me-1">🚨</span>}
                     {serviceNames[b.service_id] || "—"}
                   </TableCell>
                   <TableCell>
@@ -183,7 +193,8 @@ const BookingsTab = () => {
                     )}
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -196,6 +207,7 @@ const BookingsTab = () => {
         serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || t("provider.dashboard.service") : ""}
         servicePrice={selectedBooking ? servicePrices[selectedBooking.service_id] ?? null : null}
         providerName={selectedBooking?.assigned_provider_id ? providerNames[selectedBooking.assigned_provider_id] || null : null}
+        providerPhone={selectedBooking?.assigned_provider_id ? providerPhones[selectedBooking.assigned_provider_id] || null : null}
         onStatusChange={() => { setSelectedBooking(null); fetchBookings(); }}
       />
     </div>

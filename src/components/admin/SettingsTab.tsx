@@ -332,6 +332,7 @@ const SettingsTab = () => {
     deposit_percent: 20,
     provider_debt_limit: -20,
     coordinator_phone: "",
+    coordinator_phone_2: "",
   });
 
   // Clear bookings state
@@ -353,6 +354,7 @@ const SettingsTab = () => {
         deposit_percent: data.deposit_percent,
         provider_debt_limit: data.provider_debt_limit,
         coordinator_phone: (data as any).coordinator_phone || "",
+        coordinator_phone_2: (data as any).coordinator_phone_2 || "",
       });
     }
     setLoading(false);
@@ -369,6 +371,7 @@ const SettingsTab = () => {
         deposit_percent: settings.deposit_percent,
         provider_debt_limit: settings.provider_debt_limit,
         coordinator_phone: settings.coordinator_phone.trim() || null,
+        coordinator_phone_2: settings.coordinator_phone_2.trim() || null,
       } as any)
       .eq("id", 1);
 
@@ -517,15 +520,29 @@ const SettingsTab = () => {
           </CardTitle>
           <CardDescription>{t("settings.coordinator_phone_desc")}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Input
-            type="tel"
-            value={settings.coordinator_phone}
-            onChange={(e) => setSettings({ ...settings, coordinator_phone: e.target.value })}
-            placeholder="07XXXXXXXX"
-            className="w-48"
-            dir="ltr"
-          />
+        <CardContent className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">المنسق الأول</label>
+            <Input
+              type="tel"
+              value={settings.coordinator_phone}
+              onChange={(e) => setSettings({ ...settings, coordinator_phone: e.target.value })}
+              placeholder="07XXXXXXXX"
+              className="w-48 mt-1"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">المنسق الثاني</label>
+            <Input
+              type="tel"
+              value={settings.coordinator_phone_2}
+              onChange={(e) => setSettings({ ...settings, coordinator_phone_2: e.target.value })}
+              placeholder="07XXXXXXXX"
+              className="w-48 mt-1"
+              dir="ltr"
+            />
+          </div>
         </CardContent>
       </Card>
 
