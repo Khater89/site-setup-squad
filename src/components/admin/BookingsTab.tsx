@@ -28,6 +28,7 @@ const BookingsTab = () => {
   const { t, formatCurrency, formatDateShort, isRTL } = useLanguage();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
+  const [servicePrices, setServicePrices] = useState<Record<string, number>>({});
   const [providerNames, setProviderNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
@@ -40,7 +41,7 @@ const BookingsTab = () => {
     const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("booking_contacts").select("*"),
-      supabase.from("services").select("id, name"),
+      supabase.from("services").select("id, name, base_price"),
       supabase.from("profiles").select("user_id, full_name"),
     ]);
 
@@ -60,8 +61,10 @@ const BookingsTab = () => {
     setBookings(merged as BookingRow[]);
 
     const svcMap: Record<string, string> = {};
-    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; });
+    const priceMap: Record<string, number> = {};
+    (servicesRes.data || []).forEach((s: any) => { svcMap[s.id] = s.name; priceMap[s.id] = s.base_price; });
     setServiceNames(svcMap);
+    setServicePrices(priceMap);
 
     const pMap: Record<string, string> = {};
     (profilesRes.data || []).forEach((p: any) => { pMap[p.user_id] = p.full_name || t("admin.providers.no_name"); });
@@ -168,7 +171,7 @@ const BookingsTab = () => {
                     {b.agreed_price != null ? (
                       <span className="text-success">{formatCurrency(b.agreed_price)}</span>
                     ) : (
-                      formatCurrency(b.subtotal)
+                      formatCurrency(servicePrices[b.service_id] ?? b.subtotal)
                     )}
                   </TableCell>
                   <TableCell>
@@ -198,6 +201,7 @@ const BookingsTab = () => {
         open={!!selectedBooking}
         onOpenChange={(open) => { if (!open) setSelectedBooking(null); }}
         serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || t("provider.dashboard.service") : ""}
+        servicePrice={selectedBooking ? servicePrices[selectedBooking.service_id] ?? null : null}
         providerName={selectedBooking?.assigned_provider_id ? providerNames[selectedBooking.assigned_provider_id] || null : null}
         onAssign={handleAssignFromDetails}
         onStatusChange={() => { setSelectedBooking(null); fetchBookings(); }}
@@ -210,6 +214,7 @@ const BookingsTab = () => {
           onOpenChange={(open) => { if (!open) setAssignBooking(null); }}
           onAssigned={() => { setAssignBooking(null); fetchBookings(); }}
           serviceName={serviceNames[assignBooking.service_id] || t("provider.dashboard.service")}
+          servicePrice={servicePrices[assignBooking.service_id] ?? null}
         />
       )}
     </div>
