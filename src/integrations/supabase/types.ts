@@ -622,10 +622,14 @@ export type Database = {
         Args: never
         Returns: {
           accepted_at: string
+          actual_duration_minutes: number
           agreed_price: number
           assigned_at: string
           assigned_provider_id: string
           booking_number: string
+          calculated_total: number
+          check_in_at: string
+          check_out_at: string
           city: string
           client_address_text: string
           client_lat: number
@@ -635,6 +639,7 @@ export type Database = {
           customer_phone: string
           id: string
           notes: string
+          otp_code: string
           provider_payout: number
           scheduled_at: string
           service_id: string

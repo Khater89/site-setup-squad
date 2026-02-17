@@ -308,7 +308,25 @@ const ar: Record<string, string> = {
   "provider.status.COMPLETED": "مكتمل",
   "provider.status.CANCELLED": "ملغي",
   "provider.status.REJECTED": "مرفوض",
+  "provider.status.IN_PROGRESS": "قيد التنفيذ",
   "provider.status.ALL": "الكل",
+
+  // Check-in / Check-out
+  "provider.checkin.btn": "بدء الخدمة (Check-in)",
+  "provider.checkin.success": "تم تسجيل بدء الخدمة ✅",
+  "provider.checkin.elapsed": "الوقت المنقضي",
+  "provider.checkout.btn": "إنهاء الخدمة (Check-out)",
+  "provider.checkout.success": "تم إنهاء الخدمة ✅",
+  "provider.checkout.duration": "المدة",
+  "provider.checkout.total": "الإجمالي المحسوب",
+
+  // OTP
+  "provider.otp.title": "كود التأكيد",
+  "provider.otp.desc": "أدخل الكود المكون من 4 أرقام الذي يظهر للعميل لتأكيد إنهاء الخدمة.",
+  "provider.otp.verify": "تأكيد وإنهاء",
+  "provider.otp.invalid": "الكود غير صحيح — تحقق من العميل",
+  "provider.otp.client_code": "كود تأكيد الخدمة — أظهره للعميل",
+  "provider.otp.show_client": "يجب على العميل إخبارك بهذا الكود عند الانتهاء",
 
   // Common / Generic
   "common.error": "خطأ",

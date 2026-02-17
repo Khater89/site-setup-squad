@@ -308,7 +308,25 @@ const en: Record<string, string> = {
   "provider.status.COMPLETED": "Completed",
   "provider.status.CANCELLED": "Cancelled",
   "provider.status.REJECTED": "Rejected",
+  "provider.status.IN_PROGRESS": "In Progress",
   "provider.status.ALL": "All",
+
+  // Check-in / Check-out
+  "provider.checkin.btn": "Start Service (Check-in)",
+  "provider.checkin.success": "Service started ✅",
+  "provider.checkin.elapsed": "Elapsed Time",
+  "provider.checkout.btn": "End Service (Check-out)",
+  "provider.checkout.success": "Service ended ✅",
+  "provider.checkout.duration": "Duration",
+  "provider.checkout.total": "Calculated Total",
+
+  // OTP
+  "provider.otp.title": "Confirmation Code",
+  "provider.otp.desc": "Enter the 4-digit code shown to the client to confirm service completion.",
+  "provider.otp.verify": "Verify & Complete",
+  "provider.otp.invalid": "Invalid code — check with the client",
+  "provider.otp.client_code": "Service confirmation code — show to client",
+  "provider.otp.show_client": "The client must tell you this code when service is done",
 
   // Common / Generic
   "common.error": "Error",

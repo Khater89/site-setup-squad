@@ -19,7 +19,7 @@ import {
   Wallet, LogOut, Loader2, CheckCircle, XCircle,
   CalendarDays, MapPin, ClipboardList, Phone,
   MessageCircle, ShieldCheck, Eye, Lock, User, X,
-  History,
+  History, Play, Square, KeyRound, Clock,
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 
@@ -45,6 +45,11 @@ interface ProviderOrder {
   client_lat: number | null;
   client_lng: number | null;
   notes: string | null;
+  check_in_at: string | null;
+  check_out_at: string | null;
+  actual_duration_minutes: number | null;
+  calculated_total: number | null;
+  otp_code: string | null;
 }
 
 interface LedgerEntry {
@@ -58,6 +63,7 @@ interface LedgerEntry {
 const STATUS_COLORS: Record<string, string> = {
   ASSIGNED: "bg-warning/10 text-warning border-warning/30",
   ACCEPTED: "bg-info/10 text-info border-info/30",
+  IN_PROGRESS: "bg-primary/10 text-primary border-primary/30",
   COMPLETED: "bg-success/10 text-success border-success/30",
   CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
   REJECTED: "bg-destructive/10 text-destructive border-destructive/30",
@@ -70,6 +76,17 @@ const SPECIALTY_OPTIONS = [
 ];
 
 const TOOL_SUGGESTIONS = ["جهاز ضغط", "سماعة طبية", "جهاز سكر", "أدوات تضميد", "جهاز أكسجين", "حقن وريدي"];
+
+/* ── Pricing helper ── */
+function calculateEscalatingPrice(basePrice: number, durationMinutes: number): number {
+  const hours = Math.max(1, Math.ceil(durationMinutes / 60));
+  // Total = Base + (Base × 0.5 × max(0, Hours - 1))
+  return basePrice + (basePrice * 0.5 * Math.max(0, hours - 1));
+}
+
+function generateOTP(): string {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
 
 /* ── Component ── */
 
@@ -87,10 +104,14 @@ const ProviderDashboard = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
-  // Cancel is admin-only — removed from provider
   const [completeDialogOrder, setCompleteDialogOrder] = useState<string | null>(null);
   const [closeOutNote, setCloseOutNote] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+
+  // OTP dialog state
+  const [otpDialogOrder, setOtpDialogOrder] = useState<string | null>(null);
+  const [otpInput, setOtpInput] = useState("");
+  const [otpError, setOtpError] = useState("");
 
   // Profile editing state
   const [availableNow, setAvailableNow] = useState(false);
@@ -164,7 +185,6 @@ const ProviderDashboard = () => {
 
       if (error) throw error;
       if (!updated) {
-        // Diagnose the real reason
         const { data: check } = await supabase.rpc("get_provider_bookings" as any);
         const booking = (check as unknown as ProviderOrder[])?.find((b) => b.id === id);
         if (!booking) {
@@ -176,13 +196,11 @@ const ProviderDashboard = () => {
         }
       }
 
-      // Optimistic state update: replace the order in local state
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "ACCEPTED", accepted_at: now } : o));
 
       await logHistory(id, "ACCEPTED", "تم قبول الطلب من قبل المزود");
       toast({ title: t("provider.dashboard.accepted_toast") });
 
-      // Background refetch to sync full data (e.g. contact info from RPC)
       const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
       if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
 
@@ -200,7 +218,6 @@ const ProviderDashboard = () => {
     if (!user) return;
     setActionLoading(id);
     try {
-      // Log history BEFORE clearing assigned_provider_id (otherwise RLS blocks the insert)
       await logHistory(id, "REJECTED", "تم رفض الطلب من قبل المزود");
 
       const now = new Date().toISOString();
@@ -213,12 +230,10 @@ const ProviderDashboard = () => {
       if (error) throw error;
       if (!updated) throw new Error("لم يتم تحديث الطلب — قد يكون مرفوضاً بالفعل");
 
-      // Optimistic: remove from local list (provider no longer sees rejected orders after refetch)
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "REJECTED" } : o));
 
       toast({ title: t("provider.dashboard.rejected_toast") });
 
-      // Background refetch
       const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
       if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
     } catch (err: any) {
@@ -228,6 +243,106 @@ const ProviderDashboard = () => {
     setActionLoading(null);
   };
 
+  /* ── Check-in ── */
+  const checkIn = async (id: string) => {
+    if (!user) return;
+    setActionLoading(id);
+    try {
+      const now = new Date().toISOString();
+      const otp = generateOTP();
+      const { data: updated, error } = await supabase.from("bookings").update({
+        check_in_at: now,
+        status: "IN_PROGRESS",
+        otp_code: otp,
+      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ACCEPTED").select().maybeSingle();
+
+      if (error) throw error;
+      if (!updated) throw new Error("لم يتم تحديث الطلب");
+
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "IN_PROGRESS", check_in_at: now, otp_code: otp } : o));
+
+      await logHistory(id, "CHECK_IN", "تم تسجيل بدء الخدمة");
+      toast({ title: t("provider.checkin.success") });
+
+      const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
+      if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
+
+      const { data: histData } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
+      setHistoryMap((prev) => ({ ...prev, [id]: histData || [] }));
+    } catch (err: any) {
+      console.error("Check-in error:", err);
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  /* ── Check-out (with OTP verification) ── */
+  const initiateCheckOut = (id: string) => {
+    setOtpDialogOrder(id);
+    setOtpInput("");
+    setOtpError("");
+  };
+
+  const verifyOtpAndCheckOut = async () => {
+    const id = otpDialogOrder;
+    if (!id || !user) return;
+
+    const order = orders.find((o) => o.id === id);
+    if (!order) return;
+
+    // Verify OTP
+    if (otpInput.trim() !== order.otp_code) {
+      setOtpError(t("provider.otp.invalid"));
+      return;
+    }
+
+    setOtpDialogOrder(null);
+    setActionLoading(id);
+
+    try {
+      const now = new Date().toISOString();
+      const checkInTime = new Date(order.check_in_at!);
+      const checkOutTime = new Date(now);
+      const durationMs = checkOutTime.getTime() - checkInTime.getTime();
+      const durationMinutes = Math.max(1, Math.round(durationMs / 60000));
+
+      // Calculate escalating price
+      const basePrice = order.agreed_price ?? order.subtotal;
+      const calculatedTotal = calculateEscalatingPrice(basePrice, durationMinutes);
+
+      const { data: updated, error } = await supabase.from("bookings").update({
+        check_out_at: now,
+        actual_duration_minutes: durationMinutes,
+        calculated_total: calculatedTotal,
+      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "IN_PROGRESS").select().maybeSingle();
+
+      if (error) throw error;
+      if (!updated) throw new Error("لم يتم تحديث الطلب");
+
+      setOrders((prev) => prev.map((o) => o.id === id ? {
+        ...o, check_out_at: now, actual_duration_minutes: durationMinutes, calculated_total: calculatedTotal,
+      } : o));
+
+      const hours = Math.ceil(durationMinutes / 60);
+      await logHistory(id, "CHECK_OUT", `تم إنهاء الخدمة — المدة: ${hours} ساعة — الإجمالي: ${calculatedTotal} د.أ`);
+      toast({ title: t("provider.checkout.success"), description: `${t("provider.checkout.duration")}: ${hours} ${t("form.hours.plural")} — ${t("provider.checkout.total")}: ${formatCurrency(calculatedTotal)}` });
+
+      // Now open the complete dialog for close-out note
+      setCompleteDialogOrder(id);
+
+      const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
+      if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
+
+      const { data: histData } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
+      setHistoryMap((prev) => ({ ...prev, [id]: histData || [] }));
+    } catch (err: any) {
+      console.error("Check-out error:", err);
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  /* ── Complete (after check-out) ── */
   const confirmComplete = async () => {
     const id = completeDialogOrder;
     if (!id || !user) return;
@@ -239,27 +354,45 @@ const ProviderDashboard = () => {
     setActionLoading(id);
     try {
       const now = new Date().toISOString();
+      const order = orders.find((o) => o.id === id);
+
       const { data: updated, error } = await supabase.from("bookings").update({
         status: "COMPLETED",
         completed_at: now,
         completed_by: user.id,
         close_out_note: closeOutNote.trim(),
         close_out_at: now,
-      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ACCEPTED").select().maybeSingle();
+      } as any).eq("id", id).eq("assigned_provider_id", user.id).select().maybeSingle();
 
       if (error) throw error;
       if (!updated) throw new Error("لم يتم تحديث الطلب — تأكد أنه مقبول أولاً");
 
-      // Optimistic state update
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "COMPLETED", completed_at: now } : o));
+
+      // Record platform commission in wallet ledger if calculated_total exists
+      if (order?.calculated_total) {
+        const providerPayout = order.agreed_price ?? order.subtotal;
+        const platformProfit = order.calculated_total - providerPayout;
+        if (platformProfit > 0) {
+          await supabase.from("provider_wallet_ledger").insert({
+            provider_id: user.id,
+            amount: -platformProfit,
+            reason: "commission",
+            booking_id: id,
+          } as any);
+        }
+      }
 
       await logHistory(id, "COMPLETED", closeOutNote.trim());
       setCloseOutNote("");
       toast({ title: t("provider.dashboard.completed_toast") });
 
-      // Background refetch
       const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
       if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
+
+      // Refresh balance
+      const balanceRes = await supabase.rpc("get_provider_balance", { _provider_id: user.id });
+      setBalance(balanceRes.data || 0);
 
       const { data: histData } = await (supabase as any).from("booking_history").select("*").eq("booking_id", id).order("created_at", { ascending: true });
       setHistoryMap((prev) => ({ ...prev, [id]: histData || [] }));
@@ -270,8 +403,6 @@ const ProviderDashboard = () => {
     setActionLoading(null);
   };
 
-  // Cancel is admin-only — no cancel logic in provider dashboard
-
   // History state
   const [historyMap, setHistoryMap] = useState<Record<string, any[]>>({});
 
@@ -280,7 +411,6 @@ const ProviderDashboard = () => {
     setHistoryMap((prev) => ({ ...prev, [bookingId]: data || [] }));
   };
 
-  // Load history for all orders on mount
   useEffect(() => {
     if (orders.length > 0) {
       orders.forEach((o) => loadHistory(o.id));
@@ -354,6 +484,14 @@ const ProviderDashboard = () => {
     setToolInput("");
   };
 
+  // Helper: format elapsed time
+  const formatElapsed = (checkInAt: string) => {
+    const ms = Date.now() - new Date(checkInAt).getTime();
+    const hours = Math.floor(ms / 3600000);
+    const mins = Math.floor((ms % 3600000) / 60000);
+    return `${hours}:${mins.toString().padStart(2, "0")}`;
+  };
+
   /* ── Render ── */
 
   return (
@@ -401,7 +539,7 @@ const ProviderDashboard = () => {
           {/* ═══ Orders Tab ═══ */}
           <TabsContent value="orders" className="space-y-3">
             <div className="flex gap-2 flex-wrap">
-              {["ALL", "ASSIGNED", "ACCEPTED", "COMPLETED", "REJECTED", "CANCELLED"].map((s) => (
+              {["ALL", "ASSIGNED", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "REJECTED", "CANCELLED"].map((s) => (
                 <Button
                   key={s}
                   size="sm"
@@ -422,17 +560,19 @@ const ProviderDashboard = () => {
                 {filteredOrders.map((o) => {
                   const accepted = isAccepted(o);
                   const isExpanded = expandedOrder === o.id;
+                  const isInProgress = o.status === "IN_PROGRESS";
+                  const hasCheckedOut = !!o.check_out_at;
 
                   return (
                   <Card
                     key={o.id}
-                    className={`transition-all ${accepted ? "cursor-pointer hover:shadow-md" : ""}`}
+                    className={`transition-all ${accepted ? "cursor-pointer hover:shadow-md" : ""} ${isInProgress ? "border-primary/50 ring-1 ring-primary/20" : ""}`}
                     onClick={() => {
                       if (accepted) setExpandedOrder(isExpanded ? null : o.id);
                     }}
                   >
                     <CardContent className="py-4 px-4 space-y-2">
-                      {/* Header row - always visible */}
+                      {/* Header row */}
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="font-medium text-sm">{serviceNames[o.service_id] || t("provider.dashboard.service")}</p>
@@ -453,9 +593,25 @@ const ProviderDashboard = () => {
                         </span>
                         <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{o.city}</span>
                         <span className="font-semibold text-primary">
-                          {o.agreed_price != null ? formatCurrency(o.agreed_price) : formatCurrency(o.provider_payout)}
+                          {o.calculated_total != null ? formatCurrency(o.calculated_total) : o.agreed_price != null ? formatCurrency(o.agreed_price) : formatCurrency(o.provider_payout)}
                         </span>
                       </div>
+
+                      {/* In-progress timer badge */}
+                      {isInProgress && o.check_in_at && !hasCheckedOut && (
+                        <div className="flex items-center gap-2 text-xs bg-primary/10 text-primary rounded-lg p-2">
+                          <Clock className="h-3.5 w-3.5 animate-pulse" />
+                          <span>{t("provider.checkin.elapsed")}: <strong dir="ltr">{formatElapsed(o.check_in_at)}</strong></span>
+                        </div>
+                      )}
+
+                      {/* Checked-out summary */}
+                      {hasCheckedOut && o.calculated_total != null && (
+                        <div className="text-xs bg-success/10 text-success rounded-lg p-2 space-y-0.5">
+                          <p>⏱ {t("provider.checkout.duration")}: <strong>{Math.ceil((o.actual_duration_minutes || 0) / 60)} {t("form.hours.plural")}</strong></p>
+                          <p>💰 {t("provider.checkout.total")}: <strong>{formatCurrency(o.calculated_total)}</strong></p>
+                        </div>
+                      )}
 
                       {/* Before acceptance: locked message + action buttons */}
                       {!accepted && o.status === "ASSIGNED" && (
@@ -488,7 +644,7 @@ const ProviderDashboard = () => {
                       )}
 
                       {/* After acceptance: show hint to click */}
-                      {accepted && !isExpanded && (o.status === "ACCEPTED" || o.status === "COMPLETED") && (
+                      {accepted && !isExpanded && (o.status === "ACCEPTED" || o.status === "IN_PROGRESS" || o.status === "COMPLETED") && (
                         <p className="text-xs text-muted-foreground text-center">اضغط لعرض التفاصيل ▼</p>
                       )}
 
@@ -517,23 +673,58 @@ const ProviderDashboard = () => {
 
                           {/* Action buttons */}
                           <div className="flex gap-2 flex-wrap">
-                            {o.status === "ACCEPTED" && (
+                            {/* Check-in button: only for ACCEPTED, no check_in yet */}
+                            {o.status === "ACCEPTED" && !o.check_in_at && (
+                              <Button size="sm" className="gap-1 h-8 text-xs flex-1 bg-primary hover:bg-primary/90" onClick={() => checkIn(o.id)} disabled={actionLoading === o.id}>
+                                {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                                {t("provider.checkin.btn")}
+                              </Button>
+                            )}
+
+                            {/* Check-out button: only for IN_PROGRESS, no check_out yet */}
+                            {isInProgress && !hasCheckedOut && (
+                              <Button size="sm" variant="destructive" className="gap-1 h-8 text-xs flex-1" onClick={() => initiateCheckOut(o.id)} disabled={actionLoading === o.id}>
+                                {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Square className="h-3 w-3" />}
+                                {t("provider.checkout.btn")}
+                              </Button>
+                            )}
+
+                            {/* Complete button: after check-out, still IN_PROGRESS */}
+                            {isInProgress && hasCheckedOut && (
+                              <Button size="sm" className="gap-1 h-8 text-xs flex-1" onClick={() => setCompleteDialogOrder(o.id)} disabled={actionLoading === o.id}>
+                                {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+                                {t("provider.dashboard.complete")}
+                              </Button>
+                            )}
+
+                            {/* Legacy: complete for ACCEPTED orders that checked in before this feature (fallback) */}
+                            {o.status === "ACCEPTED" && o.check_in_at && (
                               <Button size="sm" className="gap-1 h-7 text-xs flex-1" onClick={() => setCompleteDialogOrder(o.id)} disabled={actionLoading === o.id}>
                                 {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} {t("provider.dashboard.complete")}
                               </Button>
                             )}
+
                             {coordinatorPhone && (
                               <a
                                 href={`https://wa.me/${coordinatorPhone.replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً، أنا مقدم الخدمة من MFN بخصوص الطلب ${o.booking_number || o.id.slice(0, 8)}.`)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                <Button size="sm" variant="outline" className="gap-1 h-7 text-xs">
+                                <Button size="sm" variant="outline" className="gap-1 h-8 text-xs">
                                   <MessageCircle className="h-3 w-3" /> {t("provider.dashboard.whatsapp_coordinator")}
                                 </Button>
                               </a>
                             )}
                           </div>
+
+                          {/* OTP display for client */}
+                          {isInProgress && o.otp_code && !hasCheckedOut && (
+                            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-center">
+                              <p className="text-xs text-warning font-medium mb-1">{t("provider.otp.client_code")}</p>
+                              <p className="text-2xl font-bold tracking-[0.3em] text-warning" dir="ltr">{o.otp_code}</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">{t("provider.otp.show_client")}</p>
+                            </div>
+                          )}
 
                           {/* History timeline */}
                           {(historyMap[o.id] || []).length > 0 && (
@@ -543,12 +734,16 @@ const ProviderDashboard = () => {
                                 <div key={h.id} className="flex items-start gap-2 text-xs">
                                   <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
                                     h.action === "ACCEPTED" ? "bg-success" :
+                                    h.action === "CHECK_IN" ? "bg-primary" :
+                                    h.action === "CHECK_OUT" ? "bg-warning" :
                                     h.action === "CANCELLED" ? "bg-destructive" :
                                     h.action === "COMPLETED" ? "bg-primary" : "bg-warning"
                                   }`} />
                                   <div>
                                     <span className="font-medium">{
                                       h.action === "ACCEPTED" ? "✅ قبول" :
+                                      h.action === "CHECK_IN" ? "▶️ بدء الخدمة" :
+                                      h.action === "CHECK_OUT" ? "⏹ إنهاء الخدمة" :
                                       h.action === "COMPLETED" ? "✅ إكمال" :
                                       h.action === "CANCELLED" ? "❌ إلغاء" :
                                       h.action === "REJECTED" ? "↩️ رفض" : h.action
@@ -715,7 +910,33 @@ const ProviderDashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Cancel is admin-only — removed from provider */}
+      {/* OTP Verification Dialog */}
+      <AlertDialog open={!!otpDialogOrder} onOpenChange={(open) => { if (!open) { setOtpDialogOrder(null); setOtpInput(""); setOtpError(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-warning" />
+              {t("provider.otp.title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t("provider.otp.desc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={otpInput}
+            onChange={(e) => { setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setOtpError(""); }}
+            placeholder="____"
+            className="text-center text-2xl tracking-[0.5em] font-bold"
+            dir="ltr"
+            maxLength={4}
+          />
+          {otpError && <p className="text-xs text-destructive text-center">{otpError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={verifyOtpAndCheckOut} disabled={otpInput.length !== 4}>
+              {t("provider.otp.verify")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
