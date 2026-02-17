@@ -76,14 +76,114 @@ Deno.serve(async (req) => {
       const result = [];
       for (const uid of ids) {
         const { data: { user: u } } = await supabaseAdmin.auth.admin.getUserById(uid);
+        // Also fetch profile for full_name
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("full_name, created_at")
+          .eq("user_id", uid)
+          .maybeSingle();
         if (u) {
-          result.push({ user_id: uid, email: u.email });
+          result.push({
+            user_id: uid,
+            email: u.email,
+            full_name: profile?.full_name || null,
+            created_at: profile?.created_at || u.created_at,
+          });
         }
       }
 
       return new Response(JSON.stringify({ admins: result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ── GET EMAILS (batch) ──
+    if (action === "get_emails") {
+      const { user_ids } = body;
+      if (!Array.isArray(user_ids) || user_ids.length === 0) {
+        return new Response(JSON.stringify({ emails: {} }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Limit to 100 to prevent abuse
+      const limited = user_ids.slice(0, 100);
+      const emails: Record<string, string> = {};
+      for (const uid of limited) {
+        try {
+          const { data: { user: u } } = await supabaseAdmin.auth.admin.getUserById(uid);
+          if (u?.email) emails[uid] = u.email;
+        } catch (_) {
+          // skip
+        }
+      }
+
+      return new Response(JSON.stringify({ emails }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── CREATE CS ACCOUNT ──
+    if (action === "create_cs") {
+      const { email, password, full_name } = body;
+      if (!email?.trim() || !password?.trim()) {
+        return new Response(JSON.stringify({ error: "Email and password are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (password.trim().length < 8) {
+        return new Response(JSON.stringify({ error: "Password must be at least 8 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if user already exists
+      const { data: { users }, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
+      if (listErr) throw listErr;
+
+      const existing = users.find(
+        (u) => u.email?.toLowerCase() === email.trim().toLowerCase()
+      );
+
+      if (existing) {
+        return new Response(
+          JSON.stringify({ error: "User with this email already exists" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Create user with auto-confirm
+      const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email: email.trim(),
+        password: password.trim(),
+        email_confirm: true,
+        user_metadata: { full_name: full_name?.trim() || "" },
+      });
+
+      if (createErr) throw createErr;
+
+      // Update profile name if provided
+      if (full_name?.trim() && newUser.user) {
+        await supabaseAdmin
+          .from("profiles")
+          .update({ full_name: full_name.trim() })
+          .eq("user_id", newUser.user.id);
+      }
+
+      // Assign CS role
+      const { error: roleErr } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: newUser.user.id, role: "cs" });
+
+      if (roleErr) throw roleErr;
+
+      return new Response(
+        JSON.stringify({ success: true, user_id: newUser.user.id, email: newUser.user.email }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ── INVITE ──

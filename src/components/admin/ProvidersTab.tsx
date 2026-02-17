@@ -51,6 +51,16 @@ const ProvidersTab = () => {
     const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "provider");
     const providerIds = new Set(roles?.map((r) => r.user_id) || []);
 
+    // Fetch emails for all profiles via edge function (admin only)
+    const allUserIds = profiles.map((p) => p.user_id);
+    let emailMap: Record<string, string> = {};
+    try {
+      const { data: emailData } = await supabase.functions.invoke("admin-manage-admins", {
+        body: { action: "get_emails", user_ids: allUserIds },
+      });
+      if (emailData?.emails) emailMap = emailData.emails;
+    } catch (_) { /* non-critical */ }
+
     const enriched: ProviderProfile[] = [];
     for (const p of profiles) {
       let balance = 0;
@@ -60,6 +70,7 @@ const ProvidersTab = () => {
       }
       enriched.push({
         ...p,
+        email: emailMap[p.user_id] || null,
         available_now: p.available_now ?? false,
         profile_completed: p.profile_completed ?? false,
         hasProviderRole: providerIds.has(p.user_id),

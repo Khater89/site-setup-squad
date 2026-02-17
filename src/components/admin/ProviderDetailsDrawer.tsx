@@ -13,7 +13,7 @@ import {
 import {
   Phone, MapPin, Briefcase, Navigation, Stethoscope,
   CheckCircle, XCircle, Wallet, Clock, Globe, Search, Loader2,
-  CalendarCheck, UserCheck,
+  CalendarCheck, UserCheck, Mail,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,7 @@ export interface ProviderProfile {
   user_id: string;
   full_name: string | null;
   phone: string | null;
+  email?: string | null;
   city: string | null;
   role_type: string | null;
   provider_status: string;
@@ -217,6 +218,12 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
                 <div className="rounded-lg border border-border p-3 space-y-3">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.basic_info")}</h4>
                   <div className="grid grid-cols-2 gap-3 text-sm">
+                    {provider.email && (
+                      <div className="flex items-center gap-1.5 col-span-2">
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span dir="ltr" className="text-xs">{provider.email}</span>
+                      </div>
+                    )}
                     {provider.phone && (
                       <div className="flex items-center gap-1.5">
                         <Phone className="h-3.5 w-3.5 text-muted-foreground" />
