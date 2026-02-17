@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2, Phone, MapPin, Briefcase, Navigation,
-  Search, Stethoscope, ShieldAlert,
+  Search, Stethoscope, ShieldAlert, Mail,
 } from "lucide-react";
 import CSSuspensionDialog from "./CSSuspensionDialog";
 
@@ -17,6 +17,7 @@ interface ProviderRow {
   user_id: string;
   full_name: string | null;
   phone: string | null;
+  email: string | null;
   city: string | null;
   role_type: string | null;
   provider_status: string;
@@ -55,12 +56,32 @@ const CSProviderDirectory = () => {
   }, []);
 
   const fetchProviders = async () => {
+    // First get provider user IDs only
+    const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "provider");
+    const providerIds = roles?.map((r) => r.user_id) || [];
+
+    if (providerIds.length === 0) { setProviders([]); setLoading(false); return; }
+
     const { data } = await supabase
       .from("profiles")
       .select("*")
-      .not("phone", "is", null)
+      .in("user_id", providerIds)
       .order("created_at", { ascending: false });
-    setProviders((data as unknown as ProviderRow[]) || []);
+
+    // Fetch emails via edge function (CS has access now)
+    let emailMap: Record<string, string> = {};
+    try {
+      const { data: emailData } = await supabase.functions.invoke("admin-manage-admins", {
+        body: { action: "get_emails", user_ids: providerIds },
+      });
+      if (emailData?.emails) emailMap = emailData.emails;
+    } catch (_) { /* non-critical */ }
+
+    const enriched = ((data as unknown as ProviderRow[]) || []).map((p) => ({
+      ...p,
+      email: emailMap[p.user_id] || null,
+    }));
+    setProviders(enriched);
     setLoading(false);
   };
 
@@ -168,6 +189,11 @@ const CSProviderDirectory = () => {
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                  {p.email && (
+                    <span className="flex items-center gap-1">
+                      <Mail className="h-3 w-3" /> <span dir="ltr">{p.email}</span>
+                    </span>
+                  )}
                   {p.phone && (
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3" /> <span dir="ltr">{p.phone}</span>
