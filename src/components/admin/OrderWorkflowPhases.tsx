@@ -267,7 +267,7 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
   );
 
   const getProviderWhatsAppMsg = (providerName: string) =>
-    `مرحباً ${providerName}، لدينا طلب خدمة ${serviceName} في منطقة ${booking.city}. هل أنت متاح لقبولها؟`;
+    `مرحباً ${providerName}، معك فريق Site Setup Squad.\nلدينا طلب خدمة *${serviceName}* في منطقة *${booking.city}*.\nحصتك المتفق عليها للساعة الأولى: *${formatCurrency(providerShare)}*.\nهل أنت متاح؟`;
 
   const profit = clientPrice - providerShare;
 

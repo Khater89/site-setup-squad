@@ -575,6 +575,25 @@ const ar: Record<string, string> = {
   "suspension.status.rejected": "مرفوض",
   "suspension.approved_success": "تمت الموافقة وإيقاف المزوّد ✅",
   "suspension.rejected_success": "تم رفض طلب الإيقاف",
+
+  // Finance Tab
+  "admin.tab.finance": "المالية",
+  "finance.title": "مراقبة مديونية المزودين",
+  "finance.today_earnings": "أرباح المنصة اليوم",
+  "finance.total_debt": "إجمالي الديون المستحقة",
+  "finance.providers_with_debt": "مزودون لديهم ديون",
+  "finance.debt_amount": "الرصيد",
+  "finance.ledger_title": "سجل المحفظة",
+  "finance.current_balance": "الرصيد الحالي",
+  "finance.reason.platform_fee": "عمولة المنصة (الفرق)",
+
+  // Invoice
+  "invoice.title": "فاتورة الخدمة",
+  "invoice.duration": "المدة",
+  "invoice.base_price": "السعر الأساسي (الساعة الأولى)",
+  "invoice.extra_hours": "ساعات إضافية",
+  "invoice.client_total": "إجمالي العميل",
+  "invoice.provider_total": "إجمالي حصتك",
 };
 
 export default ar;
