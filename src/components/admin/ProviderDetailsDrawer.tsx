@@ -468,25 +468,11 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
         onOpenChange={(o) => { if (!o) setSelectedBooking(null); }}
         serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || t("provider.dashboard.service") : ""}
         providerName={provider?.full_name || null}
-        onAssign={handleAssignFromDetails}
         onStatusChange={() => {
           setSelectedBooking(null);
           if (provider) fetchProviderBookings(provider.user_id);
         }}
       />
-
-      {assignBooking && (
-        <CSAssignmentDialog
-          booking={assignBooking}
-          open={!!assignBooking}
-          onOpenChange={(o) => { if (!o) setAssignBooking(null); }}
-          onAssigned={() => {
-            setAssignBooking(null);
-            if (provider) fetchProviderBookings(provider.user_id);
-          }}
-          serviceName={serviceNames[assignBooking.service_id] || t("provider.dashboard.service")}
-        />
-      )}
     </>
   );
 };

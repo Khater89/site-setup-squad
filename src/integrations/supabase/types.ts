@@ -156,6 +156,8 @@ export type Database = {
           created_at: string
           customer_display_name: string | null
           customer_user_id: string | null
+          deal_confirmed_at: string | null
+          deal_confirmed_by: string | null
           deposit_amount: number | null
           deposit_status: string | null
           id: string
@@ -166,6 +168,7 @@ export type Database = {
           payment_status: string
           platform_fee: number
           provider_payout: number
+          provider_share: number | null
           reject_reason: string | null
           rejected_at: string | null
           rejected_by: string | null
@@ -204,6 +207,8 @@ export type Database = {
           created_at?: string
           customer_display_name?: string | null
           customer_user_id?: string | null
+          deal_confirmed_at?: string | null
+          deal_confirmed_by?: string | null
           deposit_amount?: number | null
           deposit_status?: string | null
           id?: string
@@ -214,6 +219,7 @@ export type Database = {
           payment_status?: string
           platform_fee?: number
           provider_payout?: number
+          provider_share?: number | null
           reject_reason?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
@@ -252,6 +258,8 @@ export type Database = {
           created_at?: string
           customer_display_name?: string | null
           customer_user_id?: string | null
+          deal_confirmed_at?: string | null
+          deal_confirmed_by?: string | null
           deposit_amount?: number | null
           deposit_status?: string | null
           id?: string
@@ -262,6 +270,7 @@ export type Database = {
           payment_status?: string
           platform_fee?: number
           provider_payout?: number
+          provider_share?: number | null
           reject_reason?: string | null
           rejected_at?: string | null
           rejected_by?: string | null

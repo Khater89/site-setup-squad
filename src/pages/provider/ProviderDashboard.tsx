@@ -369,19 +369,7 @@ const ProviderDashboard = () => {
 
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "COMPLETED", completed_at: now } : o));
 
-      // Record platform commission in wallet ledger if calculated_total exists
-      if (order?.calculated_total) {
-        const providerPayout = order.agreed_price ?? order.subtotal;
-        const platformProfit = order.calculated_total - providerPayout;
-        if (platformProfit > 0) {
-          await supabase.from("provider_wallet_ledger").insert({
-            provider_id: user.id,
-            amount: -platformProfit,
-            reason: "commission",
-            booking_id: id,
-          } as any);
-        }
-      }
+      // Commission removed — spread model managed by admin
 
       await logHistory(id, "COMPLETED", closeOutNote.trim());
       setCloseOutNote("");

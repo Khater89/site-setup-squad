@@ -540,6 +540,26 @@ const en: Record<string, string> = {
   "provider.delete.has_active_orders_title": "Cannot delete provider",
   "provider.delete.has_active_orders_msg": "They have {count} active orders. Please unassign/release these orders first.",
 
+  // Order Workflow Phases
+  "workflow.phase1.title": "Service Pricing",
+  "workflow.phase1.client_price": "Client Price",
+  "workflow.phase1.provider_share": "Provider Share",
+  "workflow.phase1.platform_profit": "Platform Profit",
+  "workflow.phase1.save": "Save Pricing",
+  "workflow.phase2.title": "Client Agreement",
+  "workflow.phase2.call_client": "Call Client to Agree",
+  "workflow.phase2.deal_done": "Deal Done",
+  "workflow.phase3.title": "Available Providers",
+  "workflow.phase3.nearest": "Nearest (by distance)",
+  "workflow.phase3.same_city": "Same City",
+  "workflow.phase3.other_cities": "Other Cities",
+  "workflow.phase3.no_providers": "No approved providers found",
+  "workflow.phase4.assign": "Assign Order",
+  "workflow.phase4.reminder": "Please call the provider now to officially inform them of the assignment and request their acceptance via the app",
+  "workflow.pricing_saved": "Pricing saved ✅",
+  "workflow.deal_confirmed": "Deal confirmed ✅",
+  "workflow.assigned_success": "Assignment successful ✅",
+
   // Suspension Requests
   "admin.tab.suspensions": "Suspensions",
   "suspension.title": "Suspension Requests",
