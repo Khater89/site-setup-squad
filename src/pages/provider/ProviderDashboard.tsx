@@ -199,6 +199,10 @@ const ProviderDashboard = () => {
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "ACCEPTED", accepted_at: now } : o));
 
       await logHistory(id, "ACCEPTED", "تم قبول الطلب من قبل المزود");
+
+      // Refresh balance (debt was recorded by trigger)
+      const balRes = await supabase.rpc("get_provider_balance", { _provider_id: user.id });
+      setBalance(balRes.data || 0);
       toast({ title: t("provider.dashboard.accepted_toast") });
 
       const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
@@ -215,20 +219,33 @@ const ProviderDashboard = () => {
 
   const rejectOrder = async (id: string) => {
     if (!confirm(t("provider.dashboard.reject_confirm"))) return;
+    const rejectReason = prompt(t("provider.reject.reason_prompt") || "سبب الرفض:");
+    if (!rejectReason || !rejectReason.trim()) return;
     if (!user) return;
     setActionLoading(id);
     try {
-      await logHistory(id, "REJECTED", "تم رفض الطلب من قبل المزود");
+      await logHistory(id, "REJECTED", `رفض المزود: ${rejectReason.trim()}`);
 
       const now = new Date().toISOString();
       const { data: updated, error } = await supabase.from("bookings").update({
         status: "REJECTED",
         rejected_at: now,
         rejected_by: user.id,
+        reject_reason: rejectReason.trim(),
       } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ASSIGNED").select().maybeSingle();
 
       if (error) throw error;
       if (!updated) throw new Error("لم يتم تحديث الطلب — قد يكون مرفوضاً بالفعل");
+
+      // Send notification to admin/CS about rejection
+      const order = orders.find((o) => o.id === id);
+      await supabase.from("staff_notifications" as any).insert({
+        target_role: "admin",
+        title: `🚨 رفض إسناد: ${order?.booking_number || id.slice(0, 8)}`,
+        body: `المزود ${profile?.full_name || ""} رفض الطلب. السبب: ${rejectReason.trim()}`,
+        booking_id: id,
+        provider_id: user.id,
+      });
 
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "REJECTED" } : o));
 
@@ -861,8 +878,24 @@ const ProviderDashboard = () => {
           </TabsContent>
 
           {/* ═══ Wallet Tab ═══ */}
-          <TabsContent value="wallet">
-            <h3 className="text-sm font-bold mb-3">{t("provider.wallet.history")}</h3>
+          <TabsContent value="wallet" className="space-y-4">
+            {/* Wallet Summary Card */}
+            <Card className={`border ${balance < 0 ? "border-destructive/30 bg-destructive/5" : "border-success/30 bg-success/5"}`}>
+              <CardContent className="py-4 px-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{t("finance.current_balance")}</span>
+                  <span className={`text-xl font-bold ${balance < 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(balance)}</span>
+                </div>
+                {balance < 0 && (
+                  <div className="rounded-lg bg-destructive/10 p-3 space-y-1.5">
+                    <p className="text-xs font-medium text-destructive">{t("provider.wallet.debt_notice")}</p>
+                    <p className="text-xs text-muted-foreground">{t("provider.wallet.debt_instructions")}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <h3 className="text-sm font-bold">{t("provider.wallet.history")}</h3>
             {ledger.length === 0 ? (
               <Card><CardContent className="py-10 text-center text-muted-foreground">{t("provider.wallet.no_transactions")}</CardContent></Card>
             ) : (
@@ -872,7 +905,10 @@ const ProviderDashboard = () => {
                     <CardContent className="flex items-center justify-between py-3 px-4">
                       <div>
                         <p className="text-sm font-medium">
-                          {entry.reason === "commission" ? t("provider.wallet.commission") : entry.reason === "settlement" ? t("provider.wallet.settlement") : entry.reason}
+                          {entry.reason === "platform_fee" ? t("finance.reason.platform_fee") :
+                           entry.reason === "commission" ? t("provider.wallet.commission") :
+                           entry.reason === "settlement" ? t("provider.wallet.settlement") :
+                           entry.reason}
                         </p>
                         <p className="text-xs text-muted-foreground">{formatDate(entry.created_at)}</p>
                       </div>

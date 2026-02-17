@@ -176,7 +176,11 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
               mode="single"
               selected={data.date}
               onSelect={(d) => update("date", d)}
-              disabled={(date) => date < new Date()}
+              disabled={(date) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return date < today;
+              }}
               initialFocus
               className={cn("p-3 pointer-events-auto")}
             />
@@ -252,34 +256,7 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
         )}
       </div>
 
-      {/* Payment Method */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">{t("form.payment_method")}</Label>
-        <RadioGroup
-          value={data.payment_method}
-          onValueChange={(v) => update("payment_method", v)}
-          className="grid grid-cols-3 gap-2"
-        >
-          {[
-            { value: "CASH", label: t("payment.CASH") },
-            { value: "CLIQ", label: t("payment.CLIQ") },
-            { value: "CARD", label: t("payment.CARD") },
-          ].map((method) => (
-            <label
-              key={method.value}
-              className={cn(
-                "flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all text-center",
-                data.payment_method === method.value
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card hover:border-primary/30"
-              )}
-            >
-              <RadioGroupItem value={method.value} className="sr-only" />
-              <span className="text-xs font-medium">{method.label}</span>
-            </label>
-          ))}
-        </RadioGroup>
-      </div>
+      {/* Payment method removed — handled manually between client and provider */}
 
       {/* Case Details (required) */}
       <div className="space-y-2">

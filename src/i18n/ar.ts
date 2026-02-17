@@ -594,6 +594,20 @@ const ar: Record<string, string> = {
   "invoice.extra_hours": "ساعات إضافية",
   "invoice.client_total": "إجمالي العميل",
   "invoice.provider_total": "إجمالي حصتك",
+
+  // Provider Wallet
+  "provider.wallet.debt_notice": "لديك مبلغ مستحق للمنصة",
+  "provider.wallet.debt_instructions": "يرجى تحويل المبلغ المستحق عبر CliQ أو تسليمه نقداً للمنسق لتصفير مديونيتك.",
+
+  // Provider Rejection
+  "provider.reject.reason_prompt": "يرجى إدخال سبب الرفض:",
+
+  // Notifications
+  "notifications.title": "التنبيهات",
+  "notifications.no_notifications": "لا توجد تنبيهات",
+  "notifications.mark_read": "تم",
+  "notifications.late_checkin": "تأخر في بدء الخدمة",
+  "notifications.rejection": "رفض إسناد",
 };
 
 export default ar;
