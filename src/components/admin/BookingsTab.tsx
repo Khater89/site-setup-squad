@@ -10,7 +10,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import BookingDetailsDrawer, { type BookingRow } from "./BookingDetailsDrawer";
-import CSAssignmentDialog from "@/components/cs/CSAssignmentDialog";
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-info/10 text-info border-info/30",
@@ -35,7 +34,6 @@ const BookingsTab = () => {
   const [search, setSearch] = useState("");
 
   const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
-  const [assignBooking, setAssignBooking] = useState<BookingRow | null>(null);
 
   const fetchBookings = async () => {
     const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
@@ -88,11 +86,6 @@ const BookingsTab = () => {
     }
     return true;
   });
-
-  const handleAssignFromDetails = (booking: BookingRow) => {
-    setSelectedBooking(null);
-    setAssignBooking(booking);
-  };
 
   if (loading) return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
@@ -203,20 +196,8 @@ const BookingsTab = () => {
         serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || t("provider.dashboard.service") : ""}
         servicePrice={selectedBooking ? servicePrices[selectedBooking.service_id] ?? null : null}
         providerName={selectedBooking?.assigned_provider_id ? providerNames[selectedBooking.assigned_provider_id] || null : null}
-        onAssign={handleAssignFromDetails}
         onStatusChange={() => { setSelectedBooking(null); fetchBookings(); }}
       />
-
-      {assignBooking && (
-        <CSAssignmentDialog
-          booking={assignBooking}
-          open={!!assignBooking}
-          onOpenChange={(open) => { if (!open) setAssignBooking(null); }}
-          onAssigned={() => { setAssignBooking(null); fetchBookings(); }}
-          serviceName={serviceNames[assignBooking.service_id] || t("provider.dashboard.service")}
-          servicePrice={servicePrices[assignBooking.service_id] ?? null}
-        />
-      )}
     </div>
   );
 };

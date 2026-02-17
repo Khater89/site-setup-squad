@@ -540,6 +540,26 @@ const ar: Record<string, string> = {
   "provider.delete.has_active_orders_title": "لا يمكن حذف مقدم الخدمة",
   "provider.delete.has_active_orders_msg": "لديه {count} طلب نشط. يرجى إلغاء تعيين الطلبات أولاً.",
 
+  // Order Workflow Phases
+  "workflow.phase1.title": "تسعير الخدمة",
+  "workflow.phase1.client_price": "السعر للعميل",
+  "workflow.phase1.provider_share": "حصة المزود",
+  "workflow.phase1.platform_profit": "ربح المنصة",
+  "workflow.phase1.save": "حفظ التسعير",
+  "workflow.phase2.title": "الاتفاق مع العميل",
+  "workflow.phase2.call_client": "اتصل بالعميل للاتفاق",
+  "workflow.phase2.deal_done": "تمت الصفقة",
+  "workflow.phase3.title": "المزودون المتاحون",
+  "workflow.phase3.nearest": "الأقرب (حسب المسافة)",
+  "workflow.phase3.same_city": "في نفس المدينة",
+  "workflow.phase3.other_cities": "مزوّدون في مدن أخرى",
+  "workflow.phase3.no_providers": "لا يوجد مزوّدون معتمدون",
+  "workflow.phase4.assign": "إسناد الطلب",
+  "workflow.phase4.reminder": "يرجى الاتصال بالمزود الآن لإبلاغه بإسناد الطلب رسمياً وطلب قبوله عبر التطبيق",
+  "workflow.pricing_saved": "تم حفظ التسعير ✅",
+  "workflow.deal_confirmed": "تمت الصفقة ✅",
+  "workflow.assigned_success": "تم الإسناد بنجاح ✅",
+
   // Suspension Requests
   "admin.tab.suspensions": "طلبات الإيقاف",
   "suspension.title": "طلبات الإيقاف",

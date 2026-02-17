@@ -10,12 +10,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  CalendarDays, MapPin, Phone, User, CreditCard, UserCheck,
+  CalendarDays, MapPin, Phone, User, UserCheck,
   MessageCircle, FileText, StickyNote, Ban, Loader2, ClipboardCheck,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import OrderWorkflowPhases from "./OrderWorkflowPhases";
 
 export interface BookingRow {
   id: string;
@@ -32,6 +33,9 @@ export interface BookingRow {
   platform_fee: number;
   provider_payout: number;
   agreed_price: number | null;
+  provider_share: number | null;
+  deal_confirmed_at: string | null;
+  deal_confirmed_by: string | null;
   internal_note: string | null;
   notes: string | null;
   assigned_provider_id: string | null;
@@ -40,12 +44,10 @@ export interface BookingRow {
   accepted_at: string | null;
   created_at: string;
   service_id: string;
-  // New columns
   close_out_note: string | null;
   close_out_at: string | null;
   completed_at: string | null;
   completed_by: string | null;
-  // From booking_contacts join
   customer_name?: string | null;
   customer_phone?: string | null;
   client_address_text?: string | null;
@@ -56,6 +58,7 @@ const STATUS_COLORS: Record<string, string> = {
   CONFIRMED: "bg-primary/20 text-primary border-primary/30",
   ASSIGNED: "bg-warning/10 text-warning border-warning/30",
   ACCEPTED: "bg-success/10 text-success border-success/30",
+  IN_PROGRESS: "bg-primary/10 text-primary border-primary/30",
   COMPLETED: "bg-success text-success-foreground",
   CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
   REJECTED: "bg-destructive/10 text-destructive border-destructive/30",
@@ -68,7 +71,6 @@ interface Props {
   serviceName: string;
   servicePrice?: number | null;
   providerName: string | null;
-  onAssign: (booking: BookingRow) => void;
   onStatusChange?: () => void;
 }
 
@@ -85,7 +87,7 @@ const InfoRow = ({ icon: Icon, label, value, dir }: { icon: any; label: string; 
   );
 };
 
-const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servicePrice, providerName, onAssign, onStatusChange }: Props) => {
+const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servicePrice, providerName, onStatusChange }: Props) => {
   const { t, formatCurrency, formatDate, formatDateTime, formatDateShort } = useLanguage();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -102,7 +104,6 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
       if (updateError) throw updateError;
 
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      // Detect role for history logging
       const { data: rolesData } = await supabase.from("user_roles").select("role").eq("user_id", authUser!.id);
       const roles = (rolesData || []).map((r: any) => r.role);
       const performerRole = roles.includes("admin") ? "admin" : roles.includes("cs") ? "cs" : "admin";
@@ -127,6 +128,10 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
   };
 
   if (!booking) return null;
+
+  const showWorkflow = booking.status === "NEW" || (booking.status === "ASSIGNED" && !booking.accepted_at);
+  const profit = (booking.agreed_price != null && booking.provider_share != null)
+    ? booking.agreed_price - booking.provider_share : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -160,55 +165,38 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
             <InfoRow icon={MapPin} label={t("booking.details.client_city")} value={booking.city} />
             <InfoRow icon={MapPin} label={t("booking.details.client_address")} value={booking.client_address_text} />
             {booking.client_lat && booking.client_lng && (
-              <p className="text-xs text-muted-foreground" dir="ltr">
-                📍 {booking.client_lat}, {booking.client_lng}
-              </p>
+              <p className="text-xs text-muted-foreground" dir="ltr">📍 {booking.client_lat}, {booking.client_lng}</p>
             )}
           </div>
 
           {/* Schedule */}
           <div className="rounded-lg border border-border p-3 space-y-3">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.schedule")}</h4>
-            <InfoRow
-              icon={CalendarDays}
-              label={t("booking.details.service_date")}
-              value={formatDateTime(booking.scheduled_at)}
-            />
+            <InfoRow icon={CalendarDays} label={t("booking.details.service_date")} value={formatDateTime(booking.scheduled_at)} />
           </div>
 
-          {/* Financials */}
-          <div className="rounded-lg border border-border p-3 space-y-3">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.financials")}</h4>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className="text-xs text-muted-foreground">{t("booking.details.subtotal")}</span>
-                <p className="font-bold">{formatCurrency(servicePrice ?? booking.subtotal)}</p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">{t("booking.details.platform_fee")}</span>
-                <p className="font-bold">{formatCurrency(booking.platform_fee)}</p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">{t("booking.details.provider_payout")}</span>
-                <p className="font-bold">{formatCurrency(booking.provider_payout)}</p>
-              </div>
-              {booking.agreed_price != null && (
+          {/* Financials (Spread Model) */}
+          {(booking.agreed_price != null || booking.provider_share != null) && (
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.financials")}</h4>
+              <div className="grid grid-cols-3 gap-3 text-sm">
                 <div>
-                  <span className="text-xs text-muted-foreground">{t("booking.details.agreed_price")}</span>
-                  <p className="font-bold text-success">{formatCurrency(booking.agreed_price)}</p>
+                  <span className="text-xs text-muted-foreground">{t("workflow.phase1.client_price")}</span>
+                  <p className="font-bold">{booking.agreed_price != null ? formatCurrency(booking.agreed_price) : "—"}</p>
                 </div>
-              )}
+                <div>
+                  <span className="text-xs text-muted-foreground">{t("workflow.phase1.provider_share")}</span>
+                  <p className="font-bold">{booking.provider_share != null ? formatCurrency(booking.provider_share) : "—"}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">{t("workflow.phase1.platform_profit")}</span>
+                  <p className={`font-bold ${profit != null && profit >= 0 ? "text-success" : "text-destructive"}`}>
+                    {profit != null ? formatCurrency(profit) : "—"}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs">
-                <CreditCard className="h-3 w-3 ms-1 me-1" />
-                {t(`payment.${booking.payment_method}`) || booking.payment_method}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {t(`payment.${booking.payment_status}`) || booking.payment_status}
-              </Badge>
-            </div>
-          </div>
+          )}
 
           {/* Assignment Info */}
           {booking.assigned_provider_id && (
@@ -219,14 +207,10 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
                 <p className="text-xs text-muted-foreground">{t("booking.details.assigned_by")}: {booking.assigned_by}</p>
               )}
               {booking.assigned_at && (
-                <p className="text-xs text-muted-foreground">
-                  {t("booking.details.assigned_date")}: {formatDateShort(booking.assigned_at)}
-                </p>
+                <p className="text-xs text-muted-foreground">{t("booking.details.assigned_date")}: {formatDateShort(booking.assigned_at)}</p>
               )}
               {booking.accepted_at && (
-                <p className="text-xs text-success">
-                  ✅ {t("booking.details.accepted_date")}: {formatDateShort(booking.accepted_at)}
-                </p>
+                <p className="text-xs text-success">✅ {t("booking.details.accepted_date")}: {formatDateShort(booking.accepted_at)}</p>
               )}
             </div>
           )}
@@ -250,7 +234,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
             </div>
           )}
 
-          {/* Close-out Note (shown for COMPLETED bookings) */}
+          {/* Close-out Note */}
           {booking.status === "COMPLETED" && (
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
@@ -259,11 +243,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
               {booking.close_out_note ? (
                 <>
                   <p className="text-sm">{booking.close_out_note}</p>
-                  {booking.close_out_at && (
-                    <p className="text-[10px] text-muted-foreground">
-                      {formatDateShort(booking.close_out_at)}
-                    </p>
-                  )}
+                  {booking.close_out_at && <p className="text-[10px] text-muted-foreground">{formatDateShort(booking.close_out_at)}</p>}
                 </>
               ) : (
                 <p className="text-xs text-warning">⚠️ {t("booking.details.no_close_out_note") || "لا توجد ملاحظة إغلاق"}</p>
@@ -271,33 +251,44 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            {(booking.status === "NEW" || booking.status === "ASSIGNED") && (
-              <Button className="flex-1 gap-1.5" onClick={() => onAssign(booking)}>
-                <UserCheck className="h-4 w-4" /> {booking.assigned_provider_id ? (t("booking.details.reassign") || "إعادة تعيين") : t("booking.details.assign_provider")}
-              </Button>
-            )}
-            {booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
-              <Button
-                variant="destructive"
-                className="flex-1 gap-1.5"
-                onClick={() => setCancelDialogOpen(true)}
+          {/* ═══ Phased Workflow for NEW / pre-accepted ASSIGNED bookings ═══ */}
+          {showWorkflow && (
+            <OrderWorkflowPhases
+              booking={booking}
+              serviceName={serviceName}
+              servicePrice={servicePrice ?? null}
+              onWorkflowChange={() => {
+                onOpenChange(false);
+                onStatusChange?.();
+              }}
+            />
+          )}
+
+          {/* Actions for non-workflow bookings */}
+          {!showWorkflow && (
+            <div className="flex gap-2 pt-2">
+              {booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
+                <Button variant="destructive" className="flex-1 gap-1.5" onClick={() => setCancelDialogOpen(true)}>
+                  <Ban className="h-4 w-4" /> {t("booking.details.cancel") || "إلغاء الطلب"}
+                </Button>
+              )}
+              <a
+                href={`https://wa.me/${(booking.customer_phone || "").replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${booking.customer_name || ""}، نحن من فريق MFN.`)}`}
+                target="_blank" rel="noopener noreferrer" className="flex-1"
               >
-                <Ban className="h-4 w-4" /> {t("booking.details.cancel") || "إلغاء الطلب"}
-              </Button>
-            )}
-            <a
-              href={`https://wa.me/${(booking.customer_phone || "").replace(/^0/, "962")}?text=${encodeURIComponent(`مرحباً ${booking.customer_name || ""}، نحن من فريق MFN.`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1"
-            >
-              <Button variant="outline" className="w-full gap-1.5">
-                <MessageCircle className="h-4 w-4" /> {t("booking.details.whatsapp")}
-              </Button>
-            </a>
-          </div>
+                <Button variant="outline" className="w-full gap-1.5">
+                  <MessageCircle className="h-4 w-4" /> {t("booking.details.whatsapp")}
+                </Button>
+              </a>
+            </div>
+          )}
+
+          {/* Cancel action for workflow bookings too */}
+          {showWorkflow && booking.status !== "CANCELLED" && (
+            <Button variant="destructive" size="sm" className="w-full gap-1.5" onClick={() => setCancelDialogOpen(true)}>
+              <Ban className="h-4 w-4" /> {t("booking.details.cancel") || "إلغاء الطلب"}
+            </Button>
+          )}
         </div>
 
         {/* Cancel Dialog */}
@@ -305,28 +296,15 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{t("booking.details.cancel") || "إلغاء الطلب"}</DialogTitle>
-              <DialogDescription>
-                {t("booking.details.cancel_confirm") || "هل أنت متأكد من إلغاء هذا الطلب؟ يرجى إدخال سبب الإلغاء."}
-              </DialogDescription>
+              <DialogDescription>{t("booking.details.cancel_confirm") || "هل أنت متأكد من إلغاء هذا الطلب؟"}</DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
               <Label>{t("booking.details.cancel_reason") || "سبب الإلغاء"}</Label>
-              <Textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder={t("booking.details.cancel_reason_placeholder") || "اكتب سبب الإلغاء هنا..."}
-                rows={3}
-              />
+              <Textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder={t("booking.details.cancel_reason_placeholder") || "اكتب سبب الإلغاء..."} rows={3} />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
-                {t("common.cancel") || "تراجع"}
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={!cancelReason.trim() || cancelling}
-                onClick={handleCancel}
-              >
+              <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>{t("common.cancel") || "تراجع"}</Button>
+              <Button variant="destructive" disabled={!cancelReason.trim() || cancelling} onClick={handleCancel}>
                 {cancelling ? <><Loader2 className="h-4 w-4 animate-spin me-1" />جاري الإلغاء...</> : (t("booking.details.confirm_cancel") || "تأكيد الإلغاء")}
               </Button>
             </DialogFooter>
