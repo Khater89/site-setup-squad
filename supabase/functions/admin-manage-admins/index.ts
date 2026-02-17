@@ -38,15 +38,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if requester has admin role
+    // Check if requester has admin or cs role
     const { data: requesterRoles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin");
+      .eq("user_id", user.id);
 
-    if (!requesterRoles || requesterRoles.length === 0) {
-      return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
+    const userRoles = (requesterRoles || []).map((r) => r.role);
+    const isAdmin = userRoles.includes("admin");
+    const isCS = userRoles.includes("cs");
+
+    if (!isAdmin && !isCS) {
+      return new Response(JSON.stringify({ error: "Forbidden: staff only" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -54,6 +57,15 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { action, role: targetRole } = body;
+
+    // Actions that require admin role only
+    const adminOnlyActions = ["invite_admin", "remove_admin", "create_cs", "list"];
+    if (adminOnlyActions.includes(action) && !isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Determine which role we're managing (default to "admin" for backward compat)
     const managedRole: StaffRole = ALLOWED_ROLES.includes(targetRole) ? targetRole : "admin";

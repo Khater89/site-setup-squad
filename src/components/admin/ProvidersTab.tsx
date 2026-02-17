@@ -41,17 +41,22 @@ const ProvidersTab = () => {
   const [deleting, setDeleting] = useState(false);
 
   const fetchProviders = async () => {
+    // First get provider user IDs
+    const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "provider");
+    const providerIds = roles?.map((r) => r.user_id) || [];
+
+    if (providerIds.length === 0) { setProviders([]); setLoading(false); return; }
+
+    // Only fetch profiles for users with provider role
     const { data: profiles } = await supabase
       .from("profiles")
       .select("*")
+      .in("user_id", providerIds)
       .order("created_at", { ascending: false });
 
     if (!profiles) { setLoading(false); return; }
 
-    const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "provider");
-    const providerIds = new Set(roles?.map((r) => r.user_id) || []);
-
-    // Fetch emails for all profiles via edge function (admin only)
+    // Fetch emails for provider profiles via edge function (admin only)
     const allUserIds = profiles.map((p) => p.user_id);
     let emailMap: Record<string, string> = {};
     try {
@@ -64,16 +69,14 @@ const ProvidersTab = () => {
     const enriched: ProviderProfile[] = [];
     for (const p of profiles) {
       let balance = 0;
-      if (providerIds.has(p.user_id)) {
-        const { data } = await supabase.rpc("get_provider_balance", { _provider_id: p.user_id });
-        balance = data || 0;
-      }
+      const { data } = await supabase.rpc("get_provider_balance", { _provider_id: p.user_id });
+      balance = data || 0;
       enriched.push({
         ...p,
         email: emailMap[p.user_id] || null,
         available_now: p.available_now ?? false,
         profile_completed: p.profile_completed ?? false,
-        hasProviderRole: providerIds.has(p.user_id),
+        hasProviderRole: true,
         balance,
       } as ProviderProfile);
     }
