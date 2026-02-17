@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Package, CalendarCheck, Users, Settings, LogOut, RefreshCw, ShieldAlert, Landmark } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
+import NotificationBell from "@/components/admin/NotificationBell";
 import ServicesTab from "@/components/admin/ServicesTab";
 import BookingsTab from "@/components/admin/BookingsTab";
 import ProvidersTab from "@/components/admin/ProvidersTab";
@@ -34,10 +35,13 @@ const AdminDashboard = () => {
               <p className="text-[10px] text-muted-foreground">{user?.email}</p>
             </div>
           </Link>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
-            <LogOut className="h-4 w-4" />
-            {t("action.logout")}
-          </Button>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
+              <LogOut className="h-4 w-4" />
+              {t("action.logout")}
+            </Button>
+          </div>
         </div>
       </header>
 
