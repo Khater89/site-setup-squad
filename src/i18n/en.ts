@@ -594,6 +594,20 @@ const en: Record<string, string> = {
   "invoice.extra_hours": "Extra Hours",
   "invoice.client_total": "Client Total",
   "invoice.provider_total": "Your Share Total",
+
+  // Provider Wallet
+  "provider.wallet.debt_notice": "You have an outstanding balance owed to the platform",
+  "provider.wallet.debt_instructions": "Please transfer the amount via CliQ or hand it as cash to the coordinator to clear your debt.",
+
+  // Provider Rejection
+  "provider.reject.reason_prompt": "Please enter the reason for rejection:",
+
+  // Notifications
+  "notifications.title": "Notifications",
+  "notifications.no_notifications": "No notifications",
+  "notifications.mark_read": "Done",
+  "notifications.late_checkin": "Late check-in",
+  "notifications.rejection": "Assignment rejected",
 };
 
 export default en;

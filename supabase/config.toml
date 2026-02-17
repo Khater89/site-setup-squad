@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.admin-delete-provider]
 verify_jwt = false
+
+[functions.check-late-checkins]
+verify_jwt = false

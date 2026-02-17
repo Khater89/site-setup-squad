@@ -52,15 +52,21 @@ const FinanceTab = () => {
   const fetchData = async () => {
     setLoading(true);
 
-    // Get all providers
+    // Get all providers (exclude anyone who also has admin or cs role)
     const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "provider");
     const providerIds = (roles || []).map((r) => r.user_id);
     if (providerIds.length === 0) { setLoading(false); return; }
 
+    // Filter out admin/cs users
+    const { data: staffRoles } = await supabase.from("user_roles").select("user_id").in("role", ["admin", "cs"]);
+    const staffIds = new Set((staffRoles || []).map((r) => r.user_id));
+    const pureProviderIds = providerIds.filter((id) => !staffIds.has(id));
+    if (pureProviderIds.length === 0) { setLoading(false); return; }
+
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, full_name, phone, city, role_type")
-      .in("user_id", providerIds);
+      .in("user_id", pureProviderIds);
 
     // Get balances
     const enriched: ProviderDebt[] = [];
