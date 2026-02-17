@@ -613,6 +613,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calc_escalating_price: {
+        Args: { base_price: number; duration_minutes: number }
+        Returns: number
+      }
       find_nearest_providers: {
         Args: { _lat: number; _limit?: number; _lng: number }
         Returns: {

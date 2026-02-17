@@ -575,6 +575,25 @@ const en: Record<string, string> = {
   "suspension.status.rejected": "Rejected",
   "suspension.approved_success": "Approved — provider suspended ✅",
   "suspension.rejected_success": "Suspension request rejected",
+
+  // Finance Tab
+  "admin.tab.finance": "Finance",
+  "finance.title": "Provider Debt Monitor",
+  "finance.today_earnings": "Today's Platform Earnings",
+  "finance.total_debt": "Total Outstanding Debt",
+  "finance.providers_with_debt": "Providers with Debt",
+  "finance.debt_amount": "Balance",
+  "finance.ledger_title": "Wallet Ledger",
+  "finance.current_balance": "Current Balance",
+  "finance.reason.platform_fee": "Platform fee (spread)",
+
+  // Invoice
+  "invoice.title": "Service Invoice",
+  "invoice.duration": "Duration",
+  "invoice.base_price": "Base Price (1st hour)",
+  "invoice.extra_hours": "Extra Hours",
+  "invoice.client_total": "Client Total",
+  "invoice.provider_total": "Your Share Total",
 };
 
 export default en;

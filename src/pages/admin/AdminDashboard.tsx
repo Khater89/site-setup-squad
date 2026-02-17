@@ -3,7 +3,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate, Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Package, CalendarCheck, Users, Settings, LogOut, RefreshCw, ShieldAlert } from "lucide-react";
+import { Package, CalendarCheck, Users, Settings, LogOut, RefreshCw, ShieldAlert, Landmark } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 import ServicesTab from "@/components/admin/ServicesTab";
 import BookingsTab from "@/components/admin/BookingsTab";
@@ -11,6 +11,7 @@ import ProvidersTab from "@/components/admin/ProvidersTab";
 import SettingsTab from "@/components/admin/SettingsTab";
 import SyncMonitorTab from "@/components/admin/SyncMonitorTab";
 import SuspensionRequestsTab from "@/components/admin/SuspensionRequestsTab";
+import FinanceTab from "@/components/admin/FinanceTab";
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth();
@@ -42,7 +43,7 @@ const AdminDashboard = () => {
 
       <main className="container py-6 px-4">
         <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 h-auto">
+          <TabsList className="grid w-full grid-cols-7 h-auto">
             <TabsTrigger value="services" className="flex flex-col gap-1 py-2 text-xs">
               <Package className="h-4 w-4" />
               {t("admin.tab.services")}
@@ -54,6 +55,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="providers" className="flex flex-col gap-1 py-2 text-xs">
               <Users className="h-4 w-4" />
               {t("admin.tab.providers")}
+            </TabsTrigger>
+            <TabsTrigger value="finance" className="flex flex-col gap-1 py-2 text-xs">
+              <Landmark className="h-4 w-4" />
+              {t("admin.tab.finance")}
             </TabsTrigger>
             <TabsTrigger value="suspensions" className="flex flex-col gap-1 py-2 text-xs">
               <ShieldAlert className="h-4 w-4" />
@@ -72,6 +77,7 @@ const AdminDashboard = () => {
           <TabsContent value="services"><ServicesTab /></TabsContent>
           <TabsContent value="bookings"><BookingsTab /></TabsContent>
           <TabsContent value="providers"><ProvidersTab /></TabsContent>
+          <TabsContent value="finance"><FinanceTab /></TabsContent>
           <TabsContent value="suspensions"><SuspensionRequestsTab /></TabsContent>
           <TabsContent value="settings"><SettingsTab /></TabsContent>
           <TabsContent value="sync"><SyncMonitorTab /></TabsContent>
