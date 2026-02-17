@@ -181,6 +181,7 @@ const ar: Record<string, string> = {
   "admin.tab.bookings": "الحجوزات",
   "admin.tab.providers": "مقدمو الخدمة",
   "admin.tab.settings": "الإعدادات",
+  "admin.new_booking": "حجز جديد",
 
   // Admin Bookings
   "admin.bookings.title": "الحجوزات",

@@ -71,6 +71,7 @@ interface Props {
   serviceName: string;
   servicePrice?: number | null;
   providerName: string | null;
+  providerPhone?: string | null;
   onStatusChange?: () => void;
 }
 
@@ -87,7 +88,7 @@ const InfoRow = ({ icon: Icon, label, value, dir }: { icon: any; label: string; 
   );
 };
 
-const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servicePrice, providerName, onStatusChange }: Props) => {
+const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servicePrice, providerName, providerPhone, onStatusChange }: Props) => {
   const { t, formatCurrency, formatDate, formatDateTime, formatDateShort } = useLanguage();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -203,6 +204,21 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
             <div className="rounded-lg border border-success/20 bg-success/5 p-3 space-y-2">
               <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.assignment")}</h4>
               <InfoRow icon={UserCheck} label={t("booking.details.provider")} value={providerName || t("booking.details.provider")} />
+              {providerPhone && (
+                <div className="flex items-center gap-2">
+                  <InfoRow icon={Phone} label="هاتف المزود" value={providerPhone} dir="ltr" />
+                  <a href={`tel:${providerPhone}`}>
+                    <Button size="sm" variant="outline" className="gap-1 h-6 text-[10px]">
+                      <Phone className="h-3 w-3" /> اتصال
+                    </Button>
+                  </a>
+                  <a href={`https://wa.me/${providerPhone.replace(/^0/, "962")}`} target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" variant="outline" className="gap-1 h-6 text-[10px]">
+                      <MessageCircle className="h-3 w-3" /> واتساب
+                    </Button>
+                  </a>
+                </div>
+              )}
               {booking.assigned_by && (
                 <p className="text-xs text-muted-foreground">{t("booking.details.assigned_by")}: {booking.assigned_by}</p>
               )}

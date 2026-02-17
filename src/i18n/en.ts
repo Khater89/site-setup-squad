@@ -181,6 +181,7 @@ const en: Record<string, string> = {
   "admin.tab.bookings": "Bookings",
   "admin.tab.providers": "Providers",
   "admin.tab.settings": "Settings",
+  "admin.new_booking": "New Booking",
 
   // Admin Bookings
   "admin.bookings.title": "Bookings",
