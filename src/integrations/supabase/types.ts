@@ -134,12 +134,16 @@ export type Database = {
       bookings: {
         Row: {
           accepted_at: string | null
+          actual_duration_minutes: number | null
           agreed_price: number | null
           area_public: string | null
           assigned_at: string | null
           assigned_by: string | null
           assigned_provider_id: string | null
           booking_number: string | null
+          calculated_total: number | null
+          check_in_at: string | null
+          check_out_at: string | null
           city: string
           client_lat: number | null
           client_lng: number | null
@@ -157,6 +161,7 @@ export type Database = {
           id: string
           internal_note: string | null
           notes: string | null
+          otp_code: string | null
           payment_method: string
           payment_status: string
           platform_fee: number
@@ -177,12 +182,16 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          actual_duration_minutes?: number | null
           agreed_price?: number | null
           area_public?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_provider_id?: string | null
           booking_number?: string | null
+          calculated_total?: number | null
+          check_in_at?: string | null
+          check_out_at?: string | null
           city: string
           client_lat?: number | null
           client_lng?: number | null
@@ -200,6 +209,7 @@ export type Database = {
           id?: string
           internal_note?: string | null
           notes?: string | null
+          otp_code?: string | null
           payment_method?: string
           payment_status?: string
           platform_fee?: number
@@ -220,12 +230,16 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          actual_duration_minutes?: number | null
           agreed_price?: number | null
           area_public?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_provider_id?: string | null
           booking_number?: string | null
+          calculated_total?: number | null
+          check_in_at?: string | null
+          check_out_at?: string | null
           city?: string
           client_lat?: number | null
           client_lng?: number | null
@@ -243,6 +257,7 @@ export type Database = {
           id?: string
           internal_note?: string | null
           notes?: string | null
+          otp_code?: string | null
           payment_method?: string
           payment_status?: string
           platform_fee?: number
