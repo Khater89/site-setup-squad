@@ -13,6 +13,8 @@ import { Loader2, Save, Percent, Wallet, AlertTriangle, Phone, Trash2, ShieldChe
 interface AdminUser {
   user_id: string;
   email: string;
+  full_name?: string | null;
+  created_at?: string | null;
 }
 
 const AdminsSection = () => {
@@ -127,12 +129,18 @@ const AdminsSection = () => {
 
 const CSAgentsSection = () => {
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, formatDate } = useLanguage();
   const [agents, setAgents] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  // Create CS account
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const fetchAgents = useCallback(async () => {
     setLoading(true);
@@ -162,6 +170,30 @@ const CSAgentsSection = () => {
     }
   };
 
+  const handleCreateCS = async () => {
+    if (!createEmail.trim() || !createPassword.trim()) return;
+    setCreating(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
+      body: {
+        action: "create_cs",
+        email: createEmail.trim(),
+        password: createPassword.trim(),
+        full_name: createName.trim(),
+      },
+    });
+    setCreating(false);
+    if (error || data?.error) {
+      toast({ title: t("common.error"), description: data?.error || error?.message, variant: "destructive" });
+    } else {
+      toast({ title: t("settings.cs.created") });
+      setCreateEmail("");
+      setCreatePassword("");
+      setCreateName("");
+      setShowCreateForm(false);
+      fetchAgents();
+    }
+  };
+
   const handleRemove = async (userId: string) => {
     setRemovingId(userId);
     const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
@@ -186,6 +218,7 @@ const CSAgentsSection = () => {
         <CardDescription>{t("settings.cs.desc")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Invite existing user */}
         <div className="flex gap-2">
           <Input
             type="email"
@@ -201,6 +234,54 @@ const CSAgentsSection = () => {
             {t("settings.cs.invite")}
           </Button>
         </div>
+
+        {/* Create new CS account */}
+        <div className="border-t border-border pt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 w-full"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+          >
+            <UserPlus className="h-4 w-4" />
+            {t("settings.cs.create_new")}
+          </Button>
+
+          {showCreateForm && (
+            <div className="mt-3 p-3 rounded-lg border border-border bg-muted/20 space-y-3">
+              <Input
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                placeholder={t("settings.cs.name_placeholder")}
+              />
+              <Input
+                type="email"
+                value={createEmail}
+                onChange={(e) => setCreateEmail(e.target.value)}
+                placeholder={t("settings.cs.email_placeholder")}
+                dir="ltr"
+              />
+              <Input
+                type="password"
+                value={createPassword}
+                onChange={(e) => setCreatePassword(e.target.value)}
+                placeholder={t("settings.cs.password_placeholder")}
+                dir="ltr"
+              />
+              <Button
+                onClick={handleCreateCS}
+                disabled={creating || !createEmail.trim() || !createPassword.trim()}
+                size="sm"
+                className="gap-1.5 w-full"
+              >
+                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                {t("settings.cs.create_account")}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Agents List */}
         {loading ? (
           <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
         ) : agents.length === 0 ? (
@@ -209,9 +290,19 @@ const CSAgentsSection = () => {
           <div className="space-y-2">
             {agents.map((agent) => (
               <div key={agent.user_id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm font-medium truncate" dir="ltr">{agent.email}</span>
+                <div className="min-w-0 space-y-0.5">
+                  {agent.full_name && (
+                    <p className="text-sm font-medium truncate">{agent.full_name}</p>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-xs text-muted-foreground truncate" dir="ltr">{agent.email}</span>
+                  </div>
+                  {agent.created_at && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {t("settings.cs.joined")}: {formatDate(agent.created_at)}
+                    </p>
+                  )}
                 </div>
                 <Button
                   variant="ghost"

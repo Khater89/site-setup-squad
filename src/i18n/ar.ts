@@ -414,9 +414,15 @@ const ar: Record<string, string> = {
   "settings.cs.title": "إدارة موظفي خدمة العملاء",
   "settings.cs.desc": "أضف أو أزل موظفي خدمة العملاء (صلاحية قراءة فقط)",
   "settings.cs.email_placeholder": "البريد الإلكتروني للموظف",
-  "settings.cs.invite": "إضافة",
+  "settings.cs.invite": "إضافة مستخدم حالي",
   "settings.cs.invited": "تمت إضافة موظف خدمة العملاء ✅",
   "settings.cs.removed": "تمت إزالة موظف خدمة العملاء",
+  "settings.cs.create_new": "إنشاء حساب موظف جديد",
+  "settings.cs.name_placeholder": "الاسم الكامل",
+  "settings.cs.password_placeholder": "كلمة مرور مؤقتة (8 أحرف على الأقل)",
+  "settings.cs.create_account": "إنشاء الحساب",
+  "settings.cs.created": "تم إنشاء حساب موظف خدمة العملاء ✅",
+  "settings.cs.joined": "تاريخ الانضمام",
 
   // Provider Registration
   "register.title": "التسجيل كمقدم خدمة",

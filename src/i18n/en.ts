@@ -414,9 +414,15 @@ const en: Record<string, string> = {
   "settings.cs.title": "Customer Service Agents",
   "settings.cs.desc": "Add or remove customer service agents (read-only access)",
   "settings.cs.email_placeholder": "Agent email address",
-  "settings.cs.invite": "Add",
+  "settings.cs.invite": "Add existing user",
   "settings.cs.invited": "CS agent added ✅",
   "settings.cs.removed": "CS agent removed",
+  "settings.cs.create_new": "Create new CS account",
+  "settings.cs.name_placeholder": "Full name",
+  "settings.cs.password_placeholder": "Temporary password (min 8 chars)",
+  "settings.cs.create_account": "Create Account",
+  "settings.cs.created": "CS agent account created ✅",
+  "settings.cs.joined": "Joined",
 
   // Provider Registration
   "register.title": "Register as Provider",
