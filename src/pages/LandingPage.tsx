@@ -105,15 +105,6 @@ const LandingPage = () => {
             {t("landing.feature4")}
           </motion.div>
 
-          {/* brand name */}
-          <motion.p
-            variants={fadeUp}
-            transition={{ duration: 0.5 }}
-            className="text-sm sm:text-base font-bold tracking-widest uppercase text-primary"
-          >
-            {t("app.brand_name")}
-          </motion.p>
-
           {/* headline */}
           <motion.h1
             variants={fadeUp}
@@ -123,6 +114,14 @@ const LandingPage = () => {
             <span className="text-foreground">{t("landing.hero").split(" ").slice(0, 2).join(" ")} </span>
             <span className="brand-text-animated">{t("landing.hero").split(" ").slice(2).join(" ")}</span>
           </motion.h1>
+
+          <motion.h2
+            variants={fadeUp}
+            transition={{ duration: 0.6 }}
+            className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.15] max-w-3xl mx-auto brand-text-animated"
+          >
+            {t("app.brand_name")}
+          </motion.h2>
 
           <motion.p
             variants={fadeUp}
