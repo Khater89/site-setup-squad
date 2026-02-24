@@ -118,7 +118,7 @@ const LandingPage = () => {
           <motion.h2
             variants={fadeUp}
             transition={{ duration: 0.6 }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.15] max-w-3xl mx-auto brand-text-animated"
+            className="text-2xl sm:text-3xl lg:text-4xl font-black leading-[1.15] max-w-3xl mx-auto brand-text-animated"
           >
             {t("app.brand_name")}
           </motion.h2>
