@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.check-late-checkins]
 verify_jwt = false
+
+[functions.admin-manage-admins]
+verify_jwt = false
+
+[functions.admin-setup]
+verify_jwt = false
