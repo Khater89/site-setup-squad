@@ -43,9 +43,25 @@ Deno.serve(async (req) => {
     });
 
     const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    const userId = claimsData?.claims?.sub;
 
-    if (claimsError || !userId) {
+    let userId = claimsData?.claims?.sub ?? null;
+
+    // Fallback for environments where getClaims may intermittently fail
+    if (!userId) {
+      const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token);
+      if (!userError) {
+        userId = userData?.user?.id ?? null;
+      }
+    }
+
+    if (claimsError && !userId) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!userId) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
