@@ -20,6 +20,7 @@ import {
   CalendarDays, MapPin, ClipboardList, Phone,
   MessageCircle, ShieldCheck, Eye, Lock, User, X,
   History, Play, Square, KeyRound, Clock, Camera, Edit2,
+  AlertTriangle, Timer,
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 
