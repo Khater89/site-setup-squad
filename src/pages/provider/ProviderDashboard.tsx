@@ -147,9 +147,14 @@ const ProviderDashboard = () => {
       setTools(profile.tools || []);
       setRadiusKm(profile.radius_km || 20);
       setAddressText(profile.address_text || "");
-      // Check if provider has accepted agreement
       setAgreementAccepted(!!(profile as any).provider_agreement_accepted_at);
       setShowAgreement(!(profile as any).provider_agreement_accepted_at);
+      // Editable personal fields
+      setEditName(profile.full_name || "");
+      setEditPhone(profile.phone || "");
+      setEditCity(profile.city || "");
+      setEditBio((profile as any).bio || "");
+      setAvatarUrl((profile as any).avatar_url || null);
     }
   }, [profile]);
 
