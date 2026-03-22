@@ -224,7 +224,7 @@ const ProviderRegister = () => {
       email: email.trim(),
       password: password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: { full_name: name.trim() },
       },
     });
