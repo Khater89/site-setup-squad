@@ -44,6 +44,7 @@ const ProviderRegister = () => {
   const [radiusKm, setRadiusKm] = useState("20");
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
   const [mode, setMode] = useState<"register" | "login">("register");
 
   const availableSpecialties = useMemo(() => SPECIALTIES_MAP[roleType] || [], [roleType]);
