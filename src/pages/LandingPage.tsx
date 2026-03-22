@@ -4,6 +4,7 @@ import AppFooter from "@/components/AppFooter";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import ImageGallery from "@/components/landing/ImageGallery";
 import {
   ShieldCheck,
   Zap,
@@ -268,6 +269,9 @@ const LandingPage = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* ═══════ IMAGE GALLERY ═══════ */}
+      <ImageGallery />
 
       {/* ═══════ HOW IT WORKS ═══════ */}
       <section className="py-20 bg-card/40">

@@ -3,7 +3,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import TimePicker from "@/components/booking/TimePicker";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -56,11 +56,6 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
     );
   };
 
-  const timeSlots = [
-    { value: "morning", label: t("time.morning") },
-    { value: "afternoon", label: t("time.afternoon") },
-    { value: "evening", label: t("time.evening") },
-  ];
 
 
   return (
@@ -188,30 +183,8 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
         </Popover>
       </div>
 
-      {/* Time Slot */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">{t("form.time")}</Label>
-        <RadioGroup
-          value={data.time}
-          onValueChange={(v) => update("time", v)}
-          className="grid grid-cols-3 gap-2"
-        >
-          {timeSlots.map((slot) => (
-            <label
-              key={slot.value}
-              className={cn(
-                "flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all text-center",
-                data.time === slot.value
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card hover:border-primary/30"
-              )}
-            >
-              <RadioGroupItem value={slot.value} className="sr-only" />
-              <span className="text-xs font-medium">{slot.label}</span>
-            </label>
-          ))}
-        </RadioGroup>
-      </div>
+      {/* Time Picker */}
+      <TimePicker value={data.time} onChange={(v) => update("time", v)} />
 
       {/* Hours Selector */}
       <div className="space-y-3">

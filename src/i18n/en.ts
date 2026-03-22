@@ -381,6 +381,10 @@ const en: Record<string, string> = {
   "landing.step3.title": "We Come to You",
   "landing.step3.desc": "Our certified medical team arrives at your doorstep",
 
+  // Gallery
+  "landing.gallery_title": "Our Team in Action",
+  "landing.gallery_sub": "Real moments of our medical professionals providing care at home",
+
   // Settings
   "settings.title": "Platform Settings",
   "settings.coordinator_phone": "Coordinator Phone",
