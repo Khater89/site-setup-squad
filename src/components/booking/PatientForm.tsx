@@ -56,11 +56,6 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
     );
   };
 
-  const timeSlots = [
-    { value: "morning", label: t("time.morning") },
-    { value: "afternoon", label: t("time.afternoon") },
-    { value: "evening", label: t("time.evening") },
-  ];
 
 
   return (
