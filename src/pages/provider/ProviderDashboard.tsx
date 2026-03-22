@@ -627,6 +627,9 @@ const ProviderDashboard = () => {
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
 
+  // Track overtime warning shown per order
+  const overtimeWarningShown = useRef<Set<string>>(new Set());
+
   /* ── Guards ── */
 
   if (loading) {
@@ -670,20 +673,12 @@ const ProviderDashboard = () => {
     setToolInput("");
   };
 
-  // Helper: format elapsed time
   const formatElapsed = (checkInAt: string) => {
     const ms = Date.now() - new Date(checkInAt).getTime();
     const hours = Math.floor(ms / 3600000);
     const mins = Math.floor((ms % 3600000) / 60000);
     return `${hours}:${mins.toString().padStart(2, "0")}`;
   };
-
-  // Track overtime warning shown per order
-  const overtimeWarningShown = useRef<Set<string>>(new Set());
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  }
 
   /* ── Render ── */
 
