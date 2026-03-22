@@ -825,7 +825,7 @@ const ProviderDashboard = () => {
 
                       {/* Live timer with dynamic pricing */}
                       {isInProgress && o.check_in_at && !hasCheckedOut && (
-                        <LiveTimerBadge order={o} />
+                        <LiveTimerBadge order={o} t={t} toast={toast} overtimeWarningShown={overtimeWarningShown} />
                       )}
 
                       {/* Checked-out invoice summary */}
