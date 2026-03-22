@@ -132,6 +132,14 @@ const ProviderDashboard = () => {
   const [addressText, setAddressText] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
 
+  // Editable personal fields
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
   useEffect(() => {
     if (profile) {
       setAvailableNow(profile.available_now || false);
