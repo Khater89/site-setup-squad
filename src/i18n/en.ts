@@ -529,6 +529,10 @@ const en: Record<string, string> = {
   "verify_email.message": "We've sent a verification link to your email. Please check your inbox and click the link to activate your account.",
   "verify_email.hint": "After verifying, return here to sign in and complete your registration.",
   "verify_email.login_link": "Go to Sign In",
+  "verify_email.resend": "Resend",
+  "verify_email.resent": "Verification email resent",
+  "verify_email.check_inbox": "Check your email inbox",
+  "register.email_not_confirmed_title": "Email not confirmed",
 
   // Account Review
   "review.pending_title": "Account Under Review",
