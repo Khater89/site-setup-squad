@@ -529,6 +529,10 @@ const ar: Record<string, string> = {
   "verify_email.message": "أرسلنا رابط تأكيد إلى بريدك الإلكتروني. يرجى فتح البريد والنقر على الرابط لتفعيل حسابك.",
   "verify_email.hint": "بعد التحقق، عُد هنا لتسجيل الدخول وإكمال التسجيل.",
   "verify_email.login_link": "الذهاب لتسجيل الدخول",
+  "verify_email.resend": "إعادة إرسال",
+  "verify_email.resent": "تم إعادة الإرسال",
+  "verify_email.check_inbox": "تحقق من صندوق بريدك الإلكتروني",
+  "register.email_not_confirmed_title": "البريد غير مؤكد",
 
   // Account Review
   "review.pending_title": "الحساب قيد المراجعة",
