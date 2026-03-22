@@ -109,7 +109,7 @@ const AuthPage = () => {
         email: signupEmail.trim(),
         password: signupPassword,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: { full_name: signupName.trim() },
         },
       });
