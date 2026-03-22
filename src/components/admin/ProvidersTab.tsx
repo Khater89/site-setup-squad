@@ -65,10 +65,8 @@ const ProvidersTab = () => {
     // Filter out admin/cs users
     const filteredProfiles = profiles.filter((p) => !csAdminIds.has(p.user_id));
 
-    if (!profiles) { setLoading(false); return; }
-
     // Fetch emails for provider profiles via edge function (admin only)
-    const allUserIds = profiles.map((p) => p.user_id);
+    const allUserIds = filteredProfiles.map((p) => p.user_id);
     let emailMap: Record<string, string> = {};
     try {
       const { data: emailData } = await supabase.functions.invoke("admin-manage-admins", {
@@ -78,16 +76,18 @@ const ProvidersTab = () => {
     } catch (_) { /* non-critical */ }
 
     const enriched: ProviderProfile[] = [];
-    for (const p of profiles) {
+    for (const p of filteredProfiles) {
       let balance = 0;
-      const { data } = await supabase.rpc("get_provider_balance", { _provider_id: p.user_id });
-      balance = data || 0;
+      if (providerRoleIds.has(p.user_id)) {
+        const { data } = await supabase.rpc("get_provider_balance", { _provider_id: p.user_id });
+        balance = data || 0;
+      }
       enriched.push({
         ...p,
         email: emailMap[p.user_id] || null,
         available_now: p.available_now ?? false,
         profile_completed: p.profile_completed ?? false,
-        hasProviderRole: true,
+        hasProviderRole: providerRoleIds.has(p.user_id),
         balance,
       } as ProviderProfile);
     }
