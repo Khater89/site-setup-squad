@@ -80,9 +80,34 @@ const TOOL_SUGGESTIONS = ["جهاز ضغط", "سماعة طبية", "جهاز س
 
 /* ── Pricing helper ── */
 function calculateEscalatingPrice(basePrice: number, durationMinutes: number): number {
-  const hours = Math.max(1, Math.ceil(durationMinutes / 60));
-  // Total = Base + (Base × 0.5 × max(0, Hours - 1))
-  return basePrice + (basePrice * 0.5 * Math.max(0, hours - 1));
+  if (durationMinutes <= 60) return basePrice;
+  const extraMinutes = durationMinutes - 60;
+  const segments = Math.ceil(extraMinutes / 15);
+  return basePrice + (segments * basePrice * 0.08);
+}
+
+// Live timer hook for IN_PROGRESS orders
+function useLiveTimer(checkInAt: string | null, isActive: boolean) {
+  const [elapsed, setElapsed] = useState({ hours: 0, mins: 0, secs: 0, totalMinutes: 0 });
+
+  useEffect(() => {
+    if (!checkInAt || !isActive) return;
+    const update = () => {
+      const ms = Date.now() - new Date(checkInAt).getTime();
+      const totalSecs = Math.max(0, Math.floor(ms / 1000));
+      setElapsed({
+        hours: Math.floor(totalSecs / 3600),
+        mins: Math.floor((totalSecs % 3600) / 60),
+        secs: totalSecs % 60,
+        totalMinutes: Math.floor(totalSecs / 60),
+      });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [checkInAt, isActive]);
+
+  return elapsed;
 }
 
 function generateOTP(): string {
