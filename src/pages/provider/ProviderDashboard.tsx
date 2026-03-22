@@ -681,6 +681,10 @@ const ProviderDashboard = () => {
   // Track overtime warning shown per order
   const overtimeWarningShown = useRef<Set<string>>(new Set());
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
   /* ── Render ── */
 
   return (
