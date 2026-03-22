@@ -287,8 +287,6 @@ const ProviderRegister = () => {
     }
   };
 
-  const [resendingVerification, setResendingVerification] = useState(false);
-
   const handleResendVerification = async () => {
     if (!email.trim()) return;
     setResendingVerification(true);
