@@ -286,6 +286,20 @@ const ProviderRegister = () => {
     }
   };
 
+  const [resendingVerification, setResendingVerification] = useState(false);
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) return;
+    setResendingVerification(true);
+    const { error } = await supabase.auth.resend({ type: "signup", email: email.trim() });
+    setResendingVerification(false);
+    if (error) {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: t("verify_email.resent"), description: t("verify_email.check_inbox") });
+    }
+  };
+
   const handleProviderLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
@@ -301,8 +315,23 @@ const ProviderRegister = () => {
 
     setSaving(false);
     if (error) {
-      if (error.message.includes("Email not confirmed")) {
-        toast({ title: t("common.error"), description: t("register.email_not_confirmed"), variant: "destructive" });
+      const msg = error.message?.toLowerCase() || "";
+      if (msg.includes("email not confirmed") || msg.includes("invalid login credentials")) {
+        toast({
+          title: t("register.email_not_confirmed_title"),
+          description: t("register.email_not_confirmed"),
+          variant: "destructive",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={resendingVerification}
+              onClick={handleResendVerification}
+            >
+              {resendingVerification ? <Loader2 className="h-3 w-3 animate-spin" /> : t("verify_email.resend")}
+            </Button>
+          ),
+        });
       } else {
         toast({ title: t("common.error"), description: error.message, variant: "destructive" });
       }
