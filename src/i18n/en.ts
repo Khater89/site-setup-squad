@@ -600,10 +600,12 @@ const en: Record<string, string> = {
   // Invoice
   "invoice.title": "Service Invoice",
   "invoice.duration": "Duration",
-  "invoice.base_price": "Base Price (1st hour)",
-  "invoice.extra_hours": "Extra Hours",
+  "invoice.base_price": "Base Price (first 60 min)",
+  "invoice.extra_hours": "Extra Segments",
   "invoice.client_total": "Client Total",
   "invoice.provider_total": "Your Share Total",
+  "invoice.current_bill": "Current Bill",
+  "form.minutes": "minutes",
 
   // Provider Wallet
   "provider.wallet.debt_notice": "You have an outstanding balance owed to the platform",
