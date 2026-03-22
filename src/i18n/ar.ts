@@ -381,6 +381,10 @@ const ar: Record<string, string> = {
   "landing.step3.title": "نصلك فوراً",
   "landing.step3.desc": "فريقنا الطبي المعتمد يصل إلى باب منزلك",
 
+  // Gallery
+  "landing.gallery_title": "فريقنا أثناء العمل",
+  "landing.gallery_sub": "لحظات حقيقية من تقديم الرعاية الطبية في المنزل",
+
   // Settings
   "settings.title": "إعدادات المنصة",
   "settings.coordinator_phone": "رقم المنسق",
