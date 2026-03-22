@@ -269,6 +269,9 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ═══════ IMAGE GALLERY ═══════ */}
+      <ImageGallery />
+
       {/* ═══════ HOW IT WORKS ═══════ */}
       <section className="py-20 bg-card/40">
         <div className="container max-w-4xl space-y-14">
