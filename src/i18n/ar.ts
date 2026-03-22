@@ -600,10 +600,12 @@ const ar: Record<string, string> = {
   // Invoice
   "invoice.title": "فاتورة الخدمة",
   "invoice.duration": "المدة",
-  "invoice.base_price": "السعر الأساسي (الساعة الأولى)",
-  "invoice.extra_hours": "ساعات إضافية",
+  "invoice.base_price": "السعر الأساسي (أول 60 دقيقة)",
+  "invoice.extra_hours": "فترات إضافية",
   "invoice.client_total": "إجمالي العميل",
   "invoice.provider_total": "إجمالي حصتك",
+  "invoice.current_bill": "الفاتورة الحالية",
+  "form.minutes": "دقيقة",
 
   // Provider Wallet
   "provider.wallet.debt_notice": "لديك مبلغ مستحق للمنصة",

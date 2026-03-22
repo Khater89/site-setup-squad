@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ import {
   CalendarDays, MapPin, ClipboardList, Phone,
   MessageCircle, ShieldCheck, Eye, Lock, User, X,
   History, Play, Square, KeyRound, Clock, Camera, Edit2,
+  AlertTriangle, Timer,
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 
@@ -79,9 +80,34 @@ const TOOL_SUGGESTIONS = ["جهاز ضغط", "سماعة طبية", "جهاز س
 
 /* ── Pricing helper ── */
 function calculateEscalatingPrice(basePrice: number, durationMinutes: number): number {
-  const hours = Math.max(1, Math.ceil(durationMinutes / 60));
-  // Total = Base + (Base × 0.5 × max(0, Hours - 1))
-  return basePrice + (basePrice * 0.5 * Math.max(0, hours - 1));
+  if (durationMinutes <= 60) return basePrice;
+  const extraMinutes = durationMinutes - 60;
+  const segments = Math.ceil(extraMinutes / 15);
+  return basePrice + (segments * basePrice * 0.08);
+}
+
+// Live timer hook for IN_PROGRESS orders
+function useLiveTimer(checkInAt: string | null, isActive: boolean) {
+  const [elapsed, setElapsed] = useState({ hours: 0, mins: 0, secs: 0, totalMinutes: 0 });
+
+  useEffect(() => {
+    if (!checkInAt || !isActive) return;
+    const update = () => {
+      const ms = Date.now() - new Date(checkInAt).getTime();
+      const totalSecs = Math.max(0, Math.floor(ms / 1000));
+      setElapsed({
+        hours: Math.floor(totalSecs / 3600),
+        mins: Math.floor((totalSecs % 3600) / 60),
+        secs: totalSecs % 60,
+        totalMinutes: Math.floor(totalSecs / 60),
+      });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [checkInAt, isActive]);
+
+  return elapsed;
 }
 
 function generateOTP(): string {
@@ -394,9 +420,10 @@ const ProviderDashboard = () => {
         ...o, check_out_at: now, actual_duration_minutes: durationMinutes, calculated_total: calculatedTotal,
       } : o));
 
-      const hours = Math.ceil(durationMinutes / 60);
-      await logHistory(id, "CHECK_OUT", `تم إنهاء الخدمة — المدة: ${hours} ساعة — الإجمالي: ${calculatedTotal} د.أ`);
-      toast({ title: t("provider.checkout.success"), description: `${t("provider.checkout.duration")}: ${hours} ${t("form.hours.plural")} — ${t("provider.checkout.total")}: ${formatCurrency(calculatedTotal)}` });
+      const extraSegs = durationMinutes > 60 ? Math.ceil((durationMinutes - 60) / 15) : 0;
+      const surchargeNote = extraSegs > 0 ? ` — فترات إضافية: ${extraSegs} × 8%` : "";
+      await logHistory(id, "CHECK_OUT", `تم إنهاء الخدمة — المدة: ${durationMinutes} دقيقة${surchargeNote} — الإجمالي: ${calculatedTotal} د.أ`);
+      toast({ title: t("provider.checkout.success"), description: `المدة: ${durationMinutes} دقيقة — الإجمالي: ${formatCurrency(calculatedTotal)}` });
 
       // Now open the complete dialog for close-out note
       setCompleteDialogOrder(id);
@@ -580,7 +607,72 @@ const ProviderDashboard = () => {
     return `${hours}:${mins.toString().padStart(2, "0")}`;
   };
 
+  // Track overtime warning shown per order
+  const overtimeWarningShown = useRef<Set<string>>(new Set());
+
   /* ── Render ── */
+
+  // LiveTimerBadge sub-component for IN_PROGRESS orders
+  const LiveTimerBadge = ({ order }: { order: ProviderOrder }) => {
+    const isActive = order.status === "IN_PROGRESS" && !!order.check_in_at && !order.check_out_at;
+    const timer = useLiveTimer(order.check_in_at, isActive);
+    const basePrice = order.agreed_price ?? order.subtotal;
+    const currentBill = calculateEscalatingPrice(basePrice, timer.totalMinutes);
+    const isOvertime = timer.totalMinutes >= 60;
+
+    // Show overtime warning toast once
+    useEffect(() => {
+      if (isOvertime && isActive && !overtimeWarningShown.current.has(order.id)) {
+        overtimeWarningShown.current.add(order.id);
+        toast({
+          title: "⚠️ تنبيه: تجاوز الساعة الأولى",
+          description: `الطلب ${order.booking_number || ""} تجاوز 60 دقيقة — سيتم احتساب رسوم إضافية (8% لكل 15 دقيقة).`,
+          variant: "destructive",
+        });
+      }
+    }, [isOvertime, isActive, order.id, order.booking_number]);
+
+    if (!isActive) return null;
+
+    const extraSegments = timer.totalMinutes > 60 ? Math.ceil((timer.totalMinutes - 60) / 15) : 0;
+
+    return (
+      <div className={`rounded-lg p-3 space-y-2 ${isOvertime ? "bg-destructive/10 border border-destructive/30" : "bg-primary/10 border border-primary/30"}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Timer className={`h-4 w-4 ${isOvertime ? "text-destructive animate-pulse" : "text-primary animate-pulse"}`} />
+            <span className={`text-lg font-mono font-bold tracking-wider ${isOvertime ? "text-destructive" : "text-primary"}`} dir="ltr">
+              {String(timer.hours).padStart(2, "0")}:{String(timer.mins).padStart(2, "0")}:{String(timer.secs).padStart(2, "0")}
+            </span>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground">{t("invoice.current_bill")}</p>
+            <p className={`text-lg font-bold ${isOvertime ? "text-destructive" : "text-primary"}`}>{formatCurrency(currentBill)}</p>
+          </div>
+        </div>
+        {isOvertime && (
+          <div className="flex items-center gap-1.5 text-xs text-destructive">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            <span>وقت إضافي: {extraSegments} فترة × 8% = +{formatCurrency(extraSegments * basePrice * 0.08)}</span>
+          </div>
+        )}
+        <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
+          <div className="text-center bg-background/50 rounded p-1">
+            <p>{t("invoice.base_price")}</p>
+            <p className="font-bold text-foreground">{formatCurrency(basePrice)}</p>
+          </div>
+          <div className="text-center bg-background/50 rounded p-1">
+            <p>الوقت الأساسي</p>
+            <p className="font-bold text-foreground">60 دقيقة</p>
+          </div>
+          <div className="text-center bg-background/50 rounded p-1">
+            <p>فترات إضافية</p>
+            <p className="font-bold text-foreground">{extraSegments}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -722,34 +814,38 @@ const ProviderDashboard = () => {
                         </span>
                       </div>
 
-                      {/* In-progress timer badge */}
+                      {/* Live timer with dynamic pricing */}
                       {isInProgress && o.check_in_at && !hasCheckedOut && (
-                        <div className="flex items-center gap-2 text-xs bg-primary/10 text-primary rounded-lg p-2">
-                          <Clock className="h-3.5 w-3.5 animate-pulse" />
-                          <span>{t("provider.checkin.elapsed")}: <strong dir="ltr">{formatElapsed(o.check_in_at)}</strong></span>
-                        </div>
+                        <LiveTimerBadge order={o} />
                       )}
 
                       {/* Checked-out invoice summary */}
-                      {hasCheckedOut && o.calculated_total != null && (
-                        <div className="rounded-lg border border-success/30 bg-success/5 p-3 space-y-2">
-                          <p className="text-xs font-bold text-success flex items-center gap-1">📋 {t("invoice.title")}</p>
-                          <div className="grid grid-cols-2 gap-1 text-xs">
-                            <span className="text-muted-foreground">{t("invoice.duration")}:</span>
-                            <span className="font-medium">{Math.ceil((o.actual_duration_minutes || 0) / 60)} {t("form.hours.plural")}</span>
-                            <span className="text-muted-foreground">{t("invoice.base_price")}:</span>
-                            <span className="font-medium">{formatCurrency(o.agreed_price ?? o.subtotal)}</span>
-                            {Math.ceil((o.actual_duration_minutes || 0) / 60) > 1 && (
-                              <>
-                                <span className="text-muted-foreground">{t("invoice.extra_hours")}:</span>
-                                <span className="font-medium">{Math.ceil((o.actual_duration_minutes || 0) / 60) - 1} × 50%</span>
-                              </>
-                            )}
-                            <span className="text-muted-foreground border-t border-border pt-1">{t("invoice.client_total")}:</span>
-                            <span className="font-bold text-success border-t border-border pt-1">{formatCurrency(o.calculated_total)}</span>
+                      {hasCheckedOut && o.calculated_total != null && (() => {
+                        const duration = o.actual_duration_minutes || 0;
+                        const base = o.agreed_price ?? o.subtotal;
+                        const extraMins = Math.max(0, duration - 60);
+                        const extraSegments = extraMins > 0 ? Math.ceil(extraMins / 15) : 0;
+                        const surcharge = extraSegments * base * 0.08;
+                        return (
+                          <div className="rounded-lg border border-success/30 bg-success/5 p-3 space-y-2">
+                            <p className="text-xs font-bold text-success flex items-center gap-1">📋 {t("invoice.title")}</p>
+                            <div className="grid grid-cols-2 gap-1 text-xs">
+                              <span className="text-muted-foreground">{t("invoice.duration")}:</span>
+                              <span className="font-medium">{duration} {t("form.minutes") || "دقيقة"}</span>
+                              <span className="text-muted-foreground">{t("invoice.base_price")}:</span>
+                              <span className="font-medium">{formatCurrency(base)}</span>
+                              {extraSegments > 0 && (
+                                <>
+                                  <span className="text-muted-foreground">رسوم إضافية:</span>
+                                  <span className="font-medium text-destructive">{extraSegments} × 8% = +{formatCurrency(surcharge)}</span>
+                                </>
+                              )}
+                              <span className="text-muted-foreground border-t border-border pt-1">{t("invoice.client_total")}:</span>
+                              <span className="font-bold text-success border-t border-border pt-1">{formatCurrency(o.calculated_total)}</span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Before acceptance: locked message + action buttons */}
                       {!accepted && o.status === "ASSIGNED" && (
