@@ -819,25 +819,32 @@ const ProviderDashboard = () => {
                       )}
 
                       {/* Checked-out invoice summary */}
-                      {hasCheckedOut && o.calculated_total != null && (
-                        <div className="rounded-lg border border-success/30 bg-success/5 p-3 space-y-2">
-                          <p className="text-xs font-bold text-success flex items-center gap-1">📋 {t("invoice.title")}</p>
-                          <div className="grid grid-cols-2 gap-1 text-xs">
-                            <span className="text-muted-foreground">{t("invoice.duration")}:</span>
-                            <span className="font-medium">{Math.ceil((o.actual_duration_minutes || 0) / 60)} {t("form.hours.plural")}</span>
-                            <span className="text-muted-foreground">{t("invoice.base_price")}:</span>
-                            <span className="font-medium">{formatCurrency(o.agreed_price ?? o.subtotal)}</span>
-                            {Math.ceil((o.actual_duration_minutes || 0) / 60) > 1 && (
-                              <>
-                                <span className="text-muted-foreground">{t("invoice.extra_hours")}:</span>
-                                <span className="font-medium">{Math.ceil((o.actual_duration_minutes || 0) / 60) - 1} × 50%</span>
-                              </>
-                            )}
-                            <span className="text-muted-foreground border-t border-border pt-1">{t("invoice.client_total")}:</span>
-                            <span className="font-bold text-success border-t border-border pt-1">{formatCurrency(o.calculated_total)}</span>
+                      {hasCheckedOut && o.calculated_total != null && (() => {
+                        const duration = o.actual_duration_minutes || 0;
+                        const base = o.agreed_price ?? o.subtotal;
+                        const extraMins = Math.max(0, duration - 60);
+                        const extraSegments = extraMins > 0 ? Math.ceil(extraMins / 15) : 0;
+                        const surcharge = extraSegments * base * 0.08;
+                        return (
+                          <div className="rounded-lg border border-success/30 bg-success/5 p-3 space-y-2">
+                            <p className="text-xs font-bold text-success flex items-center gap-1">📋 {t("invoice.title")}</p>
+                            <div className="grid grid-cols-2 gap-1 text-xs">
+                              <span className="text-muted-foreground">{t("invoice.duration")}:</span>
+                              <span className="font-medium">{duration} {t("form.minutes") || "دقيقة"}</span>
+                              <span className="text-muted-foreground">{t("invoice.base_price")}:</span>
+                              <span className="font-medium">{formatCurrency(base)}</span>
+                              {extraSegments > 0 && (
+                                <>
+                                  <span className="text-muted-foreground">رسوم إضافية:</span>
+                                  <span className="font-medium text-destructive">{extraSegments} × 8% = +{formatCurrency(surcharge)}</span>
+                                </>
+                              )}
+                              <span className="text-muted-foreground border-t border-border pt-1">{t("invoice.client_total")}:</span>
+                              <span className="font-bold text-success border-t border-border pt-1">{formatCurrency(o.calculated_total)}</span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Before acceptance: locked message + action buttons */}
                       {!accepted && o.status === "ASSIGNED" && (
