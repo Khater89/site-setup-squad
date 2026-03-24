@@ -48,6 +48,9 @@ export interface BookingRow {
   close_out_at: string | null;
   completed_at: string | null;
   completed_by: string | null;
+  reject_reason: string | null;
+  rejected_at: string | null;
+  rejected_by: string | null;
   customer_name?: string | null;
   customer_phone?: string | null;
   client_address_text?: string | null;
@@ -131,7 +134,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
 
   if (!booking) return null;
 
-  const showWorkflow = booking.status === "NEW" || (booking.status === "ASSIGNED" && !booking.accepted_at);
+  const showWorkflow = booking.status === "NEW" || booking.status === "REJECTED" || (booking.status === "ASSIGNED" && !booking.accepted_at);
   const profit = (booking.agreed_price != null && booking.provider_share != null)
     ? booking.agreed_price - booking.provider_share : null;
 

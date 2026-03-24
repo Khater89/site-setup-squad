@@ -94,6 +94,8 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
   const { t, formatCurrency } = useLanguage();
   const { isAdmin } = useAuth();
 
+  const isRejected = booking.status === "REJECTED";
+
   // Phase 1 state
   const [clientAgreed, setClientAgreed] = useState(!!booking.deal_confirmed_at);
   const [clientPrice, setClientPrice] = useState(booking.agreed_price ?? servicePrice ?? 0);
@@ -101,12 +103,12 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
   const [savingClientPrice, setSavingClientPrice] = useState(false);
   const [internalNote, setInternalNote] = useState(booking.internal_note || "");
 
-  // Phase 2/3 state
+  // Phase 2/3 state - clear provider selection if rejected
   const [showProviders, setShowProviders] = useState(false);
   const [nearestProviders, setNearestProviders] = useState<NearestProvider[]>([]);
   const [fallbackProviders, setFallbackProviders] = useState<ProviderRow[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(booking.assigned_provider_id);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(isRejected ? null : booking.assigned_provider_id);
   const [providerAgreed, setProviderAgreed] = useState(false);
   const [providerShare, setProviderShare] = useState(booking.provider_share ?? 0);
   const [editingProviderShare, setEditingProviderShare] = useState(false);
@@ -255,7 +257,7 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
     }
   };
 
-  /* ── Phase 4: Final assignment ── */
+  /* ── Phase 4: Final assignment (or re-assignment after rejection) ── */
   const handleAssign = async () => {
     if (!selectedProvider) return;
     setAssigning(true);
@@ -268,6 +270,11 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
           status: "ASSIGNED",
           assigned_at: now,
           assigned_by: isAdmin ? "admin" : "cs",
+          // Clear rejection fields on re-assignment
+          rejected_at: null,
+          rejected_by: null,
+          reject_reason: null,
+          accepted_at: null,
         } as any)
         .eq("id", booking.id);
       if (error) throw error;
@@ -417,6 +424,18 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
 
   return (
     <div className="space-y-4">
+      {/* ═══ Rejection Notice ═══ */}
+      {isRejected && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <h4 className="text-sm font-bold text-destructive">تم رفض الطلب من المزود السابق</h4>
+          </div>
+          {booking.reject_reason && <p className="text-sm text-muted-foreground">السبب: {booking.reject_reason}</p>}
+          <p className="text-xs text-muted-foreground">يرجى اختيار مزود آخر وإعادة الإسناد</p>
+        </div>
+      )}
+
       {/* ═══ Phase 1: Client Negotiation ═══ */}
       <div className={`rounded-lg border p-3 space-y-3 ${(isClientDealDone || clientAgreed) && isClientPriceSaved ? "border-success/30 bg-success/5" : "border-primary/30 bg-primary/5"}`}>
         <div className="flex items-center gap-2">
