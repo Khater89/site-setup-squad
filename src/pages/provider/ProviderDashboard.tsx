@@ -982,6 +982,15 @@ const ProviderDashboard = () => {
                             )}
                           </div>
 
+                          {/* Notice: cannot cancel after acceptance */}
+                          {(o.status === "ACCEPTED" || o.status === "IN_PROGRESS") && (
+                            <div className="flex items-center gap-1.5 text-xs text-warning bg-warning/10 rounded-lg p-2.5">
+                              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                              لا يمكن رفض الطلب بعد القبول. للإلغاء يرجى التواصل مع منسق المنصة.
+                            </div>
+                          )}
+                          </div>
+
                           {/* OTP is now sent to client via WhatsApp — provider cannot see it */}
                           {isInProgress && !hasCheckedOut && (
                             <div className="rounded-lg border border-info/30 bg-info/10 p-3 text-center">
