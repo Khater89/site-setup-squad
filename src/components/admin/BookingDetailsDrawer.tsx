@@ -131,7 +131,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
 
   if (!booking) return null;
 
-  const showWorkflow = booking.status === "NEW" || (booking.status === "ASSIGNED" && !booking.accepted_at);
+  const showWorkflow = booking.status === "NEW" || booking.status === "REJECTED" || (booking.status === "ASSIGNED" && !booking.accepted_at);
   const profit = (booking.agreed_price != null && booking.provider_share != null)
     ? booking.agreed_price - booking.provider_share : null;
 
