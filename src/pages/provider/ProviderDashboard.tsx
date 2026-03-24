@@ -978,12 +978,11 @@ const ProviderDashboard = () => {
                             )}
                           </div>
 
-                          {/* OTP display for client */}
-                          {isInProgress && o.otp_code && !hasCheckedOut && (
-                            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-center">
-                              <p className="text-xs text-warning font-medium mb-1">{t("provider.otp.client_code")}</p>
-                              <p className="text-2xl font-bold tracking-[0.3em] text-warning" dir="ltr">{o.otp_code}</p>
-                              <p className="text-[10px] text-muted-foreground mt-1">{t("provider.otp.show_client")}</p>
+                          {/* OTP is now sent to client via WhatsApp — provider cannot see it */}
+                          {isInProgress && !hasCheckedOut && (
+                            <div className="rounded-lg border border-info/30 bg-info/10 p-3 text-center">
+                              <p className="text-xs text-info font-medium mb-1">🔐 {t("provider.otp.sent_to_client")}</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">{t("provider.otp.ask_client")}</p>
                             </div>
                           )}
 
