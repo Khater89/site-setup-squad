@@ -97,6 +97,8 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [reopening, setReopening] = useState(false);
+  const [unassigning, setUnassigning] = useState(false);
 
   const handleCancel = async () => {
     if (!booking || !cancelReason.trim()) return;
@@ -129,6 +131,87 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
       toast.error(err.message || "حدث خطأ");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!booking) return;
+    setReopening(true);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          status: "NEW",
+          assigned_provider_id: null,
+          assigned_at: null,
+          assigned_by: null,
+          accepted_at: null,
+          rejected_at: null,
+          rejected_by: null,
+          reject_reason: null,
+          agreed_price: null,
+          provider_share: null,
+          deal_confirmed_at: null,
+          deal_confirmed_by: null,
+        } as any)
+        .eq("id", booking.id);
+      if (error) throw error;
+
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      await supabase.from("booking_history").insert({
+        booking_id: booking.id,
+        action: "REOPENED",
+        performed_by: authUser!.id,
+        performer_role: "admin",
+        note: "تم إعادة فتح الطلب",
+      });
+
+      toast.success("تم إعادة فتح الطلب بنجاح");
+      onOpenChange(false);
+      onStatusChange?.();
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ");
+    } finally {
+      setReopening(false);
+    }
+  };
+
+  const handleUnassign = async () => {
+    if (!booking) return;
+    if (!confirm("هل أنت متأكد من إلغاء إسناد المزود؟ سيتم إعادة الطلب لحالة جديد.")) return;
+    setUnassigning(true);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          status: "NEW",
+          assigned_provider_id: null,
+          assigned_at: null,
+          assigned_by: null,
+          accepted_at: null,
+          rejected_at: null,
+          rejected_by: null,
+          reject_reason: null,
+        } as any)
+        .eq("id", booking.id);
+      if (error) throw error;
+
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      await supabase.from("booking_history").insert({
+        booking_id: booking.id,
+        action: "UNASSIGNED",
+        performed_by: authUser!.id,
+        performer_role: "admin",
+        note: `تم إلغاء إسناد المزود: ${providerName || "غير معروف"}`,
+      });
+
+      toast.success("تم إلغاء الإسناد — يمكنك الآن إسناد مزود آخر");
+      onOpenChange(false);
+      onStatusChange?.();
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ");
+    } finally {
+      setUnassigning(false);
     }
   };
 
