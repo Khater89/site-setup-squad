@@ -455,9 +455,12 @@ const ProviderDashboard = () => {
     const order = orders.find((o) => o.id === id);
     if (!order) return;
 
-    // Verify OTP
-    if (otpInput.trim() !== order.otp_code) {
-      setOtpError(t("provider.otp.invalid"));
+    // Verify OTP server-side (provider doesn't have the code)
+    const { data: verifyResult, error: verifyError } = await supabase.functions.invoke("verify-otp", {
+      body: { booking_id: id, otp: otpInput.trim() },
+    });
+    if (verifyError || verifyResult?.error) {
+      setOtpError(verifyResult?.error || t("provider.otp.invalid"));
       return;
     }
 
