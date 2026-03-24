@@ -231,7 +231,37 @@ const PatientForm = ({ data, onChange }: PatientFormProps) => {
         )}
       </div>
 
-      {/* Payment method removed — handled manually between client and provider */}
+      {/* Provider Gender Preference */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2 text-sm font-medium">
+          <Users className="h-4 w-4 text-primary" />
+          {t("form.provider_gender")}
+        </Label>
+        <RadioGroup
+          value={data.provider_gender}
+          onValueChange={(v) => update("provider_gender", v)}
+          className="flex gap-3"
+        >
+          {[
+            { value: "male", label: t("form.provider_gender.male") },
+            { value: "female", label: t("form.provider_gender.female") },
+            { value: "any", label: t("form.provider_gender.any") },
+          ].map((opt) => (
+            <Label
+              key={opt.value}
+              className={cn(
+                "flex items-center gap-2 cursor-pointer rounded-xl border px-4 py-3 transition-all flex-1 justify-center",
+                data.provider_gender === opt.value
+                  ? "border-primary bg-primary/10 text-primary font-semibold"
+                  : "border-border hover:border-primary/30"
+              )}
+            >
+              <RadioGroupItem value={opt.value} className="sr-only" />
+              {opt.label}
+            </Label>
+          ))}
+        </RadioGroup>
+      </div>
 
       {/* Case Details (required) */}
       <div className="space-y-2">
