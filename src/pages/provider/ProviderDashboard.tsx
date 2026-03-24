@@ -110,9 +110,7 @@ function useLiveTimer(checkInAt: string | null, isActive: boolean) {
   return elapsed;
 }
 
-function generateOTP(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
-}
+// OTP is now generated server-side in provider-checkin edge function
 
 function formatCurrencyFn(n: number) {
   return `${n.toFixed(2)} JOD`;
@@ -417,17 +415,14 @@ const ProviderDashboard = () => {
     setActionLoading(id);
     try {
       const now = new Date().toISOString();
-      const otp = generateOTP();
-      const { data: updated, error } = await supabase.from("bookings").update({
-        check_in_at: now,
-        status: "IN_PROGRESS",
-        otp_code: otp,
-      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ACCEPTED").select().maybeSingle();
+      // Generate OTP server-side via edge function (provider never sees it)
+      const { data: checkinResult, error: fnError } = await supabase.functions.invoke("provider-checkin", {
+        body: { booking_id: id },
+      });
+      if (fnError) throw fnError;
+      if (checkinResult?.error) throw new Error(checkinResult.error);
 
-      if (error) throw error;
-      if (!updated) throw new Error("لم يتم تحديث الطلب");
-
-      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "IN_PROGRESS", check_in_at: now, otp_code: otp } : o));
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "IN_PROGRESS", check_in_at: now } : o));
 
       await logHistory(id, "CHECK_IN", "تم تسجيل بدء الخدمة");
       toast({ title: t("provider.checkin.success") });
@@ -458,9 +453,12 @@ const ProviderDashboard = () => {
     const order = orders.find((o) => o.id === id);
     if (!order) return;
 
-    // Verify OTP
-    if (otpInput.trim() !== order.otp_code) {
-      setOtpError(t("provider.otp.invalid"));
+    // Verify OTP server-side (provider doesn't have the code)
+    const { data: verifyResult, error: verifyError } = await supabase.functions.invoke("verify-otp", {
+      body: { booking_id: id, otp: otpInput.trim() },
+    });
+    if (verifyError || verifyResult?.error) {
+      setOtpError(verifyResult?.error || t("provider.otp.invalid"));
       return;
     }
 
@@ -978,12 +976,11 @@ const ProviderDashboard = () => {
                             )}
                           </div>
 
-                          {/* OTP display for client */}
-                          {isInProgress && o.otp_code && !hasCheckedOut && (
-                            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-center">
-                              <p className="text-xs text-warning font-medium mb-1">{t("provider.otp.client_code")}</p>
-                              <p className="text-2xl font-bold tracking-[0.3em] text-warning" dir="ltr">{o.otp_code}</p>
-                              <p className="text-[10px] text-muted-foreground mt-1">{t("provider.otp.show_client")}</p>
+                          {/* OTP is now sent to client via WhatsApp — provider cannot see it */}
+                          {isInProgress && !hasCheckedOut && (
+                            <div className="rounded-lg border border-info/30 bg-info/10 p-3 text-center">
+                              <p className="text-xs text-info font-medium mb-1">🔐 {t("provider.otp.sent_to_client")}</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">{t("provider.otp.ask_client")}</p>
                             </div>
                           )}
 
