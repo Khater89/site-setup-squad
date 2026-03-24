@@ -417,17 +417,14 @@ const ProviderDashboard = () => {
     setActionLoading(id);
     try {
       const now = new Date().toISOString();
-      const otp = generateOTP();
-      const { data: updated, error } = await supabase.from("bookings").update({
-        check_in_at: now,
-        status: "IN_PROGRESS",
-        otp_code: otp,
-      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ACCEPTED").select().maybeSingle();
+      // Generate OTP server-side via edge function (provider never sees it)
+      const { data: checkinResult, error: fnError } = await supabase.functions.invoke("provider-checkin", {
+        body: { booking_id: id },
+      });
+      if (fnError) throw fnError;
+      if (checkinResult?.error) throw new Error(checkinResult.error);
 
-      if (error) throw error;
-      if (!updated) throw new Error("لم يتم تحديث الطلب");
-
-      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "IN_PROGRESS", check_in_at: now, otp_code: otp } : o));
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "IN_PROGRESS", check_in_at: now } : o));
 
       await logHistory(id, "CHECK_IN", "تم تسجيل بدء الخدمة");
       toast({ title: t("provider.checkin.success") });
