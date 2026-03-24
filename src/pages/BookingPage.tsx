@@ -30,6 +30,7 @@ const INITIAL_PATIENT: PatientData = {
   hours: 1,
   case_details: "",
   payment_method: "CASH",
+  provider_gender: "any",
 };
 
 const BookingPage = () => {
@@ -101,6 +102,7 @@ const BookingPage = () => {
         time_slot: patient.time,
         notes: patient.case_details.trim(),
         payment_method: patient.payment_method,
+        provider_gender: patient.provider_gender,
       },
     });
 

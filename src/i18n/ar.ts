@@ -97,6 +97,12 @@ const ar: Record<string, string> = {
   "time.afternoon": "ظهراً (12-4)",
   "time.evening": "مساءً (4-8)",
 
+  // Provider Gender
+  "form.provider_gender": "جنس مقدم الخدمة المفضل",
+  "form.provider_gender.male": "ذكر",
+  "form.provider_gender.female": "أنثى",
+  "form.provider_gender.any": "لا يهم",
+
   // Pricing
   "price.base": "سعر الخدمة",
   "price.commission": "رسوم المنصة (10%)",
