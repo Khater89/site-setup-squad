@@ -29,6 +29,7 @@ export interface PatientData {
   hours: number;
   case_details: string;
   payment_method: string;
+  provider_gender: string;
 }
 
 interface PatientFormProps {
