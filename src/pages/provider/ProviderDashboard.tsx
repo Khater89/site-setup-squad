@@ -989,7 +989,6 @@ const ProviderDashboard = () => {
                               لا يمكن رفض الطلب بعد القبول. للإلغاء يرجى التواصل مع منسق المنصة.
                             </div>
                           )}
-                          </div>
 
                           {/* OTP is now sent to client via WhatsApp — provider cannot see it */}
                           {isInProgress && !hasCheckedOut && (
