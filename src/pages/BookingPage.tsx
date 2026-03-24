@@ -102,6 +102,7 @@ const BookingPage = () => {
         time_slot: patient.time,
         notes: patient.case_details.trim(),
         payment_method: patient.payment_method,
+        provider_gender: patient.provider_gender,
       },
     });
 

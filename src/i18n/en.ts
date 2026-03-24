@@ -97,6 +97,12 @@ const en: Record<string, string> = {
   "time.afternoon": "Afternoon (12-4)",
   "time.evening": "Evening (4-8)",
 
+  // Provider Gender
+  "form.provider_gender": "Preferred Provider Gender",
+  "form.provider_gender.male": "Male",
+  "form.provider_gender.female": "Female",
+  "form.provider_gender.any": "No Preference",
+
   // Pricing
   "price.base": "Service Price",
   "price.commission": "Platform Fee (10%)",
