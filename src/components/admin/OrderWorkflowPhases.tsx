@@ -424,6 +424,18 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
 
   return (
     <div className="space-y-4">
+      {/* ═══ Rejection Notice ═══ */}
+      {isRejected && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <h4 className="text-sm font-bold text-destructive">تم رفض الطلب من المزود السابق</h4>
+          </div>
+          {booking.reject_reason && <p className="text-sm text-muted-foreground">السبب: {booking.reject_reason}</p>}
+          <p className="text-xs text-muted-foreground">يرجى اختيار مزود آخر وإعادة الإسناد</p>
+        </div>
+      )}
+
       {/* ═══ Phase 1: Client Negotiation ═══ */}
       <div className={`rounded-lg border p-3 space-y-3 ${(isClientDealDone || clientAgreed) && isClientPriceSaved ? "border-success/30 bg-success/5" : "border-primary/30 bg-primary/5"}`}>
         <div className="flex items-center gap-2">
