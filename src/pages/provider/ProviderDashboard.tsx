@@ -367,6 +367,12 @@ const ProviderDashboard = () => {
   };
 
   const rejectOrder = async (id: string) => {
+    // Only allow rejection in ASSIGNED status (before acceptance)
+    const order = orders.find((o) => o.id === id);
+    if (!order || order.status !== "ASSIGNED") {
+      toast({ title: "لا يمكن رفض الطلب بعد القبول", description: "يرجى التواصل مع منسق المنصة للإلغاء", variant: "destructive" });
+      return;
+    }
     if (!confirm(t("provider.dashboard.reject_confirm"))) return;
     const rejectReason = prompt(t("provider.reject.reason_prompt") || "سبب الرفض:");
     if (!rejectReason || !rejectReason.trim()) return;
