@@ -399,7 +399,18 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
 
           {/* Actions for non-workflow bookings */}
           {!showWorkflow && (
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-2 flex-wrap">
+              {booking.status === "CANCELLED" && (
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-1.5 border-success/30 text-success hover:bg-success/10"
+                  onClick={handleReopen}
+                  disabled={reopening}
+                >
+                  {reopening ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  إعادة فتح الطلب
+                </Button>
+              )}
               {booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
                 <Button variant="destructive" className="flex-1 gap-1.5" onClick={() => setCancelDialogOpen(true)}>
                   <Ban className="h-4 w-4" /> {t("booking.details.cancel") || "إلغاء الطلب"}
