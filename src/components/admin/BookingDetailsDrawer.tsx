@@ -48,6 +48,9 @@ export interface BookingRow {
   close_out_at: string | null;
   completed_at: string | null;
   completed_by: string | null;
+  reject_reason: string | null;
+  rejected_at: string | null;
+  rejected_by: string | null;
   customer_name?: string | null;
   customer_phone?: string | null;
   client_address_text?: string | null;
