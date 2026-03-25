@@ -109,32 +109,40 @@ const BookingsTab = () => {
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Header + Search */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="text-lg font-bold">{t("admin.bookings.title")} ({bookings.length})</h2>
-        <div className="flex gap-2 flex-wrap">
-          <div className="relative">
-            <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`} />
-            <Input
-              placeholder={t("admin.bookings.search")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={`${isRTL ? "pr-9" : "pl-9"} w-[200px]`}
-            />
-          </div>
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FILTER_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s === "ALL" ? t("admin.bookings.filter_all") : t(`status.${s}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="relative">
+          <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`} />
+          <Input
+            placeholder={t("admin.bookings.search")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`${isRTL ? "pr-9" : "pl-9"} w-[200px]`}
+          />
         </div>
+      </div>
+
+      {/* Status Filter Chips */}
+      <div className="flex gap-2 flex-wrap">
+        {FILTER_STATUSES.map((s) => (
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+              filter === s
+                ? `${FILTER_COLORS[s]} ring-2 ring-ring ring-offset-1`
+                : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+            }`}
+          >
+            {s === "ALL" ? t("admin.bookings.filter_all") : t(`status.${s}`)}
+            {s !== "ALL" && (
+              <span className="ms-1 opacity-70">
+                ({bookings.filter(b => b.status === s).length})
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Table */}
