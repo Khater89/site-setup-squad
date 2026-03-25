@@ -13,6 +13,7 @@ import {
   DollarSign, Handshake, Users, CheckCircle, Lock, AlertTriangle,
   Briefcase, Edit2, Star, XCircle, CheckCheck,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import type { BookingRow } from "./BookingDetailsDrawer";
 
 /* ── Types ── */
