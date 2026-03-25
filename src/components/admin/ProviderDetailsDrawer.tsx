@@ -13,7 +13,7 @@ import {
 import {
   Phone, MapPin, Briefcase, Navigation, Stethoscope,
   CheckCircle, XCircle, Wallet, Clock, Globe, Search, Loader2,
-  CalendarCheck, UserCheck, Mail,
+  CalendarCheck, UserCheck, Mail, Star, CheckCheck, Ban,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
