@@ -398,7 +398,9 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
   const ProviderCard = ({ id, name, phone, city, roleType, experienceYears, distanceKm, availableNow }: {
     id: string; name: string; phone: string | null; city: string | null;
     roleType: string | null; experienceYears: number | null; distanceKm?: number; availableNow: boolean;
-  }) => (
+  }) => {
+    const stats = providerStats[id];
+    return (
     <Card
       className={`transition-colors ${selectedProvider === id ? "ring-2 ring-primary bg-primary/5" : "hover:bg-accent/50"}`}
     >
@@ -421,10 +423,50 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
             </div>
             {phone && <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">📞 {phone}</p>}
           </div>
-          {distanceKm != null && (
-            <span className="text-sm font-bold text-primary">{distanceKm} كم</span>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {distanceKm != null && (
+              <span className="text-sm font-bold text-primary">{distanceKm} كم</span>
+            )}
+          </div>
         </div>
+
+        {/* Stats row */}
+        <TooltipProvider>
+          <div className="flex items-center gap-3 text-xs">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 text-success">
+                  <CheckCheck className="h-3 w-3" />
+                  <span className="font-semibold">{stats?.completed || 0}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>طلبات مكتملة</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 text-destructive">
+                  <XCircle className="h-3 w-3" />
+                  <span className="font-semibold">{stats?.cancelled || 0}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>طلبات ملغاة/مرفوضة</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 text-warning">
+                  <Star className="h-3 w-3 fill-current" />
+                  <span className="font-semibold">
+                    {stats?.avgRating ? stats.avgRating.toFixed(1) : "—"}
+                  </span>
+                  {stats?.ratingCount ? (
+                    <span className="text-muted-foreground">({stats.ratingCount})</span>
+                  ) : null}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>تقييم العملاء</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
         {/* Contact buttons */}
         <div className="flex gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
           {phone && (
