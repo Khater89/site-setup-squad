@@ -499,7 +499,8 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4">
