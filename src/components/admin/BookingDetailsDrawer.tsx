@@ -436,6 +436,51 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
             </div>
           )}
 
+          {/* Booking History Timeline */}
+          {history.length > 0 && (
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <History className="h-3 w-3" /> سجل الطلب
+              </h4>
+              {history.map((h: any) => (
+                <div key={h.id} className="flex items-start gap-2 text-xs">
+                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
+                    h.action === "ACCEPTED" ? "bg-success" :
+                    h.action === "CONTRACT_ACCEPTED" ? "bg-primary" :
+                    h.action === "CHECK_IN" ? "bg-primary" :
+                    h.action === "CHECK_OUT" ? "bg-warning" :
+                    h.action === "COMPLETED" ? "bg-success" :
+                    h.action === "CANCELLED" ? "bg-destructive" :
+                    h.action === "REJECTED" ? "bg-destructive" :
+                    h.action === "REOPENED" ? "bg-info" :
+                    h.action === "UNASSIGNED" ? "bg-warning" : "bg-muted-foreground"
+                  }`} />
+                  <div>
+                    <span className="font-medium">{
+                      h.action === "ASSIGNED" ? "📋 إسناد" :
+                      h.action === "ACCEPTED" ? "✅ قبول" :
+                      h.action === "CONTRACT_ACCEPTED" ? "📝 قبول العقد" :
+                      h.action === "CHECK_IN" ? "▶️ بدء الخدمة" :
+                      h.action === "CHECK_OUT" ? "⏹ إنهاء الخدمة" :
+                      h.action === "COMPLETED" ? "✅ إكمال" :
+                      h.action === "CANCELLED" ? "❌ إلغاء" :
+                      h.action === "REJECTED" ? "↩️ رفض" :
+                      h.action === "REOPENED" ? "🔄 إعادة فتح" :
+                      h.action === "UNASSIGNED" ? "🔄 إلغاء إسناد" : h.action
+                    }</span>
+                    {h.action === "CONTRACT_ACCEPTED" && (
+                      <Badge variant="outline" className="ms-1 text-[9px] bg-primary/10 text-primary border-primary/30">
+                        <ShieldCheck className="h-2.5 w-2.5 me-0.5" /> عقد موقّع
+                      </Badge>
+                    )}
+                    {h.note && <span className="text-muted-foreground ms-1">— {h.note}</span>}
+                    <p className="text-[10px] text-muted-foreground" dir="ltr">{new Date(h.created_at).toLocaleString("ar-JO")}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* ═══ Phased Workflow for NEW / pre-accepted ASSIGNED bookings ═══ */}
           {showWorkflow && (
             <OrderWorkflowPhases
