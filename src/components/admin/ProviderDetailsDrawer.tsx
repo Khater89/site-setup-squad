@@ -389,6 +389,45 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
                   </div>
                 </div>
 
+                {/* Admin: Set Password */}
+                {currentUserIsAdmin && (
+                  <div className="rounded-lg border border-border p-3 space-y-2">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <KeyRound className="h-3 w-3" /> تعيين كلمة مرور جديدة
+                    </h4>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full gap-1.5"
+                      disabled={passwordLoading}
+                      onClick={async () => {
+                        const newPass = prompt("أدخل كلمة المرور الجديدة للمزود (6 أحرف على الأقل):");
+                        if (!newPass || newPass.trim().length < 6) {
+                          if (newPass) alert("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+                          return;
+                        }
+                        setPasswordLoading(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke("admin-manage-admins", {
+                            body: { action: "set_password", user_id: provider.user_id, new_password: newPass.trim() },
+                          });
+                          if (error) throw error;
+                          if (data?.error) throw new Error(data.error);
+                          alert("✅ تم تعيين كلمة المرور الجديدة بنجاح");
+                        } catch (err: any) {
+                          alert("❌ خطأ: " + (err.message || "حدث خطأ"));
+                        } finally {
+                          setPasswordLoading(false);
+                        }
+                      }}
+                    >
+                      {passwordLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
+                      تعيين كلمة مرور جديدة
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">يمكنك تعيين كلمة مرور جديدة وإعطائها للمزود (للأدمن فقط)</p>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex gap-2 pt-2 flex-wrap">
                   {provider.provider_status === "pending" && (
