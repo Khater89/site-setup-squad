@@ -146,7 +146,7 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
   // Refresh helper (keeps drawer open)
   const refresh = () => onDataRefresh ? onDataRefresh() : onWorkflowChange();
 
-  // Fetch providers
+  // Fetch providers + stats
   const fetchProviders = async () => {
     setLoadingProviders(true);
     if (booking.client_lat && booking.client_lng) {
@@ -163,6 +163,34 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
       .eq("provider_status", "approved")
       .eq("profile_completed", true);
     setFallbackProviders((profiles as unknown as ProviderRow[]) || []);
+
+    // Fetch booking stats per provider
+    const { data: completedData } = await supabase
+      .from("bookings")
+      .select("assigned_provider_id, status")
+      .in("status", ["COMPLETED", "CANCELLED", "REJECTED"]);
+
+    const { data: ratingsData } = await supabase
+      .from("provider_ratings" as any)
+      .select("provider_id, rating");
+
+    const statsMap: Record<string, ProviderStats> = {};
+    (completedData || []).forEach((b: any) => {
+      const pid = b.assigned_provider_id;
+      if (!pid) return;
+      if (!statsMap[pid]) statsMap[pid] = { completed: 0, cancelled: 0, avgRating: null, ratingCount: 0 };
+      if (b.status === "COMPLETED") statsMap[pid].completed++;
+      else statsMap[pid].cancelled++;
+    });
+    (ratingsData || []).forEach((r: any) => {
+      const pid = r.provider_id;
+      if (!statsMap[pid]) statsMap[pid] = { completed: 0, cancelled: 0, avgRating: null, ratingCount: 0 };
+      statsMap[pid].ratingCount++;
+      statsMap[pid].avgRating = statsMap[pid].avgRating
+        ? (statsMap[pid].avgRating! * (statsMap[pid].ratingCount - 1) + r.rating) / statsMap[pid].ratingCount
+        : r.rating;
+    });
+    setProviderStats(statsMap);
     setLoadingProviders(false);
   };
 
