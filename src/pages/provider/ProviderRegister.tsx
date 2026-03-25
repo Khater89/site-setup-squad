@@ -48,6 +48,9 @@ const ProviderRegister = () => {
   const [saving, setSaving] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const [mode, setMode] = useState<"register" | "login">("register");
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [mode, setMode] = useState<"register" | "login">("register");
 
   const availableSpecialties = useMemo(() => SPECIALTIES_MAP[roleType] || [], [roleType]);
 
