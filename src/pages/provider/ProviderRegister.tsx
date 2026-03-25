@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Loader2, UserPlus, CheckCircle, Clock, XCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { lovable } from "@/integrations/lovable/index";
 import mfnLogo from "@/assets/mfn-logo.png";
 
 const ROLE_TYPES = ["doctor", "nurse", "physiotherapist"];
