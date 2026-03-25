@@ -102,6 +102,17 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
   const [cancelling, setCancelling] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [unassigning, setUnassigning] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+
+  // Fetch booking history
+  useEffect(() => {
+    if (!booking || !open) { setHistory([]); return; }
+    const fetchHistory = async () => {
+      const { data } = await supabase.from("booking_history").select("*").eq("booking_id", booking.id).order("created_at", { ascending: true });
+      setHistory(data || []);
+    };
+    fetchHistory();
+  }, [booking?.id, open]);
 
   const handleCancel = async () => {
     if (!booking || !cancelReason.trim()) return;
