@@ -13,7 +13,7 @@ import {
 import {
   Phone, MapPin, Briefcase, Navigation, Stethoscope,
   CheckCircle, XCircle, Wallet, Clock, Globe, Search, Loader2,
-  CalendarCheck, UserCheck, Mail,
+  CalendarCheck, UserCheck, Mail, Star, CheckCheck, Ban,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,6 +89,12 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
   const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
   const [assignBooking, setAssignBooking] = useState<BookingRow | null>(null);
 
+  // Provider stats
+  const [statsCompleted, setStatsCompleted] = useState(0);
+  const [statsCancelled, setStatsCancelled] = useState(0);
+  const [statsAvgRating, setStatsAvgRating] = useState<number | null>(null);
+  const [statsRatingCount, setStatsRatingCount] = useState(0);
+
   // Fetch bookings when provider changes
   useEffect(() => {
     if (!provider || !open) {
@@ -96,7 +102,25 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
       return;
     }
     fetchProviderBookings(provider.user_id);
+    fetchProviderStats(provider.user_id);
   }, [provider?.user_id, open]);
+
+  const fetchProviderStats = async (providerId: string) => {
+    const [bookingsRes, ratingsRes] = await Promise.all([
+      supabase.from("bookings").select("status").eq("assigned_provider_id", providerId).in("status", ["COMPLETED", "CANCELLED", "REJECTED"]),
+      supabase.from("provider_ratings" as any).select("rating").eq("provider_id", providerId),
+    ]);
+    let completed = 0, cancelled = 0;
+    (bookingsRes.data || []).forEach((b: any) => {
+      if (b.status === "COMPLETED") completed++;
+      else cancelled++;
+    });
+    setStatsCompleted(completed);
+    setStatsCancelled(cancelled);
+    const ratings = (ratingsRes.data || []) as any[];
+    setStatsRatingCount(ratings.length);
+    setStatsAvgRating(ratings.length > 0 ? ratings.reduce((s: number, r: any) => s + r.rating, 0) / ratings.length : null);
+  };
 
   const fetchProviderBookings = async (providerId: string) => {
     setBookingsLoading(true);
@@ -326,7 +350,32 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
                   </div>
                 )}
 
-                {/* Activity */}
+                {/* Performance Stats */}
+                <div className="rounded-lg border border-border p-3 space-y-3">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    📊 الأداء والتقييم
+                  </h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center rounded-lg bg-success/5 border border-success/20 p-2">
+                      <CheckCheck className="h-4 w-4 text-success mx-auto mb-1" />
+                      <p className="text-lg font-bold text-success">{statsCompleted}</p>
+                      <p className="text-[10px] text-muted-foreground">مكتملة</p>
+                    </div>
+                    <div className="text-center rounded-lg bg-destructive/5 border border-destructive/20 p-2">
+                      <Ban className="h-4 w-4 text-destructive mx-auto mb-1" />
+                      <p className="text-lg font-bold text-destructive">{statsCancelled}</p>
+                      <p className="text-[10px] text-muted-foreground">ملغاة/مرفوضة</p>
+                    </div>
+                    <div className="text-center rounded-lg bg-warning/5 border border-warning/20 p-2">
+                      <Star className="h-4 w-4 text-warning fill-warning mx-auto mb-1" />
+                      <p className="text-lg font-bold text-warning">{statsAvgRating ? statsAvgRating.toFixed(1) : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {statsRatingCount > 0 ? `${statsRatingCount} تقييم` : "لا تقييمات"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="rounded-lg border border-border p-3 space-y-2">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.activity")}</h4>
                   <div className="text-xs text-muted-foreground space-y-1">
