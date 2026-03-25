@@ -426,6 +426,7 @@ const ProviderDashboard = () => {
       setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "ACCEPTED", accepted_at: now } : o));
 
       await logHistory(id, "ACCEPTED", "تم قبول الطلب من قبل المزود");
+      await logHistory(id, "CONTRACT_ACCEPTED", "وافق المزود على عقد تنفيذ المهمة — إخلاء مسؤولية طبية + التزام بالتسعير التصاعدي");
 
       // Refresh balance (debt was recorded by trigger)
       const balRes = await supabase.rpc("get_provider_balance", { _provider_id: user.id });
@@ -965,6 +966,27 @@ const ProviderDashboard = () => {
                               <Lock className="h-3 w-3" />
                               رقم التواصل مع العميل سيظهر بعد قبول الطلب
                             </div>
+                            {/* Coordinator phone */}
+                            {coordinatorPhone && (
+                              <div className="flex items-center gap-1.5 text-xs mt-1">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-muted-foreground">{t("provider.dashboard.coordinator_phone")} 1:</span>
+                                <a href={`tel:${coordinatorPhone}`} dir="ltr" className="font-medium hover:underline">{coordinatorPhone}</a>
+                                <a href={`https://wa.me/${coordinatorPhone.replace(/^0/, "962")}`} target="_blank" rel="noopener noreferrer">
+                                  <MessageCircle className="h-3 w-3 text-success" />
+                                </a>
+                              </div>
+                            )}
+                            {coordinatorPhone2 && (
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-muted-foreground">{t("provider.dashboard.coordinator_phone")} 2:</span>
+                                <a href={`tel:${coordinatorPhone2}`} dir="ltr" className="font-medium hover:underline">{coordinatorPhone2}</a>
+                                <a href={`https://wa.me/${coordinatorPhone2.replace(/^0/, "962")}`} target="_blank" rel="noopener noreferrer">
+                                  <MessageCircle className="h-3 w-3 text-success" />
+                                </a>
+                              </div>
+                            )}
                           </div>
 
                           {/* Accept/Reject buttons */}

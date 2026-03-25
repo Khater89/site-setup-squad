@@ -322,6 +322,41 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── SET PASSWORD (admin only) ──
+    if (action === "set_password") {
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { user_id: targetUserId, new_password } = body;
+      if (!targetUserId || !new_password?.trim()) {
+        return new Response(JSON.stringify({ error: "user_id and new_password are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (new_password.trim().length < 6) {
+        return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+        password: new_password.trim(),
+      });
+
+      if (updateErr) throw updateErr;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

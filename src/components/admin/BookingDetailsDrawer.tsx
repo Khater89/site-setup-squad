@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import {
   CalendarDays, MapPin, Phone, User, UserCheck,
   MessageCircle, FileText, StickyNote, Ban, Loader2, ClipboardCheck, X, Lock, Play,
-  Key, Copy,
+  Key, Copy, History, ShieldCheck,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,6 +102,17 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
   const [cancelling, setCancelling] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [unassigning, setUnassigning] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+
+  // Fetch booking history
+  useEffect(() => {
+    if (!booking || !open) { setHistory([]); return; }
+    const fetchHistory = async () => {
+      const { data } = await supabase.from("booking_history").select("*").eq("booking_id", booking.id).order("created_at", { ascending: true });
+      setHistory(data || []);
+    };
+    fetchHistory();
+  }, [booking?.id, open]);
 
   const handleCancel = async () => {
     if (!booking || !cancelReason.trim()) return;
@@ -422,6 +433,51 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
               ) : (
                 <p className="text-xs text-warning">⚠️ {t("booking.details.no_close_out_note") || "لا توجد ملاحظة إغلاق"}</p>
               )}
+            </div>
+          )}
+
+          {/* Booking History Timeline */}
+          {history.length > 0 && (
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <History className="h-3 w-3" /> سجل الطلب
+              </h4>
+              {history.map((h: any) => (
+                <div key={h.id} className="flex items-start gap-2 text-xs">
+                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
+                    h.action === "ACCEPTED" ? "bg-success" :
+                    h.action === "CONTRACT_ACCEPTED" ? "bg-primary" :
+                    h.action === "CHECK_IN" ? "bg-primary" :
+                    h.action === "CHECK_OUT" ? "bg-warning" :
+                    h.action === "COMPLETED" ? "bg-success" :
+                    h.action === "CANCELLED" ? "bg-destructive" :
+                    h.action === "REJECTED" ? "bg-destructive" :
+                    h.action === "REOPENED" ? "bg-info" :
+                    h.action === "UNASSIGNED" ? "bg-warning" : "bg-muted-foreground"
+                  }`} />
+                  <div>
+                    <span className="font-medium">{
+                      h.action === "ASSIGNED" ? "📋 إسناد" :
+                      h.action === "ACCEPTED" ? "✅ قبول" :
+                      h.action === "CONTRACT_ACCEPTED" ? "📝 قبول العقد" :
+                      h.action === "CHECK_IN" ? "▶️ بدء الخدمة" :
+                      h.action === "CHECK_OUT" ? "⏹ إنهاء الخدمة" :
+                      h.action === "COMPLETED" ? "✅ إكمال" :
+                      h.action === "CANCELLED" ? "❌ إلغاء" :
+                      h.action === "REJECTED" ? "↩️ رفض" :
+                      h.action === "REOPENED" ? "🔄 إعادة فتح" :
+                      h.action === "UNASSIGNED" ? "🔄 إلغاء إسناد" : h.action
+                    }</span>
+                    {h.action === "CONTRACT_ACCEPTED" && (
+                      <Badge variant="outline" className="ms-1 text-[9px] bg-primary/10 text-primary border-primary/30">
+                        <ShieldCheck className="h-2.5 w-2.5 me-0.5" /> عقد موقّع
+                      </Badge>
+                    )}
+                    {h.note && <span className="text-muted-foreground ms-1">— {h.note}</span>}
+                    <p className="text-[10px] text-muted-foreground" dir="ltr">{new Date(h.created_at).toLocaleString("ar-JO")}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
