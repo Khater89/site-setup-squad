@@ -78,6 +78,8 @@ interface Props {
 
 const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSuspend, onSettlement }: Props) => {
   const { t, formatCurrency, formatDate, formatDateShort, isRTL } = useLanguage();
+  const { isAdmin: currentUserIsAdmin } = useAuth();
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Bookings tab state
   const [bookings, setBookings] = useState<BookingRow[]>([]);
