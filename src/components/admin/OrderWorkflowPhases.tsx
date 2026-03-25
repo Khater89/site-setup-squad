@@ -45,6 +45,13 @@ interface ProviderRow {
   lng: number | null;
 }
 
+interface ProviderStats {
+  completed: number;
+  cancelled: number;
+  avgRating: number | null;
+  ratingCount: number;
+}
+
 const ROLE_TYPE_LABELS: Record<string, string> = {
   doctor: "طبيب",
   nurse: "ممرض/ة",
