@@ -121,6 +121,7 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
   const [providerShare, setProviderShare] = useState(booking.provider_share ?? 0);
   const [editingProviderShare, setEditingProviderShare] = useState(false);
   const [savingProviderShare, setSavingProviderShare] = useState(false);
+  const [providerStats, setProviderStats] = useState<Record<string, ProviderStats>>({});
 
   // Phase 4 state
   const [assigning, setAssigning] = useState(false);
