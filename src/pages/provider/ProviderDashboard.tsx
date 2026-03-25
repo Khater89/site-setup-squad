@@ -983,7 +983,7 @@ const ProviderDashboard = () => {
                             <Button
                               size="sm"
                               className="gap-1 h-7 text-xs flex-1 bg-success hover:bg-success/90"
-                              onClick={() => acceptOrder(o.id)}
+                              onClick={() => { setContractOrderId(o.id); setContractAccepted(false); }}
                               disabled={actionLoading === o.id || isOnHold || !agreementAccepted}
                             >
                               {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
