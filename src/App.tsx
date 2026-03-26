@@ -44,6 +44,7 @@ const App = () => (
               <Route path="/provider/register" element={<ProviderRegister />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/track" element={<TrackOrderPage />} />
               <Route
                 path="/account-review"
                 element={
