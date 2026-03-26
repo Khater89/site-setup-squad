@@ -19,6 +19,8 @@ import CSDashboard from "./pages/cs/CSDashboard";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import AccountReviewPage from "./pages/AccountReviewPage";
 import AuthCallback from "./pages/AuthCallback";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
