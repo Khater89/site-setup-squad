@@ -13,6 +13,7 @@ import SettingsTab from "@/components/admin/SettingsTab";
 import SyncMonitorTab from "@/components/admin/SyncMonitorTab";
 import SuspensionRequestsTab from "@/components/admin/SuspensionRequestsTab";
 import FinanceTab from "@/components/admin/FinanceTab";
+import AnalyticsCards from "@/components/admin/AnalyticsCards";
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth();
