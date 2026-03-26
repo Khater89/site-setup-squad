@@ -1,0 +1,201 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { CheckCircle, Circle, Clock, Loader2, MapPin, Phone, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+
+interface TimelineStep {
+  label: string;
+  status: "done" | "current" | "upcoming";
+  time?: string;
+}
+
+interface OrderTrackerProps {
+  bookingId: string;
+  onClose?: () => void;
+}
+
+const STATUS_ORDER = ["NEW", "CONFIRMED", "ASSIGNED", "ACCEPTED", "IN_PROGRESS", "COMPLETED"];
+const STATUS_LABELS: Record<string, string> = {
+  NEW: "تم استلام الطلب",
+  CONFIRMED: "تم تأكيد الطلب",
+  ASSIGNED: "تم تعيين مقدم الخدمة",
+  ACCEPTED: "المزود قبل الطلب",
+  IN_PROGRESS: "الخدمة قيد التنفيذ",
+  COMPLETED: "تم إكمال الخدمة",
+  CANCELLED: "تم إلغاء الطلب",
+  REJECTED: "تم رفض الطلب",
+};
+
+const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
+  const { toast } = useToast();
+  const [booking, setBooking] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [existingRating, setExistingRating] = useState<any>(null);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const [bookingRes, historyRes, ratingRes] = await Promise.all([
+        supabase.from("bookings").select("*").eq("id", bookingId).single(),
+        supabase.from("booking_history").select("*").eq("booking_id", bookingId).order("created_at", { ascending: true }),
+        supabase.from("provider_ratings").select("*").eq("booking_id", bookingId).maybeSingle(),
+      ]);
+      setBooking(bookingRes.data);
+      setHistory(historyRes.data || []);
+      if (ratingRes.data) {
+        setExistingRating(ratingRes.data);
+        setRating(ratingRes.data.rating);
+        setComment(ratingRes.data.comment || "");
+      }
+      setLoading(false);
+    };
+    fetch();
+  }, [bookingId]);
+
+  const handleRate = async () => {
+    if (!booking || !booking.assigned_provider_id || rating === 0) return;
+    setSubmittingRating(true);
+    const { error } = await supabase.from("provider_ratings").insert({
+      booking_id: bookingId,
+      provider_id: booking.assigned_provider_id,
+      rated_by: (await supabase.auth.getUser()).data.user?.id,
+      rating,
+      comment: comment.trim() || null,
+    });
+    setSubmittingRating(false);
+    if (error) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    } else {
+      setExistingRating({ rating, comment });
+      toast({ title: "شكراً لتقييمك! ⭐" });
+    }
+  };
+
+  if (loading) return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (!booking) return <p className="text-center text-muted-foreground py-6">الطلب غير موجود</p>;
+
+  const currentIdx = STATUS_ORDER.indexOf(booking.status);
+  const isCancelled = booking.status === "CANCELLED" || booking.status === "REJECTED";
+
+  const steps: TimelineStep[] = STATUS_ORDER.map((s, i) => ({
+    label: STATUS_LABELS[s],
+    status: isCancelled
+      ? "upcoming"
+      : i < currentIdx
+      ? "done"
+      : i === currentIdx
+      ? "current"
+      : "upcoming",
+    time: history.find(h => h.action?.includes(s))?.created_at,
+  }));
+
+  if (isCancelled) {
+    steps.push({
+      label: STATUS_LABELS[booking.status],
+      status: "current",
+      time: booking.rejected_at || booking.created_at,
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Status Badge */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold">تتبع الطلب</h3>
+        <Badge variant={isCancelled ? "destructive" : booking.status === "COMPLETED" ? "outline" : "default"}>
+          {STATUS_LABELS[booking.status] || booking.status}
+        </Badge>
+      </div>
+
+      {/* Timeline */}
+      <div className="relative space-y-0 pr-4">
+        {steps.map((step, i) => (
+          <div key={i} className="flex items-start gap-3 pb-6 relative">
+            {/* Line */}
+            {i < steps.length - 1 && (
+              <div className={`absolute right-[7px] top-6 w-0.5 h-full ${step.status === "done" ? "bg-success" : "bg-border"}`} />
+            )}
+            {/* Icon */}
+            <div className="relative z-10 shrink-0">
+              {step.status === "done" ? (
+                <CheckCircle className="h-4 w-4 text-success" />
+              ) : step.status === "current" ? (
+                <Clock className="h-4 w-4 text-primary animate-pulse" />
+              ) : (
+                <Circle className="h-4 w-4 text-muted-foreground/40" />
+              )}
+            </div>
+            {/* Text */}
+            <div>
+              <p className={`text-sm font-medium ${step.status === "upcoming" ? "text-muted-foreground/50" : "text-foreground"}`}>
+                {step.label}
+              </p>
+              {step.time && (
+                <p className="text-[10px] text-muted-foreground">
+                  {new Date(step.time).toLocaleString("ar-JO", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Rating Section - only for completed bookings */}
+      {booking.status === "COMPLETED" && booking.assigned_provider_id && (
+        <Card className="border-border">
+          <CardContent className="py-4 space-y-3">
+            <h4 className="text-sm font-bold">
+              {existingRating ? "تقييمك للخدمة" : "قيّم الخدمة"}
+            </h4>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => !existingRating && setRating(s)}
+                  disabled={!!existingRating}
+                  className="transition-transform hover:scale-110"
+                >
+                  <Star
+                    className={`h-7 w-7 ${s <= rating ? "text-warning fill-warning" : "text-muted-foreground/30"}`}
+                  />
+                </button>
+              ))}
+            </div>
+            {!existingRating && (
+              <>
+                <Textarea
+                  placeholder="أضف تعليقاً (اختياري)..."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={2}
+                  className="text-sm"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleRate}
+                  disabled={rating === 0 || submittingRating}
+                  className="gap-1.5"
+                >
+                  {submittingRating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Star className="h-3.5 w-3.5" />}
+                  إرسال التقييم
+                </Button>
+              </>
+            )}
+            {existingRating && (
+              <p className="text-xs text-muted-foreground">{existingRating.comment || "تم التقييم بنجاح"}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+export default CustomerOrderTracker;
