@@ -133,7 +133,7 @@ const LandingPage = () => {
           </motion.p>
 
           {/* CTA */}
-          <motion.div variants={fadeUp} transition={{ duration: 0.6 }}>
+          <motion.div variants={fadeUp} transition={{ duration: 0.6 }} className="flex flex-wrap justify-center gap-3">
             <Link to="/booking">
               <Button
                 size="lg"
@@ -141,6 +141,16 @@ const LandingPage = () => {
               >
                 {t("landing.cta")}
                 <ArrowIcon className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link to="/track">
+              <Button
+                size="lg"
+                variant="outline"
+                className="gap-2 text-base px-8 h-13 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <ClipboardList className="h-4 w-4" />
+                تتبع طلبك
               </Button>
             </Link>
           </motion.div>
