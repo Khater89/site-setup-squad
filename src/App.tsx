@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { useSplashScreen } from "@/components/SplashScreen";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -26,11 +27,15 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  const { SplashWrapper } = useSplashScreen();
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <LanguageProvider>
         <AuthProvider>
+          <SplashWrapper />
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -110,6 +115,7 @@ const App = () => (
       </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
