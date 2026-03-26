@@ -1,7 +1,9 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { CheckCircle2, PartyPopper, Copy } from "lucide-react";
+import { CheckCircle2, PartyPopper, Copy, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 interface SuccessViewProps {
