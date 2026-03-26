@@ -12,11 +12,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   User, CalendarCheck, Pencil, Save, X, Loader2,
-  MapPin, Phone, CalendarDays, Clock, Ban,
+  MapPin, Phone, CalendarDays, Clock, Ban, Eye,
 } from "lucide-react";
+import CustomerOrderTracker from "@/components/booking/CustomerOrderTracker";
 
 interface BookingRow {
   id: string;
