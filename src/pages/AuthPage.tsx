@@ -195,6 +195,11 @@ const AuthPage = () => {
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                     تسجيل الدخول
                   </Button>
+                  <div className="text-center">
+                    <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                      نسيت كلمة المرور؟
+                    </Link>
+                  </div>
                 </form>
               </TabsContent>
 

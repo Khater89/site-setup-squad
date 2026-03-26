@@ -12,11 +12,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   User, CalendarCheck, Pencil, Save, X, Loader2,
-  MapPin, Phone, CalendarDays, Clock, Ban,
+  MapPin, Phone, CalendarDays, Clock, Ban, Eye,
 } from "lucide-react";
+import CustomerOrderTracker from "@/components/booking/CustomerOrderTracker";
 
 interface BookingRow {
   id: string;
@@ -61,6 +65,8 @@ const ProfilePage = () => {
   // Cancel state
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  // Tracking state
+  const [trackingBookingId, setTrackingBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -298,21 +304,32 @@ const ProfilePage = () => {
                           <p className="text-xs bg-muted rounded p-2">{b.notes}</p>
                         )}
                         {canClientCancel(b) && (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="gap-1 h-7 text-xs"
-                            disabled={cancellingId === b.id}
-                            onClick={() => setCancelBookingId(b.id)}
-                          >
-                            {cancellingId === b.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Ban className="h-3 w-3" />
-                            )}
-                            إلغاء الحجز
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="gap-1 h-7 text-xs"
+                              disabled={cancellingId === b.id}
+                              onClick={() => setCancelBookingId(b.id)}
+                            >
+                              {cancellingId === b.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Ban className="h-3 w-3" />
+                              )}
+                              إلغاء الحجز
+                            </Button>
+                          </div>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 h-7 text-xs"
+                          onClick={() => setTrackingBookingId(b.id)}
+                        >
+                          <Eye className="h-3 w-3" />
+                          تتبع الطلب
+                        </Button>
                       </CardContent>
                     </Card>
                   );
@@ -322,6 +339,16 @@ const ProfilePage = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Order Tracking Dialog */}
+      <Dialog open={!!trackingBookingId} onOpenChange={(open) => { if (!open) setTrackingBookingId(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تتبع الطلب</DialogTitle>
+          </DialogHeader>
+          {trackingBookingId && <CustomerOrderTracker bookingId={trackingBookingId} />}
+        </DialogContent>
+      </Dialog>
 
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={!!cancelBookingId} onOpenChange={(open) => { if (!open) setCancelBookingId(null); }}>

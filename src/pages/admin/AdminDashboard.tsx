@@ -13,6 +13,7 @@ import SettingsTab from "@/components/admin/SettingsTab";
 import SyncMonitorTab from "@/components/admin/SyncMonitorTab";
 import SuspensionRequestsTab from "@/components/admin/SuspensionRequestsTab";
 import FinanceTab from "@/components/admin/FinanceTab";
+import AnalyticsCards from "@/components/admin/AnalyticsCards";
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth();
@@ -49,7 +50,8 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      <main className="container py-6 px-4">
+      <main className="container py-6 px-4 space-y-6">
+        <AnalyticsCards />
         <Tabs defaultValue="bookings" className="space-y-6">
           <TabsList className="grid w-full grid-cols-7 h-auto">
             <TabsTrigger value="services" className="flex flex-col gap-1 py-2 text-xs">

@@ -19,6 +19,8 @@ import CSDashboard from "./pages/cs/CSDashboard";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import AccountReviewPage from "./pages/AccountReviewPage";
 import AuthCallback from "./pages/AuthCallback";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +38,8 @@ const App = () => (
               <Route path="/" element={<LandingPage />} />
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/provider/register" element={<ProviderRegister />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/auth/callback" element={<AuthCallback />} />

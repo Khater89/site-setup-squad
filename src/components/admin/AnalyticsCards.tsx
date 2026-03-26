@@ -1,0 +1,95 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CalendarCheck, TrendingUp, Users, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
+
+interface Stats {
+  totalBookings: number;
+  todayBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  activeProviders: number;
+  totalRevenue: number;
+  todayRevenue: number;
+  inProgressBookings: number;
+}
+
+const AnalyticsCards = () => {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayISO = today.toISOString();
+
+      const [bookingsRes, providersRes, walletRes] = await Promise.all([
+        supabase.from("bookings").select("status, created_at, calculated_total, agreed_price"),
+        supabase.from("profiles").select("user_id, provider_status").eq("provider_status", "approved"),
+        supabase.from("provider_wallet_ledger").select("amount, reason").eq("reason", "platform_fee"),
+      ]);
+
+      const bookings = bookingsRes.data || [];
+      const providers = providersRes.data || [];
+      const walletEntries = walletRes.data || [];
+
+      const totalRevenue = walletEntries.reduce((sum, e) => sum + Math.abs(e.amount), 0);
+
+      const todayBookings = bookings.filter(b => b.created_at >= todayISO);
+      const completedBookings = bookings.filter(b => b.status === "COMPLETED");
+      const todayCompleted = completedBookings.filter(b => b.created_at >= todayISO);
+      const todayRevenue = todayCompleted.reduce((sum, b) => {
+        const price = b.calculated_total || b.agreed_price || 0;
+        return sum + (price * 0.1); // approximate 10% platform fee
+      }, 0);
+
+      setStats({
+        totalBookings: bookings.length,
+        todayBookings: todayBookings.length,
+        completedBookings: completedBookings.length,
+        cancelledBookings: bookings.filter(b => b.status === "CANCELLED").length,
+        activeProviders: providers.length,
+        totalRevenue,
+        todayRevenue,
+        inProgressBookings: bookings.filter(b => ["ASSIGNED", "ACCEPTED", "IN_PROGRESS"].includes(b.status)).length,
+      });
+      setLoading(false);
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
+  if (!stats) return null;
+
+  const cards = [
+    { label: "إجمالي الطلبات", value: stats.totalBookings, icon: CalendarCheck, color: "text-primary" },
+    { label: "طلبات اليوم", value: stats.todayBookings, icon: Clock, color: "text-info" },
+    { label: "قيد التنفيذ", value: stats.inProgressBookings, icon: TrendingUp, color: "text-warning" },
+    { label: "مكتملة", value: stats.completedBookings, icon: CheckCircle, color: "text-success" },
+    { label: "ملغاة", value: stats.cancelledBookings, icon: XCircle, color: "text-destructive" },
+    { label: "مزودون معتمدون", value: stats.activeProviders, icon: Users, color: "text-chart-4" },
+    { label: "إيرادات المنصة", value: `${stats.totalRevenue.toFixed(0)} د.أ`, icon: TrendingUp, color: "text-success" },
+    { label: "إيرادات اليوم", value: `${stats.todayRevenue.toFixed(0)} د.أ`, icon: TrendingUp, color: "text-primary" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {cards.map((c) => (
+        <Card key={c.label} className="border-border">
+          <CardContent className="py-4 px-4">
+            <div className="flex items-center justify-between mb-2">
+              <c.icon className={`h-5 w-5 ${c.color}`} />
+            </div>
+            <p className="text-2xl font-bold text-foreground">{c.value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{c.label}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+export default AnalyticsCards;
