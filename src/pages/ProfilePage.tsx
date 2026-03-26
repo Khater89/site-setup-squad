@@ -65,6 +65,8 @@ const ProfilePage = () => {
   // Cancel state
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  // Tracking state
+  const [trackingBookingId, setTrackingBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
