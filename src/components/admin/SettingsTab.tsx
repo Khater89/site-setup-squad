@@ -333,6 +333,10 @@ const SettingsTab = () => {
     provider_debt_limit: -20,
     coordinator_phone: "",
     coordinator_phone_2: "",
+    bank_name: "",
+    bank_iban: "",
+    bank_cliq_alias: "",
+    bank_account_holder: "",
   });
 
   // Clear bookings state
