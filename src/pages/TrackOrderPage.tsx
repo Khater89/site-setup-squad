@@ -47,6 +47,10 @@ interface TrackingResult {
 
 const TrackOrderPage = () => {
   const { toast } = useToast();
+  const copyText = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "تم النسخ ✓" });
+  };
   const [bookingNumber, setBookingNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
