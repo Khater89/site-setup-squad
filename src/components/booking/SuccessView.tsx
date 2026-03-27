@@ -14,28 +14,6 @@ const SuccessView = ({ onReset, bookingNumber }: SuccessViewProps) => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [bankInfo, setBankInfo] = useState<BankInfo | null>(null);
-  const [loadingBank, setLoadingBank] = useState(true);
-
-  useEffect(() => {
-    const fetchBank = async () => {
-      const { data } = await supabase
-        .from("platform_settings")
-        .select("*")
-        .eq("id", 1)
-        .maybeSingle();
-      if (data) {
-        setBankInfo({
-          bank_name: (data as any).bank_name,
-          bank_iban: (data as any).bank_iban,
-          bank_cliq_alias: (data as any).bank_cliq_alias,
-          bank_account_holder: (data as any).bank_account_holder,
-        });
-      }
-      setLoadingBank(false);
-    };
-    fetchBank();
-  }, []);
 
   const copyBookingNumber = () => {
     if (bookingNumber) {
