@@ -359,6 +359,10 @@ const SettingsTab = () => {
         provider_debt_limit: data.provider_debt_limit,
         coordinator_phone: (data as any).coordinator_phone || "",
         coordinator_phone_2: (data as any).coordinator_phone_2 || "",
+        bank_name: (data as any).bank_name || "",
+        bank_iban: (data as any).bank_iban || "",
+        bank_cliq_alias: (data as any).bank_cliq_alias || "",
+        bank_account_holder: (data as any).bank_account_holder || "",
       });
     }
     setLoading(false);
