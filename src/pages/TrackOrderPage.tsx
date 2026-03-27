@@ -37,6 +37,12 @@ interface TrackingResult {
   };
   history: { action: string; created_at: string; note: string | null }[];
   rating: { rating: number; comment: string | null } | null;
+  bank_info: {
+    bank_name: string | null;
+    bank_iban: string | null;
+    bank_cliq_alias: string | null;
+    bank_account_holder: string | null;
+  } | null;
 }
 
 const TrackOrderPage = () => {
