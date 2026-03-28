@@ -587,7 +587,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
                     <p className="text-[10px] text-center text-destructive">انتهت مهلة 10 دقائق — لا يمكن إعادة الفتح</p>
                   )}
                 </div>
-                </Button>
+              )}
               )}
               {booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
                 <Button variant="destructive" className="flex-1 gap-1.5" onClick={() => setCancelDialogOpen(true)}>
