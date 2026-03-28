@@ -124,6 +124,8 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
   const [unassigning, setUnassigning] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [reopenExpired, setReopenExpired] = useState(false);
+  const [reopenTimeLeft, setReopenTimeLeft] = useState("");
 
   // Fetch booking history
   useEffect(() => {
@@ -134,6 +136,51 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
     };
     fetchHistory();
   }, [booking?.id, open]);
+
+  // 10-minute reopen timer for staff-cancelled bookings
+  useEffect(() => {
+    if (!booking || booking.status !== "CANCELLED" || !open) {
+      setReopenExpired(false);
+      setReopenTimeLeft("");
+      return;
+    }
+
+    // Find cancellation entry by staff (not customer)
+    const staffCancel = history.find(
+      (h) => h.action === "CANCELLED" && h.performer_role !== "customer"
+    );
+
+    if (!staffCancel) {
+      setReopenExpired(false);
+      return;
+    }
+
+    const cancelledAt = new Date(staffCancel.created_at).getTime();
+    const expiresAt = cancelledAt + 10 * 60 * 1000; // 10 minutes
+
+    const checkExpiry = () => {
+      const now = Date.now();
+      if (now >= expiresAt) {
+        setReopenExpired(true);
+        setReopenTimeLeft("");
+        return true;
+      }
+      const remaining = Math.ceil((expiresAt - now) / 1000);
+      const mins = Math.floor(remaining / 60);
+      const secs = remaining % 60;
+      setReopenTimeLeft(`${mins}:${secs.toString().padStart(2, "0")}`);
+      setReopenExpired(false);
+      return false;
+    };
+
+    if (checkExpiry()) return;
+
+    const interval = setInterval(() => {
+      if (checkExpiry()) clearInterval(interval);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [booking?.id, booking?.status, open, history]);
 
   const handleCancel = async () => {
     if (!booking || !cancelReason.trim()) return;
