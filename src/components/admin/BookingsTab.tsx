@@ -99,7 +99,13 @@ const BookingsTab = () => {
 
   useEffect(() => { fetchBookings(); }, []);
 
-  const filtered = bookings.filter((b) => {
+  // Filter out client-cancelled bookings (they disappear from dashboard)
+  const visibleBookings = bookings.filter((b) => {
+    if (b.status === "CANCELLED" && clientCancelledIds.has(b.id)) return false;
+    return true;
+  });
+
+  const filtered = visibleBookings.filter((b) => {
     if (filter !== "ALL" && b.status !== filter) return false;
     if (search) {
       const q = search.toLowerCase();
