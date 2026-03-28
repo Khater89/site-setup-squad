@@ -38,6 +38,7 @@ const BookingsTab = () => {
   const { toast } = useToast();
   const { t, formatCurrency, formatDateShort, isRTL } = useLanguage();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [clientCancelledIds, setClientCancelledIds] = useState<Set<string>>(new Set());
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [servicePrices, setServicePrices] = useState<Record<string, number>>({});
   const [serviceCategories, setServiceCategories] = useState<Record<string, string>>({});
@@ -50,12 +51,19 @@ const BookingsTab = () => {
   const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
 
   const fetchBookings = async () => {
-    const [bookingsRes, contactsRes, servicesRes, profilesRes] = await Promise.all([
+    const [bookingsRes, contactsRes, servicesRes, profilesRes, cancelHistoryRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("booking_contacts").select("*"),
       supabase.from("services").select("id, name, base_price, category"),
       supabase.from("profiles").select("user_id, full_name, phone"),
+      // Fetch cancellation history to identify client-cancelled bookings
+      supabase.from("booking_history").select("booking_id, performer_role").eq("action", "CANCELLED").eq("performer_role", "customer"),
     ]);
+
+    // Build set of client-cancelled booking IDs
+    const clientCancelled = new Set<string>();
+    (cancelHistoryRes.data || []).forEach((h: any) => { clientCancelled.add(h.booking_id); });
+    setClientCancelledIds(clientCancelled);
 
     // Merge contact info into bookings
     const contactMap: Record<string, any> = {};
