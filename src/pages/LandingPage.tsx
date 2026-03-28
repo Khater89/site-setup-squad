@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import ImageGallery from "@/components/landing/ImageGallery";
+import heroMedicalImg from "@/assets/hero-medical.jpg";
 import {
   ShieldCheck,
   Zap,
