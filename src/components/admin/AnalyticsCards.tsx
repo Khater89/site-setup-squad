@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarCheck, TrendingUp, Users, Clock, CheckCircle, XCircle } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { CalendarCheck, TrendingUp, Users, Clock, CheckCircle, XCircle, RotateCcw, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Stats {
   totalBookings: number;
