@@ -20,51 +20,76 @@ interface Stats {
   inProgressBookings: number;
 }
 
+const RESET_PASSWORD = "MFN@2026#Reset";
+
 const AnalyticsCards = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showReset, setShowReset] = useState(false);
+  const [resetPass, setResetPass] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayISO = today.toISOString();
+  const fetchStats = async () => {
+    setLoading(true);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString();
 
-      const [bookingsRes, providersRes, walletRes] = await Promise.all([
-        supabase.from("bookings").select("status, created_at, calculated_total, agreed_price"),
-        supabase.from("profiles").select("user_id, provider_status").eq("provider_status", "approved"),
-        supabase.from("provider_wallet_ledger").select("amount, reason").eq("reason", "platform_fee"),
-      ]);
+    const [bookingsRes, providersRes, walletRes] = await Promise.all([
+      supabase.from("bookings").select("status, created_at, calculated_total, agreed_price"),
+      supabase.from("profiles").select("user_id, provider_status").eq("provider_status", "approved"),
+      supabase.from("provider_wallet_ledger").select("amount, reason").eq("reason", "platform_fee"),
+    ]);
 
-      const bookings = bookingsRes.data || [];
-      const providers = providersRes.data || [];
-      const walletEntries = walletRes.data || [];
+    const bookings = bookingsRes.data || [];
+    const providers = providersRes.data || [];
+    const walletEntries = walletRes.data || [];
 
-      const totalRevenue = walletEntries.reduce((sum, e) => sum + Math.abs(e.amount), 0);
+    const totalRevenue = walletEntries.reduce((sum, e) => sum + Math.abs(e.amount), 0);
 
-      const todayBookings = bookings.filter(b => b.created_at >= todayISO);
-      const completedBookings = bookings.filter(b => b.status === "COMPLETED");
-      const todayCompleted = completedBookings.filter(b => b.created_at >= todayISO);
-      const todayRevenue = todayCompleted.reduce((sum, b) => {
-        const price = b.calculated_total || b.agreed_price || 0;
-        return sum + (price * 0.1); // approximate 10% platform fee
-      }, 0);
+    const todayBookings = bookings.filter(b => b.created_at >= todayISO);
+    const completedBookings = bookings.filter(b => b.status === "COMPLETED");
+    const todayCompleted = completedBookings.filter(b => b.created_at >= todayISO);
+    const todayRevenue = todayCompleted.reduce((sum, b) => {
+      const price = b.calculated_total || b.agreed_price || 0;
+      return sum + (price * 0.1);
+    }, 0);
 
-      setStats({
-        totalBookings: bookings.length,
-        todayBookings: todayBookings.length,
-        completedBookings: completedBookings.length,
-        cancelledBookings: bookings.filter(b => b.status === "CANCELLED").length,
-        activeProviders: providers.length,
-        totalRevenue,
-        todayRevenue,
-        inProgressBookings: bookings.filter(b => ["ASSIGNED", "ACCEPTED", "IN_PROGRESS"].includes(b.status)).length,
-      });
-      setLoading(false);
-    };
+    setStats({
+      totalBookings: bookings.length,
+      todayBookings: todayBookings.length,
+      completedBookings: completedBookings.length,
+      cancelledBookings: bookings.filter(b => b.status === "CANCELLED").length,
+      activeProviders: providers.length,
+      totalRevenue,
+      todayRevenue,
+      inProgressBookings: bookings.filter(b => ["ASSIGNED", "ACCEPTED", "IN_PROGRESS"].includes(b.status)).length,
+    });
+    setLoading(false);
+  };
 
-    fetchStats();
-  }, []);
+  useEffect(() => { fetchStats(); }, []);
+
+  const handleReset = async () => {
+    if (resetPass !== RESET_PASSWORD) {
+      toast({ title: "خطأ", description: "كلمة المرور غير صحيحة", variant: "destructive" });
+      return;
+    }
+    setResetting(true);
+    const { data, error } = await supabase.functions.invoke("admin-clear-all-bookings", {
+      body: { action: "delete" },
+    });
+    setResetting(false);
+    setShowReset(false);
+    setResetPass("");
+    if (error || data?.error) {
+      toast({ title: "خطأ", description: data?.error || error?.message, variant: "destructive" });
+    } else {
+      toast({ title: "تم", description: "تم مسح جميع البيانات بنجاح" });
+      fetchStats();
+    }
+  };
 
   if (loading) return <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
   if (!stats) return null;
