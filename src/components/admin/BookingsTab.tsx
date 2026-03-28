@@ -125,7 +125,7 @@ const BookingsTab = () => {
     <div className="space-y-4">
       {/* Header + Search */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-lg font-bold">{t("admin.bookings.title")} ({bookings.length})</h2>
+        <h2 className="text-lg font-bold">{t("admin.bookings.title")} ({visibleBookings.length})</h2>
         <div className="relative">
           <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`} />
           <Input
