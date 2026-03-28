@@ -106,19 +106,58 @@ const AnalyticsCards = () => {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {cards.map((c) => (
-        <Card key={c.label} className="border-border">
-          <CardContent className="py-4 px-4">
-            <div className="flex items-center justify-between mb-2">
-              <c.icon className={`h-5 w-5 ${c.color}`} />
-            </div>
-            <p className="text-2xl font-bold text-foreground">{c.value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{c.label}</p>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-muted-foreground">نظرة عامة</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-destructive hover:text-destructive gap-1.5"
+          onClick={() => setShowReset(true)}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          إعادة تعيين
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {cards.map((c) => (
+          <Card key={c.label} className="border-border">
+            <CardContent className="py-4 px-4">
+              <div className="flex items-center justify-between mb-2">
+                <c.icon className={`h-5 w-5 ${c.color}`} />
+              </div>
+              <p className="text-2xl font-bold text-foreground">{c.value}</p>
+              <p className="text-xs text-muted-foreground mt-1">{c.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Dialog open={showReset} onOpenChange={(o) => { setShowReset(o); if (!o) setResetPass(""); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">إعادة تعيين البيانات</DialogTitle>
+            <DialogDescription>
+              سيتم مسح جميع الحجوزات والسجلات المرتبطة بها. أدخل كلمة مرور الإدارة للمتابعة.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            type="password"
+            placeholder="كلمة مرور الإدارة"
+            value={resetPass}
+            onChange={(e) => setResetPass(e.target.value)}
+            dir="ltr"
+          />
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowReset(false); setResetPass(""); }}>إلغاء</Button>
+            <Button variant="destructive" onClick={handleReset} disabled={resetting || !resetPass}>
+              {resetting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+              تأكيد المسح
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
