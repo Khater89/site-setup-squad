@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, CheckCircle, MessageCircle, Copy, Key, Clock, XCircle, Info } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Bell, CheckCircle, MessageCircle, Copy, Key, Clock, XCircle, Info, Landmark, Banknote, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 interface StaffNotification {
@@ -22,12 +21,15 @@ interface StaffNotification {
   created_at: string;
 }
 
-type NotifCategory = "all" | "otp" | "late" | "reject" | "other";
+type NotifCategory = "all" | "otp" | "late" | "reject" | "settle" | "cliq" | "cancel" | "other";
 
 const categorize = (n: StaffNotification): NotifCategory => {
   if (n.title.includes("🔑")) return "otp";
   if (n.title.includes("تأخر") || n.title.includes("⏰")) return "late";
   if (n.title.includes("رفض") || n.title.includes("🚨")) return "reject";
+  if (n.title.includes("تسوية") || n.title.includes("💰")) return "settle";
+  if (n.title.includes("CliQ") || n.title.includes("دفع") || n.title.includes("💳")) return "cliq";
+  if (n.title.includes("إلغاء") || n.title.includes("❌")) return "cancel";
   return "other";
 };
 
@@ -36,24 +38,26 @@ const CATEGORY_CONFIG: Record<NotifCategory, { label: string; icon: React.ReactN
   otp: { label: "أكواد", icon: <Key className="h-3 w-3" /> },
   late: { label: "تأخير", icon: <Clock className="h-3 w-3" /> },
   reject: { label: "رفض", icon: <XCircle className="h-3 w-3" /> },
+  settle: { label: "تسويات", icon: <Landmark className="h-3 w-3" /> },
+  cliq: { label: "دفع", icon: <Banknote className="h-3 w-3" /> },
+  cancel: { label: "إلغاء", icon: <UserX className="h-3 w-3" /> },
   other: { label: "عام", icon: <Info className="h-3 w-3" /> },
 };
 
-/** Extract OTP code from notification body */
+const CATEGORIES: NotifCategory[] = ["all", "otp", "late", "reject", "settle", "cliq", "cancel", "other"];
+
 const extractOTP = (body: string | null): string | null => {
   if (!body) return null;
   const match = body.match(/كود التأكيد:\s*(\d{4})/);
   return match ? match[1] : null;
 };
 
-/** Extract customer phone from notification body */
 const extractPhone = (body: string | null): string | null => {
   if (!body) return null;
   const match = body.match(/(\d{10,13})/);
   return match ? match[1] : null;
 };
 
-/** Extract customer name from notification body */
 const extractCustomerName = (body: string | null): string | null => {
   if (!body) return null;
   const match = body.match(/العميل:\s*([^—\n]+)/);
@@ -65,24 +69,57 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
   const [notifications, setNotifications] = useState<StaffNotification[]>([]);
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NotifCategory>("all");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const PAGE_SIZE = 30;
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (pageNum = 1, append = false) => {
+    if (pageNum > 1) setLoadingMore(true);
+    const from = (pageNum - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
     const { data } = await supabase
       .from("staff_notifications" as any)
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(50);
-    setNotifications((data as unknown as StaffNotification[]) || []);
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+      .range(from, to);
+    const items = (data as unknown as StaffNotification[]) || [];
+    if (items.length < PAGE_SIZE) setHasMore(false);
+    setNotifications((prev) => append ? [...prev, ...items] : items);
+    setLoadingMore(false);
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  useEffect(() => {
+    fetchNotifications(1);
+    const interval = setInterval(() => fetchNotifications(1), 30000);
 
+    // Realtime subscription
+    const channel = supabase
+      .channel("staff-notifs-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "staff_notifications" }, (payload) => {
+        const newNotif = payload.new as unknown as StaffNotification;
+        setNotifications((prev) => [newNotif, ...prev]);
+      })
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchNotifications]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el || loadingMore || !hasMore) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchNotifications(nextPage, true);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
   const filtered = activeTab === "all" ? notifications : notifications.filter((n) => categorize(n) === activeTab);
 
   const unreadByCategory = (cat: NotifCategory) => {
@@ -113,7 +150,26 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  const handleNotifClick = (n: StaffNotification) => {
+    markRead(n.id);
+    if (n.booking_id) {
+      setOpen(false);
+      onOpenBooking?.(n.booking_id);
+    }
+  };
+
   const isOTPNotification = (n: StaffNotification) => n.title.includes("🔑");
+
+  const borderColorMap: Record<NotifCategory, string> = {
+    otp: "border-s-warning",
+    late: "border-s-destructive",
+    reject: "border-s-orange-500",
+    settle: "border-s-green-600",
+    cliq: "border-s-blue-500",
+    cancel: "border-s-red-500",
+    other: "border-s-primary",
+    all: "border-s-primary",
+  };
 
   const renderNotification = (n: StaffNotification) => {
     const otp = extractOTP(n.body);
@@ -121,24 +177,24 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
     const customerName = extractCustomerName(n.body);
     const isOTP = isOTPNotification(n);
     const cat = categorize(n);
-
-    const borderColor = cat === "otp" ? "border-s-warning" : cat === "late" ? "border-s-destructive" : cat === "reject" ? "border-s-orange-500" : "border-s-primary";
+    const borderColor = borderColorMap[cat];
 
     return (
       <div
         key={n.id}
-        className={`px-3 py-2.5 transition-colors border-s-4 ${borderColor} ${!n.read ? "bg-primary/5" : ""}`}
+        className={`px-3 py-2.5 transition-colors border-s-4 ${borderColor} ${!n.read ? "bg-primary/5" : ""} cursor-pointer hover:bg-muted/50`}
+        onClick={() => handleNotifClick(n)}
       >
-        <div className="cursor-pointer" onClick={() => { markRead(n.id); if (n.booking_id) { setOpen(false); onOpenBooking?.(n.booking_id); } }}>
-          <p className={`text-xs font-medium ${isOTP ? "text-warning" : cat === "late" ? "text-destructive" : cat === "reject" ? "text-orange-600" : ""}`}>{n.title}</p>
-          {n.body && !isOTP && (
-            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
-          )}
-        </div>
+        <p className={`text-xs font-medium ${isOTP ? "text-warning" : cat === "late" ? "text-destructive" : cat === "reject" ? "text-orange-600" : cat === "settle" ? "text-green-700" : cat === "cliq" ? "text-blue-600" : cat === "cancel" ? "text-red-600" : ""}`}>
+          {n.title}
+        </p>
+        {n.body && !isOTP && (
+          <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-3 whitespace-pre-line">{n.body}</p>
+        )}
 
         {/* OTP Special UI */}
         {isOTP && otp && (
-          <div className="mt-2 space-y-2">
+          <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-center gap-2 rounded-lg bg-warning/10 border border-warning/30 py-2 px-3">
               <Key className="h-4 w-4 text-warning" />
               <span className="text-xl font-bold tracking-[0.3em] text-warning" dir="ltr">{otp}</span>
@@ -149,29 +205,17 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
               </p>
             )}
             <div className="flex gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1 h-7 text-[10px] flex-1"
-                onClick={() => copyOTP(otp)}
-              >
+              <Button size="sm" variant="outline" className="gap-1 h-7 text-[10px] flex-1" onClick={() => copyOTP(otp)}>
                 <Copy className="h-3 w-3" /> نسخ الكود
               </Button>
               {phone && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 h-7 text-[10px] flex-1"
-                  onClick={() => sendOTPviaWhatsApp(phone, otp, customerName)}
-                >
+                <Button size="sm" variant="outline" className="gap-1 h-7 text-[10px] flex-1" onClick={() => sendOTPviaWhatsApp(phone, otp, customerName)}>
                   <MessageCircle className="h-3 w-3" /> إرسال واتساب
                 </Button>
               )}
               {phone && (
-                <a href={`tel:${phone}`}>
-                  <Button size="sm" variant="outline" className="gap-1 h-7 text-[10px]">
-                    📞
-                  </Button>
+                <a href={`tel:${phone}`} onClick={(e) => e.stopPropagation()}>
+                  <Button size="sm" variant="outline" className="gap-1 h-7 text-[10px]">📞</Button>
                 </a>
               )}
             </div>
@@ -195,7 +239,7 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[420px] p-0" align="end">
+      <PopoverContent className="w-[440px] p-0" align="end">
         <div className="flex items-center justify-between px-3 py-2 border-b border-border">
           <h4 className="text-sm font-bold">{t("notifications.title")}</h4>
           {unreadCount > 0 && (
@@ -206,11 +250,11 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as NotifCategory)} dir="rtl">
-          <TabsList className="w-full rounded-none border-b bg-transparent h-9 px-1">
-            {(["all", "otp", "late", "reject", "other"] as NotifCategory[]).map((cat) => {
+          <TabsList className="w-full rounded-none border-b bg-transparent h-auto px-1 flex flex-wrap gap-0.5 py-1">
+            {CATEGORIES.map((cat) => {
               const count = unreadByCategory(cat);
               return (
-                <TabsTrigger key={cat} value={cat} className="text-[10px] gap-1 px-2 py-1 data-[state=active]:bg-muted">
+                <TabsTrigger key={cat} value={cat} className="text-[10px] gap-0.5 px-1.5 py-1 data-[state=active]:bg-muted">
                   {CATEGORY_CONFIG[cat].icon}
                   {CATEGORY_CONFIG[cat].label}
                   {count > 0 && (
@@ -223,7 +267,11 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
             })}
           </TabsList>
 
-          <ScrollArea className="max-h-[400px]">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="max-h-[450px] overflow-y-auto"
+          >
             {filtered.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">{t("notifications.no_notifications")}</p>
             ) : (
@@ -231,7 +279,10 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
                 {filtered.map(renderNotification)}
               </div>
             )}
-          </ScrollArea>
+            {loadingMore && (
+              <p className="text-center text-xs text-muted-foreground py-3">جاري التحميل...</p>
+            )}
+          </div>
         </Tabs>
       </PopoverContent>
     </Popover>
