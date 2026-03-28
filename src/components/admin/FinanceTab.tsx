@@ -39,6 +39,8 @@ interface LedgerEntry {
   booking_id: string | null;
   booking_number?: string | null;
   cliq_reference?: string | null;
+  // Whether this debt entry has been settled already
+  is_settled?: boolean;
 }
 
 const FinanceTab = () => {
@@ -55,8 +57,9 @@ const FinanceTab = () => {
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(false);
 
-  // Settlement modal
+  // Per-booking settlement modal
   const [settlementOpen, setSettlementOpen] = useState(false);
+  const [settlementEntry, setSettlementEntry] = useState<LedgerEntry | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"cliq" | "cash">("cliq");
   const [cliqReference, setCliqReference] = useState("");
   const [cashAmount, setCashAmount] = useState("");
@@ -84,7 +87,6 @@ const FinanceTab = () => {
     for (const p of (profiles || [])) {
       const { data: bal } = await supabase.rpc("get_provider_balance", { _provider_id: p.user_id });
       const balance = bal || 0;
-      // Only include providers with debt (negative balance)
       if (balance < 0) {
         enriched.push({ ...p, balance });
         debt += Math.abs(balance);
@@ -127,36 +129,46 @@ const FinanceTab = () => {
       .eq("provider_id", provider.user_id)
       .order("created_at", { ascending: false });
 
-    const bookingIds = (entries || []).filter((e) => e.booking_id).map((e) => e.booking_id!);
+    const allEntries = entries || [];
+    const bookingIds = allEntries.filter((e) => e.booking_id).map((e) => e.booking_id!);
     let bookingMap: Record<string, string> = {};
     if (bookingIds.length > 0) {
       const { data: bookings } = await supabase
         .from("bookings")
         .select("id, booking_number")
-        .in("id", bookingIds);
+        .in("id", [...new Set(bookingIds)]);
       for (const b of (bookings || [])) {
         bookingMap[b.id] = b.booking_number || b.id.slice(0, 8);
       }
     }
 
-    setLedger((entries || []).map((e: any) => ({
+    // Determine which platform_fee entries have been settled (have a matching settlement with same booking_id)
+    const settlementBookingIds = new Set(
+      allEntries
+        .filter((e) => e.reason === "settlement" && e.booking_id)
+        .map((e) => e.booking_id!)
+    );
+
+    setLedger(allEntries.map((e: any) => ({
       ...e,
       booking_number: e.booking_id ? bookingMap[e.booking_id] || null : null,
+      is_settled: e.reason === "platform_fee" && e.booking_id ? settlementBookingIds.has(e.booking_id) : false,
     })));
     setLedgerLoading(false);
   };
 
-  const amountDue = selectedProvider ? Math.abs(Math.min(0, selectedProvider.balance)) : 0;
-
-  const openSettlementModal = () => {
+  const openSettlementForEntry = (entry: LedgerEntry) => {
+    setSettlementEntry(entry);
     setCliqReference("");
-    setCashAmount("");
+    setCashAmount(String(Math.abs(entry.amount)));
     setPaymentMethod("cliq");
     setSettlementOpen(true);
   };
 
+  const entryAmount = settlementEntry ? Math.abs(settlementEntry.amount) : 0;
+
   const confirmSettlement = async () => {
-    if (!selectedProvider || amountDue <= 0) return;
+    if (!selectedProvider || !settlementEntry) return;
 
     if (paymentMethod === "cliq" && !cliqReference.trim()) return;
     if (paymentMethod === "cash") {
@@ -166,13 +178,14 @@ const FinanceTab = () => {
 
     setSettlementLoading(true);
 
-    const settlementAmount = paymentMethod === "cash" ? parseFloat(cashAmount) : amountDue;
+    const settlementAmount = paymentMethod === "cash" ? parseFloat(cashAmount) : entryAmount;
     const reference = paymentMethod === "cliq" ? cliqReference.trim() : `CASH-${Date.now()}`;
 
     const { error } = await supabase.from("provider_wallet_ledger").insert({
       provider_id: selectedProvider.user_id,
       amount: settlementAmount,
       reason: "settlement",
+      booking_id: settlementEntry.booking_id,
       cliq_reference: reference,
       settled_at: new Date().toISOString(),
     });
@@ -181,15 +194,38 @@ const FinanceTab = () => {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     } else {
       const methodLabel = paymentMethod === "cliq" ? `CliQ: ${cliqReference.trim()}` : `كاش: ${formatCurrency(settlementAmount)}`;
+      const bookingNum = settlementEntry.booking_number || "—";
       await supabase.from("staff_notifications").insert({
-        title: `تسوية: ${selectedProvider.full_name || "مزوّد"}`,
-        body: `تمت تسوية ${formatCurrency(settlementAmount)} — ${methodLabel}`,
+        title: `💰 تسوية: ${selectedProvider.full_name || "مزوّد"} — طلب ${bookingNum}`,
+        body: `تمت تسوية ${formatCurrency(settlementAmount)} — ${methodLabel}\nرقم الطلب: ${bookingNum}`,
         target_role: "admin",
         provider_id: selectedProvider.user_id,
+        booking_id: settlementEntry.booking_id,
       });
+
+      // WhatsApp notification via outbox
+      const providerPhone = selectedProvider.phone || "";
+      if (providerPhone) {
+        const whatsappMessage = `مرحباً ${selectedProvider.full_name || "مزود"}، تم تسجيل تسوية مالية في حسابك بقيمة ${settlementAmount} د.أ عبر ${methodLabel} — طلب رقم ${bookingNum}. فريق إدارة Medical Field Nation.`;
+        await supabase.from("booking_outbox").insert({
+          booking_id: settlementEntry.booking_id || "00000000-0000-0000-0000-000000000000",
+          destination: "webhook",
+          payload: {
+            event: "provider_settlement",
+            provider_id: selectedProvider.user_id,
+            provider_name: selectedProvider.full_name,
+            provider_phone: providerPhone,
+            amount: settlementAmount,
+            payment_method: methodLabel,
+            booking_number: bookingNum,
+            message: whatsappMessage,
+          },
+        } as any);
+      }
 
       toast({ title: t("provider.details.settlement_success") });
       setSettlementOpen(false);
+      setSettlementEntry(null);
       const updatedProvider = { ...selectedProvider, balance: selectedProvider.balance + settlementAmount };
       setSelectedProvider(updatedProvider);
       openProviderLedger(updatedProvider);
@@ -261,7 +297,7 @@ const FinanceTab = () => {
         </div>
       </div>
 
-      {/* Provider Debt Table - only indebted providers */}
+      {/* Provider Debt Table */}
       {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
@@ -325,14 +361,7 @@ const FinanceTab = () => {
                 </CardContent>
               </Card>
 
-              {/* Settlement button */}
-              {amountDue > 0 && (
-                <Button variant="outline" className="w-full gap-1.5" onClick={openSettlementModal}>
-                  <DollarSign className="h-4 w-4" /> {t("provider.details.settlement")}
-                </Button>
-              )}
-
-              {/* Ledger entries */}
+              {/* Ledger entries with per-booking settle buttons */}
               {ledgerLoading ? (
                 <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
               ) : ledger.length === 0 ? (
@@ -354,12 +383,15 @@ const FinanceTab = () => {
                              entry.reason}
                           </Badge>
                           {entry.booking_number && (
-                            <span className="text-[10px] text-muted-foreground" dir="ltr">{entry.booking_number}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono" dir="ltr">{entry.booking_number}</span>
                           )}
                           {entry.cliq_reference && (
                             <span className="text-[10px] text-muted-foreground" dir="ltr">
-                              {entry.cliq_reference.startsWith("CASH-") ? "💵 كاش" : `CliQ: ${entry.cliq_reference}`}
+                              {entry.cliq_reference.startsWith("CASH-") ? "💵 كاش" : `💳 CliQ: ${entry.cliq_reference}`}
                             </span>
+                          )}
+                          {entry.reason === "platform_fee" && entry.is_settled && (
+                            <Badge variant="outline" className="text-[9px] bg-success/10 text-success border-success/30">✓ تمت التسوية</Badge>
                           )}
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -367,9 +399,22 @@ const FinanceTab = () => {
                           {formatDateShort(entry.created_at)}
                         </p>
                       </div>
-                      <span className={`text-sm font-bold ${entry.amount < 0 ? "text-destructive" : "text-success"}`}>
-                        {entry.amount > 0 ? "+" : ""}{formatCurrency(entry.amount)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-bold ${entry.amount < 0 ? "text-destructive" : "text-success"}`}>
+                          {entry.amount > 0 ? "+" : ""}{formatCurrency(entry.amount)}
+                        </span>
+                        {/* Per-booking settle button for unsettled platform_fee entries */}
+                        {entry.reason === "platform_fee" && !entry.is_settled && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[10px] gap-1 px-2"
+                            onClick={(e) => { e.stopPropagation(); openSettlementForEntry(entry); }}
+                          >
+                            <DollarSign className="h-3 w-3" /> تسوية
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -379,22 +424,29 @@ const FinanceTab = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Settlement Modal with CliQ/Cash choice */}
-      <Dialog open={settlementOpen} onOpenChange={setSettlementOpen}>
+      {/* Per-Booking Settlement Modal */}
+      <Dialog open={settlementOpen} onOpenChange={(open) => { if (!open) { setSettlementOpen(false); setSettlementEntry(null); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("provider.details.settlement")}</DialogTitle>
             <DialogDescription>
-              {selectedProvider?.full_name || "—"}
+              {selectedProvider?.full_name || "—"} — طلب {settlementEntry?.booking_number || "—"}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Amount due */}
+            {/* Booking info */}
+            {settlementEntry?.booking_number && (
+              <div className="rounded-md bg-muted/50 border border-border p-3 text-sm">
+                <p className="font-medium">رقم الطلب: <span dir="ltr" className="font-mono">{settlementEntry.booking_number}</span></p>
+              </div>
+            )}
+
+            {/* Amount due for this booking */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">المبلغ المستحق للمنصة</Label>
+              <Label className="text-sm font-medium">المبلغ المستحق لهذا الطلب</Label>
               <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm font-bold text-destructive">
-                {formatCurrency(amountDue)}
+                {formatCurrency(entryAmount)}
               </div>
             </div>
 
@@ -405,7 +457,7 @@ const FinanceTab = () => {
                 <div className="flex items-center gap-2 rounded-lg border border-border p-3 cursor-pointer hover:bg-accent/50 transition-colors">
                   <RadioGroupItem value="cliq" id="cliq" />
                   <Label htmlFor="cliq" className="cursor-pointer flex-1">
-                    <span className="text-sm font-medium">CliQ</span>
+                    <span className="text-sm font-medium">💳 CliQ</span>
                     <p className="text-[10px] text-muted-foreground">تسوية المبلغ الكامل عبر حوالة CliQ</p>
                   </Label>
                 </div>
@@ -452,22 +504,22 @@ const FinanceTab = () => {
                   step="0.5"
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  الحد الأقصى: {formatCurrency(amountDue)}
+                  الحد الأقصى: {formatCurrency(entryAmount)}
                 </p>
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSettlementOpen(false)}>
+            <Button variant="outline" onClick={() => { setSettlementOpen(false); setSettlementEntry(null); }}>
               إلغاء
             </Button>
             <Button
               onClick={confirmSettlement}
               disabled={
-                settlementLoading || amountDue <= 0 ||
+                settlementLoading || entryAmount <= 0 ||
                 (paymentMethod === "cliq" && !cliqReference.trim()) ||
-                (paymentMethod === "cash" && (!cashAmount || parseFloat(cashAmount) <= 0 || parseFloat(cashAmount) > amountDue))
+                (paymentMethod === "cash" && (!cashAmount || parseFloat(cashAmount) <= 0 || parseFloat(cashAmount) > entryAmount))
               }
               className="gap-1.5"
             >
