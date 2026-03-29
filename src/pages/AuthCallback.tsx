@@ -92,7 +92,18 @@ const AuthCallback = () => {
               navigate("/account-review", { replace: true });
             }
           } else {
-            navigate("/", { replace: true });
+            // Check if this user has pending provider registration (role_type set)
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("role_type, provider_status")
+              .eq("user_id", session.user.id)
+              .maybeSingle();
+
+            if (prof?.role_type) {
+              navigate("/account-review", { replace: true });
+            } else {
+              navigate("/", { replace: true });
+            }
           }
         }
       }
