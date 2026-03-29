@@ -365,6 +365,17 @@ const ProviderDashboard = () => {
       setDebtLimit(limit);
       setIsOnHold(bal < limit);
     }
+    // Fetch provider notifications
+    const { data: notifs } = await supabase
+      .from("staff_notifications")
+      .select("*")
+      .eq("provider_id", user.id)
+      .eq("target_role", "provider")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setProviderNotifications(notifs || []);
+    setUnreadNotifCount((notifs || []).filter((n: any) => !n.read).length);
+
     setLoading(false);
   };
 
