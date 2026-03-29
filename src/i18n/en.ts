@@ -183,9 +183,13 @@ const en: Record<string, string> = {
   "role_type.physiotherapist": "Physiotherapist",
 
   // Payment
-  "payment.CASH": "Cash",
+  "payment.CASH": "Cash (to provider)",
   "payment.CLIQ": "CliQ",
   "payment.CARD": "Card",
+  "payment.INSURANCE": "Medical Insurance",
+  "payment.cash_desc": "Pay cash to the provider",
+  "payment.cliq_desc": "Transfer via CliQ to platform",
+  "payment.insurance_desc": "Pay via medical insurance",
   "payment.UNPAID": "Unpaid",
   "payment.PAID": "Paid",
   "payment.PARTIAL": "Partial",
