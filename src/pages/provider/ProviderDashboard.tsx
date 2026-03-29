@@ -47,6 +47,7 @@ interface ProviderOrder {
   client_lat: number | null;
   client_lng: number | null;
   notes: string | null;
+  payment_method: string | null;
   check_in_at: string | null;
   check_out_at: string | null;
   actual_duration_minutes: number | null;
