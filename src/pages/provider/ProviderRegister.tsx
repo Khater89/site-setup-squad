@@ -12,6 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Loader2, UserPlus, CheckCircle, Clock, XCircle, ArrowRight, Eye, EyeOff, Upload } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { lovable } from "@/integrations/lovable/index";
+import { applyPendingProviderProfile, getPendingProviderProfileFromMetadata, PENDING_PROVIDER_PROFILE_KEY } from "@/lib/providerPendingProfile";
 import mfnLogo from "@/assets/mfn-logo.png";
 
 const ROLE_TYPES = ["doctor", "nurse", "physiotherapist"];
@@ -304,7 +305,19 @@ const ProviderRegister = () => {
       password: password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: { full_name: name.trim() },
+        data: {
+          full_name: name.trim(),
+          phone: phone.trim(),
+          city: city.trim(),
+          date_of_birth: dob,
+          role_type: roleType,
+          license_id: licenseId.trim(),
+          experience_years: experienceYears ? parseInt(experienceYears) : null,
+          address_text: addressText.trim() || null,
+          radius_km: radiusKm ? parseInt(radiusKm) : 20,
+          specialties: selectedSpecialties.length > 0 ? selectedSpecialties : null,
+          pending_provider_application: true,
+        },
       },
     });
 
@@ -395,7 +408,7 @@ const ProviderRegister = () => {
         pendingData._experienceCertName = pendingExperienceFile.name;
       }
 
-      localStorage.setItem("pending_provider_profile", JSON.stringify(pendingData));
+      localStorage.setItem(PENDING_PROVIDER_PROFILE_KEY, JSON.stringify(pendingData));
       setSaving(false);
       navigate("/verify-email");
     }
@@ -452,15 +465,27 @@ const ProviderRegister = () => {
     }
 
     // After login, check if there's pending profile data to apply
-    const pendingProfile = localStorage.getItem("pending_provider_profile");
-    if (pendingProfile && data.user) {
-      const profileData = JSON.parse(pendingProfile);
-      await supabase
+    const pendingProfile = localStorage.getItem(PENDING_PROVIDER_PROFILE_KEY);
+    const metadataPending = getPendingProviderProfileFromMetadata(data.user.user_metadata as Record<string, any>);
+    if (data.user && (pendingProfile || metadataPending)) {
+      const { data: existingProfile } = await supabase
         .from("profiles")
-        .update({ ...profileData, provider_status: "pending" })
-        .eq("user_id", data.user.id);
-      localStorage.removeItem("pending_provider_profile");
-      await refreshUserData();
+        .select("role_type")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      if (!existingProfile?.role_type) {
+        try {
+          await applyPendingProviderProfile(data.user.id, pendingProfile || metadataPending!);
+          localStorage.removeItem(PENDING_PROVIDER_PROFILE_KEY);
+          await refreshUserData();
+        } catch (pendingError: any) {
+          toast({ title: t("common.error"), description: pendingError.message, variant: "destructive" });
+          return;
+        }
+      } else if (pendingProfile) {
+        localStorage.removeItem(PENDING_PROVIDER_PROFILE_KEY);
+      }
     }
 
     toast({ title: t("register.login_success") });
