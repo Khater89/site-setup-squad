@@ -7,7 +7,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, CheckCircle, MessageCircle, Copy, Key, Clock, XCircle, Info, Landmark, Banknote, UserX } from "lucide-react";
+import { Bell, CheckCircle, MessageCircle, Copy, Key, Clock, XCircle, Info, Landmark, Banknote, UserX, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 interface StaffNotification {
