@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Loader2, UserPlus, CheckCircle, Clock, XCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Loader2, UserPlus, CheckCircle, Clock, XCircle, ArrowRight, Eye, EyeOff, Upload } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { lovable } from "@/integrations/lovable/index";
 import mfnLogo from "@/assets/mfn-logo.png";
@@ -50,6 +50,12 @@ const ProviderRegister = () => {
   const [mode, setMode] = useState<"register" | "login">("register");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [academicCertUrl, setAcademicCertUrl] = useState<string | null>(null);
+  const [experienceCertUrl, setExperienceCertUrl] = useState<string | null>(null);
+  const [uploadingAcademic, setUploadingAcademic] = useState(false);
+  const [uploadingExperience, setUploadingExperience] = useState(false);
+  const academicFileRef = useRef<HTMLInputElement>(null);
+  const experienceFileRef = useRef<HTMLInputElement>(null);
 
   const availableSpecialties = useMemo(() => SPECIALTIES_MAP[roleType] || [], [roleType]);
 
@@ -70,6 +76,8 @@ const ProviderRegister = () => {
       setAddressText(profile.address_text || "");
       setRadiusKm(profile.radius_km?.toString() || "20");
       setSelectedSpecialties(profile.specialties || []);
+      setAcademicCertUrl((profile as any).academic_cert_url || null);
+      setExperienceCertUrl((profile as any).experience_cert_url || null);
     }
   }, [profile]);
 
@@ -84,6 +92,29 @@ const ProviderRegister = () => {
     setSelectedSpecialties((prev) =>
       prev.includes(spec) ? prev.filter((s) => s !== spec) : [...prev, spec]
     );
+  };
+
+  const handleCertUpload = async (file: File, type: "academic" | "experience", userId?: string) => {
+    const uid = userId || user?.id;
+    if (!uid) return null;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: t("register.file_too_large"), variant: "destructive" });
+      return null;
+    }
+    const setter = type === "academic" ? setUploadingAcademic : setUploadingExperience;
+    setter(true);
+    const ext = file.name.split(".").pop();
+    const path = `${uid}/${type}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("provider-certificates").upload(path, file, { upsert: true });
+    setter(false);
+    if (error) {
+      toast({ title: t("register.upload_error"), description: error.message, variant: "destructive" });
+      return null;
+    }
+    if (type === "academic") setAcademicCertUrl(path);
+    else setExperienceCertUrl(path);
+    toast({ title: t("register.uploaded") });
+    return path;
   };
 
   const passwordErrors = useMemo(() => {
@@ -149,6 +180,10 @@ const ProviderRegister = () => {
         toast({ title: t("register.fill_required"), variant: "destructive" });
         return;
       }
+      if (!academicCertUrl) {
+        toast({ title: t("register.academic_required"), variant: "destructive" });
+        return;
+      }
 
       setSaving(true);
       const { error } = await supabase
@@ -165,7 +200,9 @@ const ProviderRegister = () => {
           radius_km: radiusKm ? parseInt(radiusKm) : 20,
           specialties: selectedSpecialties.length > 0 ? selectedSpecialties : null,
           provider_status: "pending",
-        })
+          academic_cert_url: academicCertUrl,
+          experience_cert_url: experienceCertUrl,
+        } as any)
         .eq("user_id", user.id);
 
       setSaving(false);
@@ -210,6 +247,10 @@ const ProviderRegister = () => {
 
     if (!name.trim() || !phone.trim() || !city.trim() || !email.trim() || !password.trim() || !dob || !roleType || !licenseId.trim()) {
       toast({ title: t("register.fill_required"), variant: "destructive" });
+      return;
+    }
+    if (!academicCertUrl) {
+      toast({ title: t("register.academic_required"), variant: "destructive" });
       return;
     }
 
@@ -265,7 +306,9 @@ const ProviderRegister = () => {
           radius_km: radiusKm ? parseInt(radiusKm) : 20,
           specialties: selectedSpecialties.length > 0 ? selectedSpecialties : null,
           provider_status: "pending",
-        })
+          academic_cert_url: academicCertUrl,
+          experience_cert_url: experienceCertUrl,
+        } as any)
         .eq("user_id", newUser.id);
 
       await refreshUserData();
@@ -285,6 +328,8 @@ const ProviderRegister = () => {
         address_text: addressText.trim() || null,
         radius_km: radiusKm ? parseInt(radiusKm) : 20,
         specialties: selectedSpecialties.length > 0 ? selectedSpecialties : null,
+        academic_cert_url: academicCertUrl,
+        experience_cert_url: experienceCertUrl,
       }));
       setSaving(false);
       navigate("/verify-email");
@@ -406,6 +451,29 @@ const ProviderRegister = () => {
         <div>
           <label className="text-sm font-medium">{t("register.radius_km")}</label>
           <Input type="number" min="1" max="200" value={radiusKm} onChange={(e) => setRadiusKm(e.target.value)} placeholder="20" dir="ltr" />
+        </div>
+
+        {/* Certificate Uploads */}
+        <h3 className="text-sm font-semibold text-muted-foreground border-b pb-1 mt-4">{t("register.section.professional")} - المستندات</h3>
+        <div>
+          <label className="text-sm font-medium">{t("register.academic_cert")} *</label>
+          <p className="text-xs text-muted-foreground mb-1">{t("register.academic_cert.hint")}</p>
+          <input ref={academicFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCertUpload(f, "academic"); }} />
+          <Button type="button" variant="outline" className="w-full gap-2" onClick={() => academicFileRef.current?.click()} disabled={uploadingAcademic}>
+            {uploadingAcademic ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploadingAcademic ? t("register.uploading") : academicCertUrl ? t("register.uploaded") : t("register.upload_file")}
+          </Button>
+        </div>
+        <div>
+          <label className="text-sm font-medium">{t("register.experience_cert")}</label>
+          <p className="text-xs text-muted-foreground mb-1">{t("register.experience_cert.hint")}</p>
+          <input ref={experienceFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCertUpload(f, "experience"); }} />
+          <Button type="button" variant="outline" className="w-full gap-2" onClick={() => experienceFileRef.current?.click()} disabled={uploadingExperience}>
+            {uploadingExperience ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploadingExperience ? t("register.uploading") : experienceCertUrl ? t("register.uploaded") : t("register.upload_file")}
+          </Button>
         </div>
 
         {/* Dynamic Specialties */}

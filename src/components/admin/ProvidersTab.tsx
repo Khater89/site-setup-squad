@@ -104,6 +104,13 @@ const ProvidersTab = () => {
     if (e1 || e2) {
       toast({ title: t("common.error"), description: (e1 || e2)?.message, variant: "destructive" });
     } else {
+      // Send approval notification to provider
+      await supabase.from("staff_notifications").insert({
+        title: "تم قبول طلب انضمامك ✅",
+        body: "تم قبول طلب انضمامك بنجاح، يمكنك الآن البدء بالعمل. أكمل ملفك الشخصي للبدء باستقبال الطلبات.",
+        target_role: "provider",
+        provider_id: userId,
+      });
       toast({ title: t("provider.details.approve_success") });
       fetchProviders();
     }
