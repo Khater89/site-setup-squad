@@ -18,6 +18,7 @@ interface Props {
     area_public?: string | null;
     notes?: string | null;
     agreed_price?: number | null;
+    client_address_text?: string | null;
   };
   serviceName: string;
   coordinatorPhone: string | null;
