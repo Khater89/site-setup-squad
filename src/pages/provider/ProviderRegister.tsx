@@ -54,6 +54,8 @@ const ProviderRegister = () => {
   const [experienceCertUrl, setExperienceCertUrl] = useState<string | null>(null);
   const [uploadingAcademic, setUploadingAcademic] = useState(false);
   const [uploadingExperience, setUploadingExperience] = useState(false);
+  const [pendingAcademicFile, setPendingAcademicFile] = useState<File | null>(null);
+  const [pendingExperienceFile, setPendingExperienceFile] = useState<File | null>(null);
   const academicFileRef = useRef<HTMLInputElement>(null);
   const experienceFileRef = useRef<HTMLInputElement>(null);
 
