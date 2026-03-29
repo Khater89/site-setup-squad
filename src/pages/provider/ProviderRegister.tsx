@@ -180,6 +180,10 @@ const ProviderRegister = () => {
         toast({ title: t("register.fill_required"), variant: "destructive" });
         return;
       }
+      if (!academicCertUrl) {
+        toast({ title: t("register.academic_required"), variant: "destructive" });
+        return;
+      }
 
       setSaving(true);
       const { error } = await supabase
@@ -196,7 +200,9 @@ const ProviderRegister = () => {
           radius_km: radiusKm ? parseInt(radiusKm) : 20,
           specialties: selectedSpecialties.length > 0 ? selectedSpecialties : null,
           provider_status: "pending",
-        })
+          academic_cert_url: academicCertUrl,
+          experience_cert_url: experienceCertUrl,
+        } as any)
         .eq("user_id", user.id);
 
       setSaving(false);
