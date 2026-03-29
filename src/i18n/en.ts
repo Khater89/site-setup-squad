@@ -91,6 +91,14 @@ const en: Record<string, string> = {
   "form.case_details": "Case Details",
   "form.case_details.placeholder": "Describe the medical case in detail (e.g. symptoms, medical history, current medications)...",
   "form.case_details.required": "Case details are required",
+  "form.case_classification": "Case Classification (select all that apply)",
+  "form.case_class.needs_diagnosis": "Needs Diagnosis",
+  "form.case_class.nursing": "Nursing",
+  "form.case_class.physiotherapy": "Physiotherapy",
+  "form.case_class.elderly_care": "Elderly Care",
+  "form.case_class.post_surgery": "Post-Surgery",
+  "form.case_class.emergency": "Emergency",
+  "form.case_class.other": "Other",
 
   // Time slots
   "time.morning": "Morning (8-12)",
