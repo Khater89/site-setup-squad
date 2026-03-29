@@ -21,9 +21,10 @@ interface StaffNotification {
   created_at: string;
 }
 
-type NotifCategory = "all" | "otp" | "late" | "reject" | "settle" | "cliq" | "cancel" | "other";
+type NotifCategory = "all" | "join" | "otp" | "late" | "reject" | "settle" | "cliq" | "cancel" | "other";
 
 const categorize = (n: StaffNotification): NotifCategory => {
+  if (n.title.includes("انضمام") || n.title.includes("📋")) return "join";
   if (n.title.includes("🔑")) return "otp";
   if (n.title.includes("تأخر") || n.title.includes("⏰")) return "late";
   if (n.title.includes("رفض") || n.title.includes("🚨")) return "reject";
