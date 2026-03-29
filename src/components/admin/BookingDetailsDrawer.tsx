@@ -18,6 +18,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import OrderWorkflowPhases from "./OrderWorkflowPhases";
+import BroadcastProvidersDialog from "./BroadcastProvidersDialog";
+import ProviderQuotesSection from "./ProviderQuotesSection";
 
 export interface BookingRow {
   id: string;
@@ -55,6 +57,7 @@ export interface BookingRow {
   customer_name?: string | null;
   customer_phone?: string | null;
   client_address_text?: string | null;
+  area_public?: string | null;
   otp_code?: string | null;
   check_in_at?: string | null;
 }
@@ -126,6 +129,15 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [reopenExpired, setReopenExpired] = useState(false);
   const [reopenTimeLeft, setReopenTimeLeft] = useState("");
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
+
+  // Fetch coordinator phone
+  useEffect(() => {
+    supabase.from("platform_settings").select("coordinator_phone").eq("id", 1).maybeSingle().then(({ data }) => {
+      if (data) setCoordinatorPhone((data as any).coordinator_phone);
+    });
+  }, []);
 
   // Fetch booking history
   useEffect(() => {
@@ -326,6 +338,21 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
               {t(`status.${booking.status}`)}
             </Badge>
           </div>
+
+          {/* Broadcast to providers button - only for NEW bookings */}
+          {booking.status === "NEW" && (
+            <Button
+              variant="outline"
+              className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => setBroadcastOpen(true)}
+            >
+              <MessageCircle className="h-4 w-4" />
+              بث الطلب لجميع المزودين
+            </Button>
+          )}
+
+          {/* Provider Quotes */}
+          <ProviderQuotesSection bookingId={booking.id} />
 
           {/* Client Info */}
           <div className="rounded-lg border border-border p-3 space-y-3">
@@ -656,6 +683,15 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
           </DialogContent>
         </Dialog>
       </SheetContent>
+
+      {/* Broadcast Dialog */}
+      <BroadcastProvidersDialog
+        open={broadcastOpen}
+        onOpenChange={setBroadcastOpen}
+        booking={booking}
+        serviceName={serviceName}
+        coordinatorPhone={coordinatorPhone}
+      />
     </Sheet>
   );
 };
