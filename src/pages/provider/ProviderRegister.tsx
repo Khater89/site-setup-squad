@@ -306,7 +306,9 @@ const ProviderRegister = () => {
           radius_km: radiusKm ? parseInt(radiusKm) : 20,
           specialties: selectedSpecialties.length > 0 ? selectedSpecialties : null,
           provider_status: "pending",
-        })
+          academic_cert_url: academicCertUrl,
+          experience_cert_url: experienceCertUrl,
+        } as any)
         .eq("user_id", newUser.id);
 
       await refreshUserData();
