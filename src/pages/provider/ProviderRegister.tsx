@@ -76,6 +76,8 @@ const ProviderRegister = () => {
       setAddressText(profile.address_text || "");
       setRadiusKm(profile.radius_km?.toString() || "20");
       setSelectedSpecialties(profile.specialties || []);
+      setAcademicCertUrl((profile as any).academic_cert_url || null);
+      setExperienceCertUrl((profile as any).experience_cert_url || null);
     }
   }, [profile]);
 
