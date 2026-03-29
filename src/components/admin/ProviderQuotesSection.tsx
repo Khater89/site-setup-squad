@@ -100,15 +100,45 @@ const ProviderQuotesSection = ({ bookingId, onSelectQuote }: Props) => {
     fetch();
   }, [bookingId]);
 
+  const sortedQuotes = useMemo(() => {
+    return [...quotes].sort((a, b) => {
+      if (sortMode === "price") return a.quoted_price - b.quoted_price;
+      // rating: low to high
+      const rA = providerStats[a.provider_id]?.avgRating ?? 0;
+      const rB = providerStats[b.provider_id]?.avgRating ?? 0;
+      return rA - rB;
+    });
+  }, [quotes, sortMode, providerStats]);
+
   if (loading) return null;
   if (quotes.length === 0) return null;
 
   return (
     <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
-      <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-        <DollarSign className="h-3 w-3" /> عروض الأسعار ({quotes.length})
-      </h4>
-      {quotes.map((q) => {
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+          <DollarSign className="h-3 w-3" /> عروض الأسعار ({quotes.length})
+        </h4>
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant={sortMode === "price" ? "default" : "outline"}
+            className="h-5 text-[9px] px-2 gap-0.5"
+            onClick={() => setSortMode("price")}
+          >
+            <ArrowUpDown className="h-2.5 w-2.5" /> السعر
+          </Button>
+          <Button
+            size="sm"
+            variant={sortMode === "rating" ? "default" : "outline"}
+            className="h-5 text-[9px] px-2 gap-0.5"
+            onClick={() => setSortMode("rating")}
+          >
+            <Star className="h-2.5 w-2.5" /> التقييم
+          </Button>
+        </div>
+      </div>
+      {sortedQuotes.map((q) => {
         const stats = providerStats[q.provider_id];
         return (
           <div
