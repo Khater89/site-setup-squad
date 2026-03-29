@@ -274,6 +274,8 @@ const ProviderDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [providerNotifications, setProviderNotifications] = useState<any[]>([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
   const [coordinatorPhone2, setCoordinatorPhone2] = useState<string | null>(null);
   const [completeDialogOrder, setCompleteDialogOrder] = useState<string | null>(null);
