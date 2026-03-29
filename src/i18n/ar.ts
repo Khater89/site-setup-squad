@@ -91,6 +91,14 @@ const ar: Record<string, string> = {
   "form.case_details": "تفاصيل الحالة",
   "form.case_details.placeholder": "اوصف الحالة الطبية بالتفصيل (مثال: الأعراض، التاريخ المرضي، الأدوية الحالية)...",
   "form.case_details.required": "تفاصيل الحالة مطلوبة",
+  "form.case_classification": "تصنيف الحالة (اختر ما ينطبق)",
+  "form.case_class.needs_diagnosis": "تحتاج تشخيص",
+  "form.case_class.nursing": "تمريض",
+  "form.case_class.physiotherapy": "علاج طبيعي",
+  "form.case_class.elderly_care": "رعاية مسنين",
+  "form.case_class.post_surgery": "ما بعد عملية",
+  "form.case_class.emergency": "طوارئ",
+  "form.case_class.other": "أخرى",
 
   // Time slots
   "time.morning": "صباحاً (8-12)",
