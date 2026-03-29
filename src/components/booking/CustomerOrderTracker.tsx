@@ -39,6 +39,8 @@ const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
   const [comment, setComment] = useState("");
   const [submittingRating, setSubmittingRating] = useState(false);
   const [existingRating, setExistingRating] = useState<any>(null);
+  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [savingPayment, setSavingPayment] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
