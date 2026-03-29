@@ -338,6 +338,21 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
             </Badge>
           </div>
 
+          {/* Broadcast to providers button - only for NEW bookings */}
+          {booking.status === "NEW" && (
+            <Button
+              variant="outline"
+              className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => setBroadcastOpen(true)}
+            >
+              <MessageCircle className="h-4 w-4" />
+              بث الطلب لجميع المزودين
+            </Button>
+          )}
+
+          {/* Provider Quotes */}
+          <ProviderQuotesSection bookingId={booking.id} />
+
           {/* Client Info */}
           <div className="rounded-lg border border-border p-3 space-y-3">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("booking.details.client_info")}</h4>
