@@ -5,6 +5,7 @@ import { Loader2, AlertCircle, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { applyPendingProviderProfile, getPendingProviderProfileFromMetadata, PENDING_PROVIDER_PROFILE_KEY } from "@/lib/providerPendingProfile";
 import mfnLogo from "@/assets/mfn-logo.png";
 
 const AuthCallback = () => {
@@ -18,59 +19,24 @@ const AuthCallback = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user) {
-          // Apply pending provider profile from localStorage if exists
-          const pending = localStorage.getItem("pending_provider_profile");
-          if (pending) {
+          const { data: existingProfile } = await supabase
+            .from("profiles")
+            .select("role_type")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          const pending = localStorage.getItem(PENDING_PROVIDER_PROFILE_KEY);
+          const metadataPending = getPendingProviderProfileFromMetadata(session.user.user_metadata as Record<string, any>);
+
+          if (!existingProfile?.role_type && (pending || metadataPending)) {
             try {
-              const profileData = JSON.parse(pending);
-              
-              // Upload any pending cert files stored as base64
-              let academicUrl: string | null = profileData.academic_cert_url || null;
-              let experienceUrl: string | null = profileData.experience_cert_url || null;
-
-              if (profileData._academicCertBase64) {
-                const response = await fetch(profileData._academicCertBase64);
-                const blob = await response.blob();
-                const ext = profileData._academicCertName?.split(".").pop() || "pdf";
-                const path = `${session.user.id}/academic-${Date.now()}.${ext}`;
-                const { error: uploadErr } = await supabase.storage
-                  .from("provider-certificates")
-                  .upload(path, blob, { upsert: true });
-                if (!uploadErr) academicUrl = path;
-              }
-              if (profileData._experienceCertBase64) {
-                const response = await fetch(profileData._experienceCertBase64);
-                const blob = await response.blob();
-                const ext = profileData._experienceCertName?.split(".").pop() || "pdf";
-                const path = `${session.user.id}/experience-${Date.now()}.${ext}`;
-                const { error: uploadErr } = await supabase.storage
-                  .from("provider-certificates")
-                  .upload(path, blob, { upsert: true });
-                if (!uploadErr) experienceUrl = path;
-              }
-
-              // Clean up internal keys before saving
-              const { _academicCertBase64, _academicCertName, _experienceCertBase64, _experienceCertName, ...cleanData } = profileData;
-
-              await supabase.from("profiles").update({
-                ...cleanData,
-                academic_cert_url: academicUrl,
-                experience_cert_url: experienceUrl,
-                provider_status: "pending",
-              }).eq("user_id", session.user.id);
-
-              // Send admin notification about new join request
-              const roleLabel = cleanData.role_type === "doctor" ? "طبيب" : cleanData.role_type === "nurse" ? "ممرض/ة" : cleanData.role_type === "physiotherapist" ? "أخصائي علاج طبيعي" : cleanData.role_type;
-              await supabase.from("staff_notifications" as any).insert({
-                title: "📋 طلب انضمام جديد",
-                body: `تقدّم ${cleanData.full_name || ""} (${roleLabel || ""}) من ${cleanData.city || ""} بطلب انضمام كمزود خدمة. يرجى مراجعة الطلب واتخاذ الإجراء المناسب.`,
-                target_role: "admin",
-                provider_id: session.user.id,
-              });
-            } catch {
-              // ignore parse errors
+              await applyPendingProviderProfile(session.user.id, pending || metadataPending!);
+              localStorage.removeItem(PENDING_PROVIDER_PROFILE_KEY);
+            } catch (pendingError) {
+              console.error("Failed to apply pending provider profile:", pendingError);
             }
-            localStorage.removeItem("pending_provider_profile");
+          } else if (pending) {
+            localStorage.removeItem(PENDING_PROVIDER_PROFILE_KEY);
           }
 
           // Check roles to determine redirect
