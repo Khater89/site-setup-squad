@@ -98,10 +98,21 @@ const ProviderRegister = () => {
 
   const handleCertUpload = async (file: File, type: "academic" | "experience", userId?: string) => {
     const uid = userId || user?.id;
-    if (!uid) return null;
     if (file.size > 5 * 1024 * 1024) {
       toast({ title: t("register.file_too_large"), variant: "destructive" });
       return null;
+    }
+    // If no user yet, store file for deferred upload after signup
+    if (!uid) {
+      if (type === "academic") {
+        setPendingAcademicFile(file);
+        setAcademicCertUrl("pending");
+      } else {
+        setPendingExperienceFile(file);
+        setExperienceCertUrl("pending");
+      }
+      toast({ title: t("register.uploaded") });
+      return "pending";
     }
     const setter = type === "academic" ? setUploadingAcademic : setUploadingExperience;
     setter(true);
@@ -117,6 +128,25 @@ const ProviderRegister = () => {
     else setExperienceCertUrl(path);
     toast({ title: t("register.uploaded") });
     return path;
+  };
+
+  const uploadPendingCerts = async (uid: string): Promise<{ academic: string | null; experience: string | null }> => {
+    let academic: string | null = academicCertUrl !== "pending" ? academicCertUrl : null;
+    let experience: string | null = experienceCertUrl !== "pending" ? experienceCertUrl : null;
+
+    if (pendingAcademicFile) {
+      const ext = pendingAcademicFile.name.split(".").pop();
+      const path = `${uid}/academic-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("provider-certificates").upload(path, pendingAcademicFile, { upsert: true });
+      if (!error) academic = path;
+    }
+    if (pendingExperienceFile) {
+      const ext = pendingExperienceFile.name.split(".").pop();
+      const path = `${uid}/experience-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("provider-certificates").upload(path, pendingExperienceFile, { upsert: true });
+      if (!error) experience = path;
+    }
+    return { academic, experience };
   };
 
   const passwordErrors = useMemo(() => {
