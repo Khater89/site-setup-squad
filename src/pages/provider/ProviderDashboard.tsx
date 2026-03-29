@@ -655,6 +655,17 @@ const ProviderDashboard = () => {
 
       // Debt is now auto-recorded by database trigger (record_completion_debt)
 
+      // Send wallet debt notification if payment is cash or insurance
+      if (order && (order.payment_method === "CASH" || order.payment_method === "INSURANCE")) {
+        await supabase.from("staff_notifications").insert({
+          title: "مستحقات محفظة جديدة 💰",
+          body: `تنبيه: يرجى تسديد القيمة المرصدة في محفظتك خلال 24 ساعة لتجنب تعليق الحساب. (طلب ${order.booking_number || ""})`,
+          target_role: "provider",
+          provider_id: user.id,
+          booking_id: id,
+        });
+      }
+
       await logHistory(id, "COMPLETED", closeOutNote.trim());
       setCloseOutNote("");
       toast({ title: t("provider.dashboard.completed_toast") });
