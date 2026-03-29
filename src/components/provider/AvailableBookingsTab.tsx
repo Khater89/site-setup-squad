@@ -20,6 +20,7 @@ interface AvailableBooking {
   area_public: string | null;
   notes: string | null;
   created_at: string;
+  payment_method: string | null;
 }
 
 interface Props {
