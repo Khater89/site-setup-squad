@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, User, Clock, Star, CheckCheck, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DollarSign, User, Clock, Star, CheckCheck, XCircle, ArrowUpDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface Quote {
@@ -23,6 +24,8 @@ interface ProviderStats {
   ratingCount: number;
 }
 
+type SortMode = "price" | "rating";
+
 interface Props {
   bookingId: string;
   onSelectQuote?: (providerId: string, quotedPrice: number) => void;
@@ -32,6 +35,7 @@ const ProviderQuotesSection = ({ bookingId, onSelectQuote }: Props) => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [providerStats, setProviderStats] = useState<Record<string, ProviderStats>>({});
+  const [sortMode, setSortMode] = useState<SortMode>("price");
 
   useEffect(() => {
     const fetch = async () => {
@@ -96,15 +100,45 @@ const ProviderQuotesSection = ({ bookingId, onSelectQuote }: Props) => {
     fetch();
   }, [bookingId]);
 
+  const sortedQuotes = useMemo(() => {
+    return [...quotes].sort((a, b) => {
+      if (sortMode === "price") return a.quoted_price - b.quoted_price;
+      // rating: low to high
+      const rA = providerStats[a.provider_id]?.avgRating ?? 0;
+      const rB = providerStats[b.provider_id]?.avgRating ?? 0;
+      return rA - rB;
+    });
+  }, [quotes, sortMode, providerStats]);
+
   if (loading) return null;
   if (quotes.length === 0) return null;
 
   return (
     <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
-      <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-        <DollarSign className="h-3 w-3" /> عروض الأسعار ({quotes.length})
-      </h4>
-      {quotes.map((q) => {
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+          <DollarSign className="h-3 w-3" /> عروض الأسعار ({quotes.length})
+        </h4>
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant={sortMode === "price" ? "default" : "outline"}
+            className="h-5 text-[9px] px-2 gap-0.5"
+            onClick={() => setSortMode("price")}
+          >
+            <ArrowUpDown className="h-2.5 w-2.5" /> السعر
+          </Button>
+          <Button
+            size="sm"
+            variant={sortMode === "rating" ? "default" : "outline"}
+            className="h-5 text-[9px] px-2 gap-0.5"
+            onClick={() => setSortMode("rating")}
+          >
+            <Star className="h-2.5 w-2.5" /> التقييم
+          </Button>
+        </div>
+      </div>
+      {sortedQuotes.map((q) => {
         const stats = providerStats[q.provider_id];
         return (
           <div

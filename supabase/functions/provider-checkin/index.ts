@@ -21,7 +21,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-const MAX_CHECKIN_DISTANCE_KM = 10; // must be within 10 km of client
+const MAX_CHECKIN_DISTANCE_KM = 0.1; // must be within 100 meters of client
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       const dist = haversineKm(provider_lat, provider_lng, booking.client_lat, booking.client_lng);
       if (dist > MAX_CHECKIN_DISTANCE_KM) {
         return new Response(JSON.stringify({ 
-          error: `أنت بعيد عن موقع العميل (${dist.toFixed(1)} كم). يجب أن تكون ضمن ${MAX_CHECKIN_DISTANCE_KM} كم للبدء.`,
+          error: `أنت بعيد عن موقع العميل (${(dist * 1000).toFixed(0)} متر). يجب أن تكون ضمن 100 متر للبدء.`,
           code: "too_far",
           distance_km: Math.round(dist * 10) / 10,
         }), {
