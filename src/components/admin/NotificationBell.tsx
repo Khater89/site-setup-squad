@@ -7,7 +7,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, CheckCircle, MessageCircle, Copy, Key, Clock, XCircle, Info, Landmark, Banknote, UserX } from "lucide-react";
+import { Bell, CheckCircle, MessageCircle, Copy, Key, Clock, XCircle, Info, Landmark, Banknote, UserX, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 interface StaffNotification {
@@ -21,9 +21,10 @@ interface StaffNotification {
   created_at: string;
 }
 
-type NotifCategory = "all" | "otp" | "late" | "reject" | "settle" | "cliq" | "cancel" | "other";
+type NotifCategory = "all" | "join" | "otp" | "late" | "reject" | "settle" | "cliq" | "cancel" | "other";
 
 const categorize = (n: StaffNotification): NotifCategory => {
+  if (n.title.includes("انضمام") || n.title.includes("📋")) return "join";
   if (n.title.includes("🔑")) return "otp";
   if (n.title.includes("تأخر") || n.title.includes("⏰")) return "late";
   if (n.title.includes("رفض") || n.title.includes("🚨")) return "reject";
@@ -35,6 +36,7 @@ const categorize = (n: StaffNotification): NotifCategory => {
 
 const CATEGORY_CONFIG: Record<NotifCategory, { label: string; icon: React.ReactNode }> = {
   all: { label: "الكل", icon: <Bell className="h-3 w-3" /> },
+  join: { label: "انضمام", icon: <UserPlus className="h-3 w-3" /> },
   otp: { label: "أكواد", icon: <Key className="h-3 w-3" /> },
   late: { label: "تأخير", icon: <Clock className="h-3 w-3" /> },
   reject: { label: "رفض", icon: <XCircle className="h-3 w-3" /> },
@@ -44,7 +46,7 @@ const CATEGORY_CONFIG: Record<NotifCategory, { label: string; icon: React.ReactN
   other: { label: "عام", icon: <Info className="h-3 w-3" /> },
 };
 
-const CATEGORIES: NotifCategory[] = ["all", "otp", "late", "reject", "settle", "cliq", "cancel", "other"];
+const CATEGORIES: NotifCategory[] = ["all", "join", "otp", "late", "reject", "settle", "cliq", "cancel", "other"];
 
 const extractOTP = (body: string | null): string | null => {
   if (!body) return null;
@@ -161,6 +163,7 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
   const isOTPNotification = (n: StaffNotification) => n.title.includes("🔑");
 
   const borderColorMap: Record<NotifCategory, string> = {
+    join: "border-s-emerald-500",
     otp: "border-s-warning",
     late: "border-s-destructive",
     reject: "border-s-orange-500",
@@ -185,7 +188,7 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
         className={`px-3 py-2.5 transition-colors border-s-4 ${borderColor} ${!n.read ? "bg-primary/5" : ""} cursor-pointer hover:bg-muted/50`}
         onClick={() => handleNotifClick(n)}
       >
-        <p className={`text-xs font-medium ${isOTP ? "text-warning" : cat === "late" ? "text-destructive" : cat === "reject" ? "text-orange-600" : cat === "settle" ? "text-green-700" : cat === "cliq" ? "text-blue-600" : cat === "cancel" ? "text-red-600" : ""}`}>
+        <p className={`text-xs font-medium ${isOTP ? "text-warning" : cat === "join" ? "text-emerald-600" : cat === "late" ? "text-destructive" : cat === "reject" ? "text-orange-600" : cat === "settle" ? "text-green-700" : cat === "cliq" ? "text-blue-600" : cat === "cancel" ? "text-red-600" : ""}`}>
           {n.title}
         </p>
         {n.body && !isOTP && (
