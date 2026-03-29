@@ -163,6 +163,7 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
   const isOTPNotification = (n: StaffNotification) => n.title.includes("🔑");
 
   const borderColorMap: Record<NotifCategory, string> = {
+    join: "border-s-emerald-500",
     otp: "border-s-warning",
     late: "border-s-destructive",
     reject: "border-s-orange-500",
