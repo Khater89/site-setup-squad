@@ -425,6 +425,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          academic_cert_url: string | null
           address_text: string | null
           available_now: boolean | null
           avatar_url: string | null
@@ -432,6 +433,7 @@ export type Database = {
           city: string | null
           created_at: string
           date_of_birth: string | null
+          experience_cert_url: string | null
           experience_years: number | null
           full_name: string | null
           languages: string[] | null
@@ -456,6 +458,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          academic_cert_url?: string | null
           address_text?: string | null
           available_now?: boolean | null
           avatar_url?: string | null
@@ -463,6 +466,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           date_of_birth?: string | null
+          experience_cert_url?: string | null
           experience_years?: number | null
           full_name?: string | null
           languages?: string[] | null
@@ -487,6 +491,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          academic_cert_url?: string | null
           address_text?: string | null
           available_now?: boolean | null
           avatar_url?: string | null
@@ -494,6 +499,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           date_of_birth?: string | null
+          experience_cert_url?: string | null
           experience_years?: number | null
           full_name?: string | null
           languages?: string[] | null
