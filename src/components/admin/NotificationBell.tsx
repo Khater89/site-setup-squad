@@ -188,7 +188,7 @@ const NotificationBell = ({ onOpenBooking }: { onOpenBooking?: (bookingId: strin
         className={`px-3 py-2.5 transition-colors border-s-4 ${borderColor} ${!n.read ? "bg-primary/5" : ""} cursor-pointer hover:bg-muted/50`}
         onClick={() => handleNotifClick(n)}
       >
-        <p className={`text-xs font-medium ${isOTP ? "text-warning" : cat === "late" ? "text-destructive" : cat === "reject" ? "text-orange-600" : cat === "settle" ? "text-green-700" : cat === "cliq" ? "text-blue-600" : cat === "cancel" ? "text-red-600" : ""}`}>
+        <p className={`text-xs font-medium ${isOTP ? "text-warning" : cat === "join" ? "text-emerald-600" : cat === "late" ? "text-destructive" : cat === "reject" ? "text-orange-600" : cat === "settle" ? "text-green-700" : cat === "cliq" ? "text-blue-600" : cat === "cancel" ? "text-red-600" : ""}`}>
           {n.title}
         </p>
         {n.body && !isOTP && (
