@@ -472,8 +472,7 @@ const FinanceTab = () => {
               onClick={confirmSettlement}
               disabled={
                 settlementLoading || entryAmount <= 0 ||
-                (paymentMethod === "cliq" && !cliqReference.trim()) ||
-                (paymentMethod === "cash" && (!cashAmount || parseFloat(cashAmount) <= 0 || parseFloat(cashAmount) > entryAmount))
+                !cliqReference.trim()
               }
               className="gap-1.5"
             >
