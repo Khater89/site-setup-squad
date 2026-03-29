@@ -792,7 +792,12 @@ const ProviderDashboard = () => {
             <div>
               <p className="text-[10px] font-semibold text-primary tracking-wide">{t("app.brand_name")}</p>
               <h1 className="text-sm font-bold text-foreground">{t("provider.dashboard.title")}</h1>
-              <p className="text-[10px] text-muted-foreground">{profile?.full_name || user?.email}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {profile?.full_name || user?.email}
+                {(profile as any)?.provider_number && (
+                  <span className="ms-1.5 font-mono text-primary font-semibold">#{(profile as any).provider_number}</span>
+                )}
+              </p>
             </div>
           </Link>
           <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
