@@ -439,6 +439,29 @@ const ProviderRegister = () => {
           <Input type="number" min="1" max="200" value={radiusKm} onChange={(e) => setRadiusKm(e.target.value)} placeholder="20" dir="ltr" />
         </div>
 
+        {/* Certificate Uploads */}
+        <h3 className="text-sm font-semibold text-muted-foreground border-b pb-1 mt-4">{t("register.section.professional")} - المستندات</h3>
+        <div>
+          <label className="text-sm font-medium">{t("register.academic_cert")} *</label>
+          <p className="text-xs text-muted-foreground mb-1">{t("register.academic_cert.hint")}</p>
+          <input ref={academicFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCertUpload(f, "academic"); }} />
+          <Button type="button" variant="outline" className="w-full gap-2" onClick={() => academicFileRef.current?.click()} disabled={uploadingAcademic}>
+            {uploadingAcademic ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploadingAcademic ? t("register.uploading") : academicCertUrl ? t("register.uploaded") : t("register.upload_file")}
+          </Button>
+        </div>
+        <div>
+          <label className="text-sm font-medium">{t("register.experience_cert")}</label>
+          <p className="text-xs text-muted-foreground mb-1">{t("register.experience_cert.hint")}</p>
+          <input ref={experienceFileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCertUpload(f, "experience"); }} />
+          <Button type="button" variant="outline" className="w-full gap-2" onClick={() => experienceFileRef.current?.click()} disabled={uploadingExperience}>
+            {uploadingExperience ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploadingExperience ? t("register.uploading") : experienceCertUrl ? t("register.uploaded") : t("register.upload_file")}
+          </Button>
+        </div>
+
         {/* Dynamic Specialties */}
         {availableSpecialties.length > 0 && (
           <div>
