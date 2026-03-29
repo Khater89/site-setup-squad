@@ -131,6 +131,8 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
   const [reopenTimeLeft, setReopenTimeLeft] = useState("");
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
+  const [preSelectedProviderId, setPreSelectedProviderId] = useState<string | null>(null);
+  const [preSelectedProviderShare, setPreSelectedProviderShare] = useState<number | null>(null);
 
   // Fetch coordinator phone
   useEffect(() => {
