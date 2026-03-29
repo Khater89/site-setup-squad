@@ -249,6 +249,10 @@ const ProviderRegister = () => {
       toast({ title: t("register.fill_required"), variant: "destructive" });
       return;
     }
+    if (!academicCertUrl) {
+      toast({ title: t("register.academic_required"), variant: "destructive" });
+      return;
+    }
 
     if (!PASSWORD_REGEX.test(password)) {
       toast({ title: t("common.error"), description: t("register.password.weak"), variant: "destructive" });
