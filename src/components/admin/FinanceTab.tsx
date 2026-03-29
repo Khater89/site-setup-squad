@@ -170,16 +170,12 @@ const FinanceTab = () => {
   const confirmSettlement = async () => {
     if (!selectedProvider || !settlementEntry) return;
 
-    if (paymentMethod === "cliq" && !cliqReference.trim()) return;
-    if (paymentMethod === "cash") {
-      const parsed = parseFloat(cashAmount);
-      if (isNaN(parsed) || parsed <= 0) return;
-    }
+    if (!cliqReference.trim()) return;
 
     setSettlementLoading(true);
 
-    const settlementAmount = paymentMethod === "cash" ? parseFloat(cashAmount) : entryAmount;
-    const reference = paymentMethod === "cliq" ? cliqReference.trim() : `CASH-${Date.now()}`;
+    const settlementAmount = entryAmount;
+    const reference = cliqReference.trim();
 
     const { error } = await supabase.from("provider_wallet_ledger").insert({
       provider_id: selectedProvider.user_id,
