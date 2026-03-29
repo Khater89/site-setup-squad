@@ -354,7 +354,13 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
           )}
 
           {/* Provider Quotes */}
-          <ProviderQuotesSection bookingId={booking.id} />
+          <ProviderQuotesSection
+            bookingId={booking.id}
+            onSelectQuote={(providerId, quotedPrice) => {
+              setPreSelectedProviderId(providerId);
+              setPreSelectedProviderShare(quotedPrice);
+            }}
+          />
 
           {/* Client Info */}
           <div className="rounded-lg border border-border p-3 space-y-3">
