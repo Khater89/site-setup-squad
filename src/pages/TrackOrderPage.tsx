@@ -87,6 +87,12 @@ const TrackOrderPage = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
+  // Rating state
+  const [ratingValue, setRatingValue] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
   const handleTrack = async () => {
     if (!bookingNumber.trim() || !phone.trim()) {
       toast({ title: "يرجى إدخال رقم الحجز ورقم الهاتف", variant: "destructive" });
