@@ -170,7 +170,12 @@ const CSProviderDirectory = () => {
               <CardContent className="py-4 px-4 space-y-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-sm">{p.full_name || "بدون اسم"}</p>
+                    <p className="font-medium text-sm">
+                      {p.full_name || "بدون اسم"}
+                      {p.provider_number && (
+                        <span className="ms-1.5 text-[10px] font-mono text-primary">#{p.provider_number}</span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {ROLE_TYPE_LABELS[p.role_type || ""] || p.role_type || "—"} · {p.city || "—"}
                     </p>

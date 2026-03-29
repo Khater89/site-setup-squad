@@ -156,6 +156,14 @@ const AvailableBookingsTab = ({ serviceNames }: Props) => {
                 <p className="text-xs text-muted-foreground bg-muted/30 rounded p-2">{b.notes}</p>
               )}
 
+              {b.payment_method && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <DollarSign className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">طريقة الدفع:</span>
+                  <span className="font-medium">{b.payment_method === "CLIQ" ? "CliQ" : b.payment_method === "INSURANCE" ? "تأمين طبي" : "نقداً"}</span>
+                </div>
+              )}
+
               {!alreadyQuoted && (
                 <>
                   {!isExpanded ? (
