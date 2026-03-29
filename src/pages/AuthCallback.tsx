@@ -58,6 +58,15 @@ const AuthCallback = () => {
                 experience_cert_url: experienceUrl,
                 provider_status: "pending",
               }).eq("user_id", session.user.id);
+
+              // Send admin notification about new join request
+              const roleLabel = cleanData.role_type === "doctor" ? "طبيب" : cleanData.role_type === "nurse" ? "ممرض/ة" : cleanData.role_type === "physiotherapist" ? "أخصائي علاج طبيعي" : cleanData.role_type;
+              await supabase.from("staff_notifications" as any).insert({
+                title: "📋 طلب انضمام جديد",
+                body: `تقدّم ${cleanData.full_name || ""} (${roleLabel || ""}) من ${cleanData.city || ""} بطلب انضمام كمزود خدمة. يرجى مراجعة الطلب واتخاذ الإجراء المناسب.`,
+                target_role: "admin",
+                provider_id: session.user.id,
+              });
             } catch {
               // ignore parse errors
             }
