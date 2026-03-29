@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import {
   CalendarIcon, User, Phone, MapPin, Clock, Minus, Plus,
-  Navigation, Home, Users,
+  Navigation, Home, Users, CreditCard,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
