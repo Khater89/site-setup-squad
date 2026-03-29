@@ -36,6 +36,7 @@ const categorize = (n: StaffNotification): NotifCategory => {
 
 const CATEGORY_CONFIG: Record<NotifCategory, { label: string; icon: React.ReactNode }> = {
   all: { label: "الكل", icon: <Bell className="h-3 w-3" /> },
+  join: { label: "انضمام", icon: <UserPlus className="h-3 w-3" /> },
   otp: { label: "أكواد", icon: <Key className="h-3 w-3" /> },
   late: { label: "تأخير", icon: <Clock className="h-3 w-3" /> },
   reject: { label: "رفض", icon: <XCircle className="h-3 w-3" /> },
@@ -45,7 +46,7 @@ const CATEGORY_CONFIG: Record<NotifCategory, { label: string; icon: React.ReactN
   other: { label: "عام", icon: <Info className="h-3 w-3" /> },
 };
 
-const CATEGORIES: NotifCategory[] = ["all", "otp", "late", "reject", "settle", "cliq", "cancel", "other"];
+const CATEGORIES: NotifCategory[] = ["all", "join", "otp", "late", "reject", "settle", "cliq", "cancel", "other"];
 
 const extractOTP = (body: string | null): string | null => {
   if (!body) return null;
