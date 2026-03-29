@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Loader2, UserPlus, CheckCircle, Clock, XCircle, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Loader2, UserPlus, CheckCircle, Clock, XCircle, ArrowRight, Eye, EyeOff, Upload } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { lovable } from "@/integrations/lovable/index";
 import mfnLogo from "@/assets/mfn-logo.png";
