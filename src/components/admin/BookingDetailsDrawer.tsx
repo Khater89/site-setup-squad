@@ -128,6 +128,15 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [reopenExpired, setReopenExpired] = useState(false);
   const [reopenTimeLeft, setReopenTimeLeft] = useState("");
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
+
+  // Fetch coordinator phone
+  useEffect(() => {
+    supabase.from("platform_settings").select("coordinator_phone").eq("id", 1).maybeSingle().then(({ data }) => {
+      if (data) setCoordinatorPhone((data as any).coordinator_phone);
+    });
+  }, []);
 
   // Fetch booking history
   useEffect(() => {
