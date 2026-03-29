@@ -345,6 +345,15 @@ const ProviderRegister = () => {
         } as any)
         .eq("user_id", newUser.id);
 
+      // Send admin notification about new join request
+      const roleLabel = roleType === "doctor" ? "طبيب" : roleType === "nurse" ? "ممرض/ة" : roleType === "physiotherapist" ? "أخصائي علاج طبيعي" : roleType;
+      await supabase.from("staff_notifications" as any).insert({
+        title: "📋 طلب انضمام جديد",
+        body: `تقدّم ${name.trim()} (${roleLabel}) من ${city.trim()} بطلب انضمام كمزود خدمة. يرجى مراجعة الطلب واتخاذ الإجراء المناسب.`,
+        target_role: "admin",
+        provider_id: newUser.id,
+      });
+
       await refreshUserData();
       setSaving(false);
       toast({ title: t("register.submitted_success") });
