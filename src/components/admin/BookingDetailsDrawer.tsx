@@ -598,6 +598,8 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
                 onStatusChange?.();
               }}
               onDataRefresh={onDataRefresh}
+              preSelectedProviderId={preSelectedProviderId}
+              preSelectedProviderShare={preSelectedProviderShare}
             />
           )}
 
