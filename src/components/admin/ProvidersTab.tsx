@@ -370,6 +370,26 @@ const ProvidersTab = () => {
         onApprove={(id) => { approveProvider(id); setSelectedProvider(null); }}
         onSuspend={(id) => { suspendProvider(id); setSelectedProvider(null); }}
         onSettlement={(id) => { recordSettlement(id); setSelectedProvider(null); }}
+        onReject={async (id) => {
+          const provider = providers.find(p => p.user_id === id);
+          // Delete user via edge function
+          try {
+            const res = await supabase.functions.invoke("admin-delete-provider", {
+              body: { user_id: id },
+            });
+            if (res.error) throw res.error;
+            toast({ title: "تم رفض وحذف حساب المزود بنجاح" });
+            setProviders((prev) => prev.filter((p) => p.user_id !== id));
+          } catch (err: any) {
+            toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+          }
+          // Open WhatsApp link to notify
+          if (provider?.phone) {
+            const msg = encodeURIComponent(`مرحباً ${provider.full_name || ""}،\nنأسف لإبلاغك بأنه تم رفض طلب انضمامك كمزود خدمة في Medical Field Nation.\nيمكنك التواصل مع الإدارة لمزيد من التفاصيل.`);
+            window.open(`https://wa.me/${provider.phone.replace(/[^0-9]/g, "")}?text=${msg}`, "_blank");
+          }
+          setSelectedProvider(null);
+        }}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
