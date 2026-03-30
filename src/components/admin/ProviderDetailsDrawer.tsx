@@ -484,9 +484,20 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
                 {/* Actions */}
                 <div className="flex gap-2 pt-2 flex-wrap">
                   {provider.provider_status === "pending" && (
-                    <Button size="sm" className="gap-1.5 flex-1" onClick={() => onApprove(provider.user_id)}>
-                      <CheckCircle className="h-4 w-4" /> {t("provider.details.approve")}
-                    </Button>
+                    <>
+                      <Button size="sm" className="gap-1.5 flex-1" onClick={() => onApprove(provider.user_id)}>
+                        <CheckCircle className="h-4 w-4" /> {t("provider.details.approve")}
+                      </Button>
+                      {onReject && (
+                        <Button size="sm" variant="destructive" className="gap-1.5 flex-1" onClick={() => {
+                          if (confirm("هل أنت متأكد من رفض وحذف هذا الطلب نهائياً؟")) {
+                            onReject(provider.user_id);
+                          }
+                        }}>
+                          <Trash2 className="h-4 w-4" /> رفض وحذف
+                        </Button>
+                      )}
+                    </>
                   )}
                   {provider.provider_status === "approved" && (
                     <Button size="sm" variant="destructive" className="gap-1.5 flex-1" onClick={() => onSuspend(provider.user_id)}>
