@@ -387,6 +387,51 @@ const ProviderDetailsDrawer = ({ provider, open, onOpenChange, onApprove, onSusp
                   </div>
                 </div>
 
+                {/* Certificates Review */}
+                {(provider.academic_cert_url || provider.experience_cert_url || provider.license_id) && (
+                  <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 space-y-3">
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                      <FileText className="h-3 w-3" /> الشهادات والمستندات
+                    </h4>
+                    {provider.license_id && (
+                      <div className="text-sm flex items-center gap-1.5">
+                        <span className="text-muted-foreground">رقم الترخيص:</span>
+                        <span className="font-mono font-medium">{provider.license_id}</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      {provider.academic_cert_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs"
+                          onClick={async () => {
+                            const { data } = await supabase.storage.from("provider-certificates").createSignedUrl(provider.academic_cert_url!, 300);
+                            if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                          }}
+                        >
+                          <FileText className="h-3 w-3" /> الشهادة العلمية
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {provider.experience_cert_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs"
+                          onClick={async () => {
+                            const { data } = await supabase.storage.from("provider-certificates").createSignedUrl(provider.experience_cert_url!, 300);
+                            if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                          }}
+                        >
+                          <FileText className="h-3 w-3" /> شهادة الخبرة
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-lg border border-border p-3 space-y-2">
                   <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("provider.details.activity")}</h4>
                   <div className="text-xs text-muted-foreground space-y-1">
