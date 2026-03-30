@@ -48,6 +48,9 @@ export interface ProviderProfile {
   avatar_url?: string | null;
   license_file_url?: string | null;
   provider_number?: number | null;
+  academic_cert_url?: string | null;
+  experience_cert_url?: string | null;
+  license_id?: string | null;
 }
 
 const PROVIDER_STATUS_COLORS: Record<string, string> = {
