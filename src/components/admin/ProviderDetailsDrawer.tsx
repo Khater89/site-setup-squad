@@ -14,6 +14,7 @@ import {
   Phone, MapPin, Briefcase, Navigation, Stethoscope,
   CheckCircle, XCircle, Wallet, Clock, Globe, Search, Loader2,
   CalendarCheck, UserCheck, Mail, Star, CheckCheck, Ban, KeyRound,
+  FileText, ExternalLink, Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
