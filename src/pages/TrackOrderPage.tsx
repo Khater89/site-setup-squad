@@ -93,6 +93,11 @@ const TrackOrderPage = () => {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
+  // Payment method state
+  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentSaved, setPaymentSaved] = useState(false);
+
   const handleTrack = async () => {
     if (!bookingNumber.trim() || !phone.trim()) {
       toast({ title: "يرجى إدخال رقم الحجز ورقم الهاتف", variant: "destructive" });
