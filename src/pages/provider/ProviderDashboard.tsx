@@ -276,6 +276,7 @@ const ProviderDashboard = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [providerNotifications, setProviderNotifications] = useState<any[]>([]);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [availableCount, setAvailableCount] = useState(0);
   const [coordinatorPhone, setCoordinatorPhone] = useState<string | null>(null);
   const [coordinatorPhone2, setCoordinatorPhone2] = useState<string | null>(null);
   const [completeDialogOrder, setCompleteDialogOrder] = useState<string | null>(null);
@@ -375,6 +376,10 @@ const ProviderDashboard = () => {
       .limit(50);
     setProviderNotifications(notifs || []);
     setUnreadNotifCount((notifs || []).filter((n: any) => !n.read).length);
+
+    // Fetch available bookings count
+    const { data: availableData } = await supabase.rpc("available_bookings_for_providers" as any);
+    setAvailableCount((availableData as any[])?.length || 0);
 
     setLoading(false);
   };
@@ -786,7 +791,8 @@ const ProviderDashboard = () => {
     );
   }
 
-  const filteredOrders = statusFilter === "ALL" ? orders : orders.filter((o) => o.status === statusFilter);
+  const filteredOrders = (statusFilter === "ALL" ? orders : orders.filter((o) => o.status === statusFilter))
+    .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
   const isAccepted = (o: ProviderOrder) => !!o.accepted_at;
 
   const toggleSpecialty = (s: string) => {
@@ -904,8 +910,13 @@ const ProviderDashboard = () => {
 
         <Tabs defaultValue="orders" className="space-y-4">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="available" className="gap-1 text-[10px] sm:text-xs">
+            <TabsTrigger value="available" className="gap-1 text-[10px] sm:text-xs relative">
               <DollarSign className="h-3.5 w-3.5" /> متاحة
+              {availableCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] rounded-full h-4 w-4 flex items-center justify-center animate-pulse">
+                  {availableCount}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="orders" className="gap-1 text-[10px] sm:text-xs">
               <ClipboardList className="h-3.5 w-3.5" /> طلباتي ({orders.length})

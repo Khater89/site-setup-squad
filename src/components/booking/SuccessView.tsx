@@ -1,5 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { CheckCircle2, PartyPopper, Copy, Search } from "lucide-react";
+import { CheckCircle2, PartyPopper, Copy, Search, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,12 @@ const SuccessView = ({ onReset, bookingNumber }: SuccessViewProps) => {
     }
   };
 
+  const shareViaWhatsApp = () => {
+    if (bookingNumber) {
+      const msg = `📋 تفاصيل طلبي في MFN:\n\n🔢 رقم الطلب: ${bookingNumber}\n📌 الحالة: تم الإرسال بنجاح\n\n🔗 تتبع الطلب:\n${window.location.origin}/track`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center text-center py-16 space-y-8">
@@ -83,12 +89,13 @@ const SuccessView = ({ onReset, bookingNumber }: SuccessViewProps) => {
         </motion.div>
       )}
 
-      {/* Track Order Link */}
+      {/* Track & Share buttons */}
       {bookingNumber && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.4 }}
+          className="flex gap-2"
         >
           <Button
             variant="outline"
@@ -98,6 +105,15 @@ const SuccessView = ({ onReset, bookingNumber }: SuccessViewProps) => {
           >
             <Search className="h-4 w-4" />
             تتبع طلبك
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-success border-success/30 hover:bg-success/10"
+            onClick={shareViaWhatsApp}
+          >
+            <MessageCircle className="h-4 w-4" />
+            أرسل لنفسك كمرجع
           </Button>
         </motion.div>
       )}
