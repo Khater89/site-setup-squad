@@ -89,12 +89,13 @@ const SuccessView = ({ onReset, bookingNumber }: SuccessViewProps) => {
         </motion.div>
       )}
 
-      {/* Track Order Link */}
+      {/* Track & Share buttons */}
       {bookingNumber && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.4 }}
+          className="flex gap-2"
         >
           <Button
             variant="outline"
@@ -104,6 +105,15 @@ const SuccessView = ({ onReset, bookingNumber }: SuccessViewProps) => {
           >
             <Search className="h-4 w-4" />
             تتبع طلبك
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 text-success border-success/30 hover:bg-success/10"
+            onClick={shareViaWhatsApp}
+          >
+            <MessageCircle className="h-4 w-4" />
+            أرسل لنفسك كمرجع
           </Button>
         </motion.div>
       )}
