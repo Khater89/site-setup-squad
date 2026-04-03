@@ -1,5 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { CheckCircle2, PartyPopper, Copy, Search } from "lucide-react";
+import { CheckCircle2, PartyPopper, Copy, Search, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
