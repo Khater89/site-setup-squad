@@ -548,17 +548,33 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, onWorkflowCha
           {phone && (
             <>
               <CoordinatorSelector />
-              <a
-                href={`https://wa.me/${(coordinatorPhone || phone).replace(/^0/, "962")}?text=${encodeURIComponent(getProviderWhatsAppMsg(name))}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="sm" variant="outline" className="gap-1 h-6 text-[10px]">
-                  <MessageCircle className="h-3 w-3" /> واتساب
+              {routedProviders.has(id) ? (
+                <Button size="sm" variant="outline" className="gap-1 h-6 text-[10px] opacity-50" disabled>
+                  <MessageCircle className="h-3 w-3" /> تم الإرسال ✓
                 </Button>
-              </a>
+              ) : (
+                <a
+                  href={`https://wa.me/${(coordinatorPhone || phone).replace(/^0/, "962")}?text=${encodeURIComponent(getProviderWhatsAppMsg(name))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setRoutedProviders((prev) => new Set(prev).add(id))}
+                >
+                  <Button size="sm" variant="outline" className="gap-1 h-6 text-[10px]">
+                    <MessageCircle className="h-3 w-3" /> واتساب
+                  </Button>
+                </a>
+              )}
             </>
           )}
+          <Button size="sm" variant="ghost" className="gap-1 h-6 text-[10px]" onClick={async () => {
+            setViewProfileId(id);
+            setLoadingProfile(true);
+            const { data } = await supabase.from("profiles").select("*").eq("user_id", id).single();
+            setViewProfileData(data);
+            setLoadingProfile(false);
+          }}>
+            <Eye className="h-3 w-3" /> الملف
+          </Button>
           {selectedProvider !== id && (
             <Button size="sm" variant="ghost" className="gap-1 h-6 text-[10px]" onClick={() => setSelectedProvider(id)}>
               اختيار
