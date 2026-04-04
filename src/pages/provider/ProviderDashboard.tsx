@@ -366,6 +366,12 @@ const ProviderDashboard = () => {
       const limit = (settingsRes.data as any).provider_debt_limit ?? -20;
       setDebtLimit(limit);
       setIsOnHold(bal < limit);
+      setPlatformBank({
+        bank_name: (settingsRes.data as any).bank_name,
+        bank_iban: (settingsRes.data as any).bank_iban,
+        bank_cliq_alias: (settingsRes.data as any).bank_cliq_alias,
+        bank_account_holder: (settingsRes.data as any).bank_account_holder,
+      });
     }
     // Fetch provider notifications
     const { data: notifs } = await supabase
