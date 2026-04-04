@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Package, CalendarCheck, Users, Settings, LogOut, RefreshCw, ShieldAlert, Landmark, PlusCircle } from "lucide-react";
+import LanguageToggle from "@/components/booking/LanguageToggle";
 import mfnLogo from "@/assets/mfn-logo.png";
 import NotificationBell from "@/components/admin/NotificationBell";
 import ServicesTab from "@/components/admin/ServicesTab";
