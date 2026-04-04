@@ -300,6 +300,7 @@ const ProviderDashboard = () => {
   // Debt limit
   const [debtLimit, setDebtLimit] = useState(-20);
   const [isOnHold, setIsOnHold] = useState(false);
+  const [platformBank, setPlatformBank] = useState<{ bank_name?: string; bank_iban?: string; bank_cliq_alias?: string; bank_account_holder?: string } | null>(null);
 
   // Profile editing state
   const [availableNow, setAvailableNow] = useState(false);
