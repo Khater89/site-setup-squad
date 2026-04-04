@@ -45,13 +45,15 @@ const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
 
   useEffect(() => {
     const fetch = async () => {
-      const [bookingRes, historyRes, ratingRes] = await Promise.all([
+      const [bookingRes, historyRes, ratingRes, settingsRes] = await Promise.all([
         supabase.from("bookings").select("*").eq("id", bookingId).single(),
         supabase.from("booking_history").select("*").eq("booking_id", bookingId).order("created_at", { ascending: true }),
         supabase.from("provider_ratings").select("*").eq("booking_id", bookingId).maybeSingle(),
+        supabase.from("platform_settings").select("*").eq("id", 1).maybeSingle(),
       ]);
       setBooking(bookingRes.data);
       setHistory(historyRes.data || []);
+      if (settingsRes.data) setPlatformSettings(settingsRes.data);
       if (ratingRes.data) {
         setExistingRating(ratingRes.data);
         setRating(ratingRes.data.rating);
