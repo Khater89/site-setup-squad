@@ -276,6 +276,7 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
     if (!booking) return;
     if (!confirm("هل أنت متأكد من إلغاء إسناد المزود؟ سيتم إعادة الطلب لحالة جديد.")) return;
     setUnassigning(true);
+    const previousProviderId = booking.assigned_provider_id;
     try {
       const { error } = await supabase
         .from("bookings")
@@ -300,6 +301,17 @@ const BookingDetailsDrawer = ({ booking, open, onOpenChange, serviceName, servic
         performer_role: "admin",
         note: `تم إلغاء إسناد المزود: ${providerName || "غير معروف"}`,
       });
+
+      // Notify the unassigned provider
+      if (previousProviderId) {
+        await supabase.from("staff_notifications").insert({
+          title: "🔄 تم إلغاء إسناد طلب",
+          body: `تم إلغاء إسناد الطلب رقم ${booking.booking_number || ""} من قبلك. لم تعد مسؤولاً عن هذا الطلب.`,
+          target_role: "provider",
+          provider_id: previousProviderId,
+          booking_id: booking.id,
+        });
+      }
 
       toast.success("تم إلغاء الإسناد — يمكنك الآن إسناد مزود آخر");
       onOpenChange(false);
