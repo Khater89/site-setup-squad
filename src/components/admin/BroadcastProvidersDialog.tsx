@@ -59,9 +59,18 @@ const BroadcastProvidersDialog = ({ open, onOpenChange, booking, serviceName, co
 
   const siteUrl = "https://mfn.lovable.app";
 
-  const buildMessage = (providerName: string) => {
+  const getTitlePrefix = (roleType: string | null) => {
+    if (roleType === "طبيب" || roleType === "doctor") return "دكتور";
+    if (roleType === "ممرض/ة" || roleType === "nurse") return "ممرض/ة";
+    if (roleType === "أخصائي علاج طبيعي" || roleType === "physiotherapist") return "أخصائي";
+    return "";
+  };
+
+  const buildMessage = (providerName: string, roleType: string | null) => {
+    const prefix = getTitlePrefix(roleType);
+    const greeting = prefix ? `مرحباً ${prefix} ${providerName}` : `مرحباً ${providerName}`;
     const lines = [
-      `مرحباً ${providerName}، معك فريق أمة الحقل الطبي (MFN).`,
+      `${greeting}، معك فريق أمة الحقل الطبي (MFN).`,
       ``,
       `📋 لدينا طلب خدمة جديد:`,
       `• الخدمة: ${serviceName}`,
