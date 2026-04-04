@@ -209,6 +209,20 @@ const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
                   {savingPayment && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   تأكيد طريقة الدفع
                 </Button>
+
+                {/* Show CliQ info when CliQ is selected */}
+                {selectedPayment === "CLIQ" && platformSettings && (
+                  <div className="rounded-lg border border-info/30 bg-info/5 p-3 space-y-1.5 mt-2">
+                    <h5 className="text-xs font-bold flex items-center gap-1.5 text-info">
+                      <Landmark className="h-3.5 w-3.5" />
+                      بيانات التحويل عبر CliQ
+                    </h5>
+                    {platformSettings.bank_name && <p className="text-xs">🏦 البنك: <strong>{platformSettings.bank_name}</strong></p>}
+                    {platformSettings.bank_account_holder && <p className="text-xs">👤 صاحب الحساب: <strong>{platformSettings.bank_account_holder}</strong></p>}
+                    {platformSettings.bank_cliq_alias && <p className="text-xs">📱 CliQ Alias: <strong dir="ltr">{platformSettings.bank_cliq_alias}</strong></p>}
+                    {platformSettings.bank_iban && <p className="text-xs">🔢 IBAN: <strong dir="ltr">{platformSettings.bank_iban}</strong></p>}
+                  </div>
+                )}
               </>
             )}
           </CardContent>
