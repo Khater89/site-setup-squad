@@ -1514,6 +1514,19 @@ const ProviderDashboard = () => {
                     <p className="text-xs text-muted-foreground">{t("provider.wallet.debt_instructions")}</p>
                   </div>
                 )}
+                {/* Platform CliQ info for settling debts */}
+                {balance < 0 && platformBank && (
+                  <div className="rounded-lg border border-info/30 bg-info/5 p-3 space-y-1.5">
+                    <h5 className="text-xs font-bold flex items-center gap-1.5 text-info">
+                      <Wallet className="h-3.5 w-3.5" />
+                      بيانات تحويل حصة المنصة عبر CliQ
+                    </h5>
+                    {platformBank.bank_name && <p className="text-xs">🏦 البنك: <strong>{platformBank.bank_name}</strong></p>}
+                    {platformBank.bank_account_holder && <p className="text-xs">👤 صاحب الحساب: <strong>{platformBank.bank_account_holder}</strong></p>}
+                    {platformBank.bank_cliq_alias && <p className="text-xs">📱 CliQ Alias: <strong dir="ltr">{platformBank.bank_cliq_alias}</strong></p>}
+                    {platformBank.bank_iban && <p className="text-xs">🔢 IBAN: <strong dir="ltr">{platformBank.bank_iban}</strong></p>}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
