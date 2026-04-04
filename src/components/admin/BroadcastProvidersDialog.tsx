@@ -94,7 +94,7 @@ const BroadcastProvidersDialog = ({ open, onOpenChange, booking, serviceName, co
 
   const getWaLink = (provider: ProviderInfo) => {
     const phone = (provider.phone || "").replace(/^0/, "962").replace(/\s/g, "");
-    const msg = buildMessage(provider.full_name || "");
+    const msg = buildMessage(provider.full_name || "", provider.role_type);
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   };
 
