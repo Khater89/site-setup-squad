@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 interface SuccessViewProps {
   onReset: () => void;
   bookingNumber?: string;
+  customerPhone?: string;
 }
 
 const SuccessView = ({ onReset, bookingNumber }: SuccessViewProps) => {
