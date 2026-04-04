@@ -34,6 +34,7 @@ const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
   const { toast } = useToast();
   const [booking, setBooking] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [platformSettings, setPlatformSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
