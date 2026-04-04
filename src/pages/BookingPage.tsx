@@ -217,8 +217,8 @@ const BookingPage = () => {
                         />
                         <label htmlFor="disclaimer" className="text-sm leading-relaxed cursor-pointer">
                           {isRTL
-                            ? "أوافق أن المنصة وسيط للتنسيق فقط ولا تقدم تشخيصًا أو علاجًا، والمسؤولية المهنية تقع على مزود الخدمة المرخّص."
-                            : "I agree that the platform is a coordination intermediary only and does not provide diagnosis or treatment. Professional responsibility lies with the licensed service provider."}
+                            ? "نحن هنا لنسهل وصولك لأفضل الرعاية! يرجى العلم بأن منصتنا هي جسر يربطك بنخبة من مزودي الخدمة المرخصين؛ حيث تقع المسؤولية المهنية والتشخيصية على عاتق المزود المباشر لضمان أعلى معايير الدقة والخدمة المتميزة لك."
+                            : "We're here to connect you with the best care! Please note that our platform serves as a bridge linking you to elite licensed service providers. Professional and diagnostic responsibility rests with the direct provider to ensure the highest standards of accuracy and outstanding service for you."}
                         </label>
                       </div>
                     </div>
