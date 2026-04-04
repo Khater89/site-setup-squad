@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 import AvailableBookingsTab from "@/components/provider/AvailableBookingsTab";
+import LanguageToggle from "@/components/booking/LanguageToggle";
 
 /* ── Types ── */
 
