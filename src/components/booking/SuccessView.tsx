@@ -11,7 +11,7 @@ interface SuccessViewProps {
   customerPhone?: string;
 }
 
-const SuccessView = ({ onReset, bookingNumber }: SuccessViewProps) => {
+const SuccessView = ({ onReset, bookingNumber, customerPhone }: SuccessViewProps) => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
