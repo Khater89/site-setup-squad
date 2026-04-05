@@ -247,6 +247,7 @@ const BookingsTab = () => {
         onOpenChange={(open) => { if (!open) setSelectedBooking(null); }}
         serviceName={selectedBooking ? serviceNames[selectedBooking.service_id] || t("provider.dashboard.service") : ""}
         servicePrice={selectedBooking ? servicePrices[selectedBooking.service_id] ?? null : null}
+        serviceCategory={selectedBooking ? serviceCategories[selectedBooking.service_id] ?? null : null}
         providerName={selectedBooking?.assigned_provider_id ? providerNames[selectedBooking.assigned_provider_id] || null : null}
         providerPhone={selectedBooking?.assigned_provider_id ? providerPhones[selectedBooking.assigned_provider_id] || null : null}
         onStatusChange={() => { setSelectedBooking(null); fetchBookings(); }}
