@@ -162,8 +162,22 @@ const BookingsTab = () => {
                 : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
             }`}
           >
-            {s === "ALL" ? t("admin.bookings.filter_all") : t(`status.${s}`)}
-            {s !== "ALL" && (
+            {s === "ALL" ? t("admin.bookings.filter_all") : s === "TODAY_TOMORROW" ? "اليوم/غداً" : t(`status.${s}`)}
+            {s === "TODAY_TOMORROW" ? (
+              <span className="ms-1 opacity-70">
+                ({(() => {
+                  const now = new Date();
+                  const todayStr = now.toISOString().slice(0, 10);
+                  const tomorrow = new Date(now);
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+                  return visibleBookings.filter(b => {
+                    const d = new Date(b.scheduled_at).toISOString().slice(0, 10);
+                    return d === todayStr || d === tomorrowStr;
+                  }).length;
+                })()})
+              </span>
+            ) : s !== "ALL" && (
               <span className="ms-1 opacity-70">
                 ({visibleBookings.filter(b => b.status === s).length})
               </span>
