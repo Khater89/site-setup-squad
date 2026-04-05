@@ -424,13 +424,34 @@ const OrderWorkflowPhases = ({ booking, serviceName, servicePrice, serviceCatego
     }
   };
 
-  // Provider lists
+  // Category → role_type mapping for smart filtering
+  const CATEGORY_ROLE_MAP: Record<string, string[]> = {
+    medical: ["doctor"],
+    nursing: ["nurse", "caregiver", "midwife"],
+    packages: ["doctor", "nurse", "caregiver", "physiotherapist", "midwife"],
+  };
+  const allowedRoles = serviceCategory ? CATEGORY_ROLE_MAP[serviceCategory] || [] : [];
+
+  // Filter helpers
+  const matchesSearch = (name: string | null, providerNumber?: number | null) => {
+    if (!providerSearch.trim()) return true;
+    const q = providerSearch.trim().toLowerCase();
+    return (name?.toLowerCase().includes(q)) || (providerNumber && `#${providerNumber}`.includes(q)) || (providerNumber && String(providerNumber).includes(q));
+  };
+
+  const matchesRole = (roleType: string | null) => {
+    if (!allowedRoles.length) return true;
+    return roleType ? allowedRoles.includes(roleType) : false;
+  };
+
+  // Provider lists with search + role filtering
   const nearestIds = new Set(nearestProviders.map((p) => p.provider_id));
+  const filteredNearest = nearestProviders.filter(p => matchesRole(p.role_type) && matchesSearch(p.full_name));
   const sameCityProviders = fallbackProviders.filter(
-    (p) => !nearestIds.has(p.user_id) && citiesMatch(p.city, booking.city)
+    (p) => !nearestIds.has(p.user_id) && citiesMatch(p.city, booking.city) && matchesRole(p.role_type) && matchesSearch(p.full_name, p.provider_number)
   );
   const otherCityProviders = fallbackProviders.filter(
-    (p) => !nearestIds.has(p.user_id) && !citiesMatch(p.city, booking.city)
+    (p) => !nearestIds.has(p.user_id) && !citiesMatch(p.city, booking.city) && matchesRole(p.role_type) && matchesSearch(p.full_name, p.provider_number)
   );
 
   const coordinatorPhone = selectedCoordinator === "2" && coordinatorPhones.phone2
