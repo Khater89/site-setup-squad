@@ -56,6 +56,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Payment lock: once confirmed, cannot change
+    if (booking.payment_status === "PAYMENT_METHOD_SET") {
+      return new Response(JSON.stringify({ error: "already_set", payment_method: booking.payment_method }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Verify phone
     const { data: contact } = await supabase
       .from("booking_contacts")
@@ -81,6 +89,37 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: updateError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // If CliQ, credit provider's share to their wallet (platform received payment directly)
+    if (payment_method === "CLIQ" && booking.assigned_provider_id && booking.provider_share) {
+      // Calculate provider's total share based on actual duration
+      let providerTotal = booking.provider_share;
+      // The provider share is already calculated at completion time via calc_escalating_price
+      // Credit positive amount to provider wallet
+      await supabase.from("provider_wallet_ledger").insert({
+        provider_id: booking.assigned_provider_id,
+        amount: providerTotal,
+        reason: "cliq_payment_credit",
+        booking_id: booking.id,
+      });
+
+      // Notify provider about credit
+      await supabase.from("staff_notifications").insert({
+        title: "💳 تم استلام دفعة CliQ",
+        body: `تم استلام دفعة CliQ للطلب ${booking.booking_number}. تمت إضافة حصتك (${providerTotal} د.أ) لمحفظتك وتسوية المديونية تلقائياً.`,
+        target_role: "provider",
+        provider_id: booking.assigned_provider_id,
+        booking_id: booking.id,
+      });
+
+      // Notify admin
+      await supabase.from("staff_notifications").insert({
+        title: `💳 دفع CliQ — ${booking.booking_number}`,
+        body: `اختار العميل الدفع عبر CliQ. تمت إضافة حصة المزود (${providerTotal} د.أ) لمحفظته تلقائياً.`,
+        target_role: "admin",
+        booking_id: booking.id,
       });
     }
 

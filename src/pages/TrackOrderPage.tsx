@@ -54,6 +54,8 @@ interface TrackingResult {
     service_name: string;
     subtotal: number;
     calculated_total: number | null;
+    payment_status?: string;
+    payment_method?: string;
   };
   history: { action: string; created_at: string; note: string | null }[];
   rating: { rating: number; comment: string | null } | null;
@@ -127,6 +129,12 @@ const TrackOrderPage = () => {
       }
 
       setResult(data as TrackingResult);
+      // If payment already locked, reflect that in state
+      const trackData = data as TrackingResult;
+      if (trackData.booking.payment_status === "PAYMENT_METHOD_SET") {
+        setSelectedPayment(trackData.booking.payment_method || null);
+        setPaymentSaved(true);
+      }
     } catch {
       toast({ title: "حدث خطأ في الاتصال", variant: "destructive" });
     }

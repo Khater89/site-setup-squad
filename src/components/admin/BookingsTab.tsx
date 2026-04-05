@@ -20,10 +20,11 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
-const FILTER_STATUSES = ["ALL", "NEW", "CONFIRMED", "ASSIGNED", "ACCEPTED", "PROVIDER_ON_THE_WAY", "IN_PROGRESS", "COMPLETED", "CANCELLED", "REJECTED"];
+const FILTER_STATUSES = ["ALL", "TODAY_TOMORROW", "NEW", "CONFIRMED", "ASSIGNED", "ACCEPTED", "PROVIDER_ON_THE_WAY", "IN_PROGRESS", "COMPLETED", "CANCELLED", "REJECTED"];
 
 const FILTER_COLORS: Record<string, string> = {
   ALL: "bg-muted text-foreground border-border",
+  TODAY_TOMORROW: "bg-chart-5/20 text-chart-5 border-chart-5/30",
   NEW: "bg-info/10 text-info border-info/30",
   CONFIRMED: "bg-primary/20 text-primary border-primary/30",
   ASSIGNED: "bg-warning/10 text-warning border-warning/30",
@@ -107,7 +108,18 @@ const BookingsTab = () => {
   });
 
   const filtered = visibleBookings.filter((b) => {
-    if (filter !== "ALL" && b.status !== filter) return false;
+    // Today/Tomorrow filter
+    if (filter === "TODAY_TOMORROW") {
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+      const bookingDate = new Date(b.scheduled_at).toISOString().slice(0, 10);
+      if (bookingDate !== todayStr && bookingDate !== tomorrowStr) return false;
+    } else if (filter !== "ALL" && b.status !== filter) {
+      return false;
+    }
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -150,8 +162,22 @@ const BookingsTab = () => {
                 : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
             }`}
           >
-            {s === "ALL" ? t("admin.bookings.filter_all") : t(`status.${s}`)}
-            {s !== "ALL" && (
+            {s === "ALL" ? t("admin.bookings.filter_all") : s === "TODAY_TOMORROW" ? "اليوم/غداً" : t(`status.${s}`)}
+            {s === "TODAY_TOMORROW" ? (
+              <span className="ms-1 opacity-70">
+                ({(() => {
+                  const now = new Date();
+                  const todayStr = now.toISOString().slice(0, 10);
+                  const tomorrow = new Date(now);
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+                  return visibleBookings.filter(b => {
+                    const d = new Date(b.scheduled_at).toISOString().slice(0, 10);
+                    return d === todayStr || d === tomorrowStr;
+                  }).length;
+                })()})
+              </span>
+            ) : s !== "ALL" && (
               <span className="ms-1 opacity-70">
                 ({visibleBookings.filter(b => b.status === s).length})
               </span>

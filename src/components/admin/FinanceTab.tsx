@@ -376,6 +376,7 @@ const FinanceTab = () => {
                           <Badge variant="outline" className="text-[10px]">
                             {entry.reason === "platform_fee" ? t("finance.reason.platform_fee") :
                              entry.reason === "settlement" ? t("provider.wallet.settlement") :
+                             entry.reason === "cliq_payment_credit" ? "💳 إيداع CliQ" :
                              entry.reason}
                           </Badge>
                           {entry.booking_number && (
