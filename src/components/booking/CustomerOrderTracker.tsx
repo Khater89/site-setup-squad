@@ -148,6 +148,17 @@ const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
         </Badge>
       </div>
 
+      {/* Status Notification Banner */}
+      {statusNotification && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 animate-in fade-in slide-in-from-top-2">
+          <Bell className="h-4 w-4 text-primary shrink-0" />
+          <p className="text-sm font-medium flex-1">{statusNotification}</p>
+          <button onClick={() => setStatusNotification(null)} className="shrink-0">
+            <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+          </button>
+        </div>
+      )}
+
       {/* Timeline */}
       <div className="relative space-y-0 pr-4">
         {steps.map((step, i) => (
