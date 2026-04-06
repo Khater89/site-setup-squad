@@ -1590,25 +1590,45 @@ const ProviderDashboard = () => {
               <Card><CardContent className="py-10 text-center text-muted-foreground">{t("provider.wallet.no_transactions")}</CardContent></Card>
             ) : (
               <div className="grid gap-2">
-                {ledger.map((entry) => (
-                  <Card key={entry.id}>
-                    <CardContent className="flex items-center justify-between py-3 px-4">
-                      <div>
-                        <p className="text-sm font-medium">
-                          {entry.reason === "platform_fee" ? t("finance.reason.platform_fee") :
-                           entry.reason === "commission" ? t("provider.wallet.commission") :
-                           entry.reason === "settlement" ? t("provider.wallet.settlement") :
-                           entry.reason === "cliq_payment_credit" ? "💳 إيداع CliQ (حصتك)" :
-                           entry.reason}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{formatDate(entry.created_at)}</p>
-                      </div>
-                      <span className={`font-bold text-sm ${entry.amount < 0 ? "text-destructive" : "text-success"}`}>
-                        {entry.amount > 0 ? "+" : ""}{formatCurrency(entry.amount)}
-                      </span>
-                    </CardContent>
-                  </Card>
-                ))}
+                {ledger.map((entry) => {
+                  // Check if this CliQ credit offset a previous debt
+                  const isCliqCredit = entry.reason === "cliq_payment_credit";
+                  // Find related platform_fee entries for same booking to show offset
+                  const relatedDebt = isCliqCredit && entry.booking_id
+                    ? ledger.filter(e => e.booking_id === entry.booking_id && e.reason === "platform_fee").reduce((sum, e) => sum + Math.abs(e.amount), 0)
+                    : 0;
+                  const netAmount = isCliqCredit && relatedDebt > 0 ? entry.amount - relatedDebt : null;
+
+                  return (
+                    <Card key={entry.id}>
+                      <CardContent className="py-3 px-4 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {entry.reason === "platform_fee" ? t("finance.reason.platform_fee") :
+                               entry.reason === "commission" ? t("provider.wallet.commission") :
+                               entry.reason === "settlement" ? t("provider.wallet.settlement") :
+                               entry.reason === "cliq_payment_credit" ? "💳 إيداع CliQ (حصتك)" :
+                               entry.reason}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{formatDate(entry.created_at)}</p>
+                          </div>
+                          <span className={`font-bold text-sm ${entry.amount < 0 ? "text-destructive" : "text-success"}`}>
+                            {entry.amount > 0 ? "+" : ""}{formatCurrency(entry.amount)}
+                          </span>
+                        </div>
+                        {/* Show offset breakdown for CliQ credits */}
+                        {isCliqCredit && relatedDebt > 0 && (
+                          <div className="text-[10px] text-muted-foreground bg-muted/50 rounded p-1.5 space-y-0.5">
+                            <p>💰 حصتك من الطلب: <strong className="text-success">+{formatCurrency(entry.amount)}</strong></p>
+                            <p>📉 خصم مديونية سابقة: <strong className="text-destructive">-{formatCurrency(relatedDebt)}</strong></p>
+                            <p>📊 الصافي: <strong className={`${(netAmount ?? 0) >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netAmount ?? 0)}</strong></p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
