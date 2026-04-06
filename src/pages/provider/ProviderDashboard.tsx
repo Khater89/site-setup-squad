@@ -20,7 +20,7 @@ import {
   CalendarDays, MapPin, ClipboardList, Phone,
   MessageCircle, ShieldCheck, Eye, Lock, User, X,
   History, Play, Square, KeyRound, Clock, Camera, Edit2,
-  AlertTriangle, Timer, DollarSign,
+  AlertTriangle, Timer, DollarSign, Navigation,
 } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
 import AvailableBookingsTab from "@/components/provider/AvailableBookingsTab";
@@ -67,6 +67,7 @@ interface LedgerEntry {
 const STATUS_COLORS: Record<string, string> = {
   ASSIGNED: "bg-warning/10 text-warning border-warning/30",
   ACCEPTED: "bg-info/10 text-info border-info/30",
+  PROVIDER_ON_THE_WAY: "bg-info/10 text-info border-info/30",
   IN_PROGRESS: "bg-primary/10 text-primary border-primary/30",
   COMPLETED: "bg-success/10 text-success border-success/30",
   CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
@@ -522,6 +523,41 @@ const ProviderDashboard = () => {
     setActionLoading(null);
   };
 
+  /* ── Provider On The Way ── */
+  const startOnTheWay = async (id: string) => {
+    if (!user) return;
+    setActionLoading(id);
+    try {
+      const { data: updated, error } = await supabase.from("bookings").update({
+        status: "PROVIDER_ON_THE_WAY",
+      } as any).eq("id", id).eq("assigned_provider_id", user.id).eq("status", "ACCEPTED").select().maybeSingle();
+
+      if (error) throw error;
+      if (!updated) throw new Error("لم يتم تحديث الطلب");
+
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "PROVIDER_ON_THE_WAY" } : o));
+      await logHistory(id, "PROVIDER_ON_THE_WAY", "المزود بدأ التحرك نحو العميل");
+
+      // Notify admin
+      const order = orders.find((o) => o.id === id);
+      await supabase.from("staff_notifications").insert({
+        title: `🚗 المزود في الطريق — ${order?.booking_number || ""}`,
+        body: `المزود ${profile?.full_name || ""} بدأ التحرك للعميل.`,
+        target_role: "admin",
+        booking_id: id,
+        provider_id: user.id,
+      });
+
+      toast({ title: "تم تسجيل بدء التحرك 🚗" });
+
+      const { data: ordersData } = await supabase.rpc("get_provider_bookings" as any);
+      if (ordersData) setOrders(ordersData as unknown as ProviderOrder[]);
+    } catch (err: any) {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
   /* ── Check-in (with GPS validation) ── */
   const checkIn = async (id: string) => {
     if (!user) return;
@@ -801,7 +837,7 @@ const ProviderDashboard = () => {
 
   const filteredOrders = (statusFilter === "ALL" ? orders : orders.filter((o) => o.status === statusFilter))
     .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
-  const isAccepted = (o: ProviderOrder) => !!o.accepted_at;
+  const isAccepted = (o: ProviderOrder) => !!o.accepted_at || o.status === "PROVIDER_ON_THE_WAY";
 
   const toggleSpecialty = (s: string) => {
     setSpecialties((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
@@ -993,7 +1029,7 @@ const ProviderDashboard = () => {
           {/* ═══ Orders Tab ═══ */}
           <TabsContent value="orders" className="space-y-3">
             <div className="flex gap-2 flex-wrap">
-              {["ALL", "ASSIGNED", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "REJECTED", "CANCELLED"].map((s) => (
+              {["ALL", "ASSIGNED", "ACCEPTED", "PROVIDER_ON_THE_WAY", "IN_PROGRESS", "COMPLETED", "REJECTED", "CANCELLED"].map((s) => (
                 <Button
                   key={s}
                   size="sm"
@@ -1001,7 +1037,7 @@ const ProviderDashboard = () => {
                   className="text-xs h-7"
                   onClick={() => setStatusFilter(s)}
                 >
-                  {t(`provider.status.${s}`)}
+                  {s === "PROVIDER_ON_THE_WAY" ? "في الطريق" : t(`provider.status.${s}`)}
                   {s !== "ALL" && ` (${orders.filter((o) => o.status === s).length})`}
                 </Button>
               ))}
@@ -1199,9 +1235,16 @@ const ProviderDashboard = () => {
                       {/* Expanded details for accepted orders */}
                       {accepted && isExpanded && (
                         <div className="space-y-3 pt-2 border-t border-border" onClick={(e) => e.stopPropagation()}>
-                          {/* Countdown timer for ACCEPTED orders (before check-in) */}
-                          {o.status === "ACCEPTED" && !o.check_in_at && (
+                          {/* Countdown timer for ACCEPTED/ON_THE_WAY orders (before check-in) */}
+                          {(o.status === "ACCEPTED" || o.status === "PROVIDER_ON_THE_WAY") && !o.check_in_at && (
                             <CountdownBadge scheduledAt={o.scheduled_at} />
+                          )}
+                          {/* On the way indicator */}
+                          {o.status === "PROVIDER_ON_THE_WAY" && (
+                            <div className="rounded-lg p-2.5 bg-info/10 border border-info/30 flex items-center gap-2">
+                              <Navigation className="h-4 w-4 text-info" />
+                              <span className="text-xs font-medium text-info">أنت في الطريق إلى العميل — سجل الوصول عند الوصول</span>
+                            </div>
                           )}
 
                           {/* Contact Details with phone */}
@@ -1249,8 +1292,16 @@ const ProviderDashboard = () => {
 
                           {/* Action buttons */}
                           <div className="flex gap-2 flex-wrap">
-                            {/* Check-in button: only for ACCEPTED, no check_in yet */}
+                            {/* "On the way" button: only for ACCEPTED, no check_in yet */}
                             {o.status === "ACCEPTED" && !o.check_in_at && (
+                              <Button size="sm" className="gap-1 h-8 text-xs flex-1 bg-info hover:bg-info/90 text-white" onClick={() => startOnTheWay(o.id)} disabled={actionLoading === o.id}>
+                                {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Navigation className="h-3 w-3" />}
+                                بدأت التحرك للعميل 🚗
+                              </Button>
+                            )}
+
+                            {/* Check-in button: for ACCEPTED or PROVIDER_ON_THE_WAY, no check_in yet */}
+                            {(o.status === "ACCEPTED" || o.status === "PROVIDER_ON_THE_WAY") && !o.check_in_at && (
                               <Button size="sm" className="gap-1 h-8 text-xs flex-1 bg-primary hover:bg-primary/90" onClick={() => checkIn(o.id)} disabled={actionLoading === o.id}>
                                 {actionLoading === o.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
                                 {t("provider.checkin.btn")}
@@ -1294,7 +1345,7 @@ const ProviderDashboard = () => {
                           </div>
 
                           {/* Notice: cannot cancel after acceptance */}
-                          {(o.status === "ACCEPTED" || o.status === "IN_PROGRESS") && (
+                          {(o.status === "ACCEPTED" || o.status === "PROVIDER_ON_THE_WAY" || o.status === "IN_PROGRESS") && (
                             <div className="flex items-center gap-1.5 text-xs text-warning bg-warning/10 rounded-lg p-2.5">
                               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                               لا يمكن رفض الطلب بعد القبول. للإلغاء يرجى التواصل مع منسق المنصة.
@@ -1539,25 +1590,45 @@ const ProviderDashboard = () => {
               <Card><CardContent className="py-10 text-center text-muted-foreground">{t("provider.wallet.no_transactions")}</CardContent></Card>
             ) : (
               <div className="grid gap-2">
-                {ledger.map((entry) => (
-                  <Card key={entry.id}>
-                    <CardContent className="flex items-center justify-between py-3 px-4">
-                      <div>
-                        <p className="text-sm font-medium">
-                          {entry.reason === "platform_fee" ? t("finance.reason.platform_fee") :
-                           entry.reason === "commission" ? t("provider.wallet.commission") :
-                           entry.reason === "settlement" ? t("provider.wallet.settlement") :
-                           entry.reason === "cliq_payment_credit" ? "💳 إيداع CliQ (حصتك)" :
-                           entry.reason}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{formatDate(entry.created_at)}</p>
-                      </div>
-                      <span className={`font-bold text-sm ${entry.amount < 0 ? "text-destructive" : "text-success"}`}>
-                        {entry.amount > 0 ? "+" : ""}{formatCurrency(entry.amount)}
-                      </span>
-                    </CardContent>
-                  </Card>
-                ))}
+                {ledger.map((entry) => {
+                  // Check if this CliQ credit offset a previous debt
+                  const isCliqCredit = entry.reason === "cliq_payment_credit";
+                  // Find related platform_fee entries for same booking to show offset
+                  const relatedDebt = isCliqCredit && entry.booking_id
+                    ? ledger.filter(e => e.booking_id === entry.booking_id && e.reason === "platform_fee").reduce((sum, e) => sum + Math.abs(e.amount), 0)
+                    : 0;
+                  const netAmount = isCliqCredit && relatedDebt > 0 ? entry.amount - relatedDebt : null;
+
+                  return (
+                    <Card key={entry.id}>
+                      <CardContent className="py-3 px-4 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {entry.reason === "platform_fee" ? t("finance.reason.platform_fee") :
+                               entry.reason === "commission" ? t("provider.wallet.commission") :
+                               entry.reason === "settlement" ? t("provider.wallet.settlement") :
+                               entry.reason === "cliq_payment_credit" ? "💳 إيداع CliQ (حصتك)" :
+                               entry.reason}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{formatDate(entry.created_at)}</p>
+                          </div>
+                          <span className={`font-bold text-sm ${entry.amount < 0 ? "text-destructive" : "text-success"}`}>
+                            {entry.amount > 0 ? "+" : ""}{formatCurrency(entry.amount)}
+                          </span>
+                        </div>
+                        {/* Show offset breakdown for CliQ credits */}
+                        {isCliqCredit && relatedDebt > 0 && (
+                          <div className="text-[10px] text-muted-foreground bg-muted/50 rounded p-1.5 space-y-0.5">
+                            <p>💰 حصتك من الطلب: <strong className="text-success">+{formatCurrency(entry.amount)}</strong></p>
+                            <p>📉 خصم مديونية سابقة: <strong className="text-destructive">-{formatCurrency(relatedDebt)}</strong></p>
+                            <p>📊 الصافي: <strong className={`${(netAmount ?? 0) >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netAmount ?? 0)}</strong></p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
