@@ -1029,7 +1029,7 @@ const ProviderDashboard = () => {
           {/* ═══ Orders Tab ═══ */}
           <TabsContent value="orders" className="space-y-3">
             <div className="flex gap-2 flex-wrap">
-              {["ALL", "ASSIGNED", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "REJECTED", "CANCELLED"].map((s) => (
+              {["ALL", "ASSIGNED", "ACCEPTED", "PROVIDER_ON_THE_WAY", "IN_PROGRESS", "COMPLETED", "REJECTED", "CANCELLED"].map((s) => (
                 <Button
                   key={s}
                   size="sm"
@@ -1037,7 +1037,7 @@ const ProviderDashboard = () => {
                   className="text-xs h-7"
                   onClick={() => setStatusFilter(s)}
                 >
-                  {t(`provider.status.${s}`)}
+                  {s === "PROVIDER_ON_THE_WAY" ? "في الطريق" : t(`provider.status.${s}`)}
                   {s !== "ALL" && ` (${orders.filter((o) => o.status === s).length})`}
                 </Button>
               ))}
