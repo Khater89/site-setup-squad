@@ -837,7 +837,7 @@ const ProviderDashboard = () => {
 
   const filteredOrders = (statusFilter === "ALL" ? orders : orders.filter((o) => o.status === statusFilter))
     .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
-  const isAccepted = (o: ProviderOrder) => !!o.accepted_at;
+  const isAccepted = (o: ProviderOrder) => !!o.accepted_at || o.status === "PROVIDER_ON_THE_WAY";
 
   const toggleSpecialty = (s: string) => {
     setSpecialties((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
