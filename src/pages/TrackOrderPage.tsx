@@ -393,7 +393,7 @@ const TrackOrderPage = () => {
                       <Landmark className="h-4 w-4 text-primary" />
                       <p className="text-sm font-bold">اختر طريقة الدفع</p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
                         { value: "CASH", label: "💵 نقداً", desc: "يُسلم للمزود مباشرة" },
                         { value: "INSURANCE", label: "🏥 تأمين", desc: "عبر بوليصة التأمين" },
@@ -403,16 +403,22 @@ const TrackOrderPage = () => {
                           key={pm.value}
                           onClick={() => !paymentSaved && setSelectedPayment(pm.value)}
                           disabled={paymentSaved}
-                          className={`p-3 rounded-lg border text-center transition-all ${
+                          className={`p-3 rounded-lg border text-center transition-all min-h-[68px] flex flex-col items-center justify-center gap-1 ${
                             selectedPayment === pm.value
                               ? "border-primary bg-primary/10 ring-2 ring-primary/30"
                               : paymentSaved ? "opacity-50 border-border" : "border-border hover:border-primary/50"
                           }`}
                         >
-                          <span className="text-lg block">{pm.label}</span>
-                          <span className="text-[10px] text-muted-foreground">{pm.desc}</span>
+                          <span className="text-base block leading-none">{pm.label}</span>
+                          <span className="text-[10px] text-muted-foreground leading-none">{pm.desc}</span>
                         </button>
                       ))}
+                      <ApplePayButton
+                        variant="option"
+                        selected={selectedPayment === "APPLE_PAY"}
+                        disabled={paymentSaved}
+                        onClick={() => !paymentSaved && setSelectedPayment("APPLE_PAY")}
+                      />
                     </div>
                     {!paymentSaved ? (
                       <Button
@@ -526,13 +532,22 @@ const TrackOrderPage = () => {
                   </div>
                 ) : null}
 
-                {/* Bank Payment Info - only after COMPLETED and CLIQ selected */}
-                {result.bank_info && booking.status === "COMPLETED" && (selectedPayment === "CLIQ" || paymentSaved) && (
+                {/* Bank Payment Info - shown after COMPLETED when CLIQ or APPLE_PAY selected */}
+                {result.bank_info && booking.status === "COMPLETED" && (selectedPayment === "CLIQ" || selectedPayment === "APPLE_PAY" || paymentSaved) && (
                   <div className="border-t pt-3 space-y-3 text-start">
                     <div className="flex items-center gap-2 justify-center">
                       <Landmark className="h-5 w-5 text-primary" />
-                      <p className="font-bold text-sm text-foreground">ادفع عبر CliQ / تحويل بنكي</p>
+                      <p className="font-bold text-sm text-foreground">
+                        {selectedPayment === "APPLE_PAY"
+                          ? "ادفع عبر Apple Pay → CliQ"
+                          : "ادفع عبر CliQ / تحويل بنكي"}
+                      </p>
                     </div>
+                    {selectedPayment === "APPLE_PAY" && (
+                      <p className="text-xs text-muted-foreground text-center leading-relaxed bg-muted/40 rounded-lg p-2.5">
+                        افتح <strong>Apple Wallet</strong> على جهازك، اختر بطاقتك البنكية الأردنية المسجّلة في CliQ، ثم حوّل المبلغ إلى الـ Alias أدناه.
+                      </p>
+                    )}
                     {result.bank_info.bank_account_holder && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">صاحب الحساب</span>
