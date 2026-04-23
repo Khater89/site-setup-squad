@@ -556,6 +556,14 @@ const en: Record<string, string> = {
   "verify_email.resent": "Verification email resent",
   "verify_email.check_inbox": "Check your email inbox",
   "register.email_not_confirmed_title": "Email not confirmed",
+  "register.wizard.step1": "Personal",
+  "register.wizard.step2": "Professional",
+  "register.wizard.step3": "Account",
+  "register.wizard.next": "Next",
+  "register.wizard.back": "Back",
+  "register.wizard.intro": "Complete your registration in 3 simple steps",
+  "register.wizard.step1_required": "Please complete name, phone, date of birth, and city",
+  "register.wizard.step2_required": "Please complete profession, license, and upload academic certificate",
 
   // Account Review
   "review.pending_title": "Account Under Review",
