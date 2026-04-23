@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
+import ApplePayButton from "@/components/booking/ApplePayButton";
 
 interface TimelineStep {
   label: string;
@@ -203,12 +204,13 @@ const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
               <Badge variant="outline" className="text-xs">
                 {booking.payment_method === "CASH" ? "💵 نقداً — للمزود" :
                  booking.payment_method === "CLIQ" ? "📱 CliQ — للمنصة" :
+                 booking.payment_method === "APPLE_PAY" ? " Pay — عبر CliQ" :
                  booking.payment_method === "INSURANCE" ? "🏥 تأمين طبي" :
                  booking.payment_method}
               </Badge>
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { value: "CASH", label: "💵 نقداً", desc: "للمزود" },
                     { value: "CLIQ", label: "📱 CliQ", desc: "للمنصة" },
@@ -217,16 +219,21 @@ const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
                     <button
                       key={pm.value}
                       onClick={() => setSelectedPayment(pm.value)}
-                      className={`p-3 rounded-lg border text-center transition-all ${
+                      className={`p-3 rounded-lg border text-center transition-all min-h-[68px] flex flex-col items-center justify-center gap-1 ${
                         selectedPayment === pm.value
                           ? "border-primary bg-primary/10 ring-2 ring-primary/30"
                           : "border-border hover:border-primary/50"
                       }`}
                     >
-                      <span className="text-lg block">{pm.label}</span>
-                      <span className="text-[10px] text-muted-foreground">{pm.desc}</span>
+                      <span className="text-base block leading-none">{pm.label}</span>
+                      <span className="text-[10px] text-muted-foreground leading-none">{pm.desc}</span>
                     </button>
                   ))}
+                  <ApplePayButton
+                    variant="option"
+                    selected={selectedPayment === "APPLE_PAY"}
+                    onClick={() => setSelectedPayment("APPLE_PAY")}
+                  />
                 </div>
                 <Button
                   size="sm"
@@ -252,13 +259,20 @@ const CustomerOrderTracker = ({ bookingId, onClose }: OrderTrackerProps) => {
                   تأكيد طريقة الدفع
                 </Button>
 
-                {/* Show CliQ info when CliQ is selected */}
-                {selectedPayment === "CLIQ" && platformSettings && (
+                {/* Show CliQ / Apple Pay info when relevant */}
+                {(selectedPayment === "CLIQ" || selectedPayment === "APPLE_PAY") && platformSettings && (
                   <div className="rounded-lg border border-info/30 bg-info/5 p-3 space-y-1.5 mt-2">
                     <h5 className="text-xs font-bold flex items-center gap-1.5 text-info">
                       <Landmark className="h-3.5 w-3.5" />
-                      بيانات التحويل عبر CliQ
+                      {selectedPayment === "APPLE_PAY"
+                        ? "ادفع عبر Apple Pay → CliQ"
+                        : "بيانات التحويل عبر CliQ"}
                     </h5>
+                    {selectedPayment === "APPLE_PAY" && (
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        افتح <strong>Apple Wallet</strong> → اختر بطاقتك البنكية الأردنية المسجّلة في CliQ، ثم حوّل إلى الرقم أدناه.
+                      </p>
+                    )}
                     {platformSettings.bank_name && <p className="text-xs">🏦 البنك: <strong>{platformSettings.bank_name}</strong></p>}
                     {platformSettings.bank_account_holder && <p className="text-xs">👤 صاحب الحساب: <strong>{platformSettings.bank_account_holder}</strong></p>}
                     {platformSettings.bank_cliq_alias && <p className="text-xs">📱 CliQ Alias: <strong dir="ltr">{platformSettings.bank_cliq_alias}</strong></p>}
