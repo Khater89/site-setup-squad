@@ -388,6 +388,7 @@ const ProviderRegister = () => {
       });
 
       await refreshUserData();
+      try { localStorage.removeItem("mfn_provider_wizard_draft"); } catch {/* ignore */}
       setSaving(false);
       toast({ title: t("register.submitted_success") });
       navigate("/account-review", { replace: true });
