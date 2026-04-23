@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!["CASH", "INSURANCE", "CLIQ"].includes(payment_method)) {
+    if (!["CASH", "INSURANCE", "CLIQ", "APPLE_PAY"].includes(payment_method)) {
       return new Response(JSON.stringify({ error: "invalid_payment_method" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
