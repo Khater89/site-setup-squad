@@ -98,6 +98,10 @@ export default {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-8px)' },
         },
+        'pulse-subtle': {
+          '0%, 100%': { boxShadow: '0 10px 25px -5px hsl(var(--primary) / 0.25)' },
+          '50%': { boxShadow: '0 12px 35px -5px hsl(var(--primary) / 0.45)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -105,6 +109,7 @@ export default {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
         'slide-up': 'slide-up 0.4s ease-out',
         'float': 'float 3s ease-in-out infinite',
+        'pulse-subtle': 'pulse-subtle 2.4s ease-in-out infinite',
       },
       boxShadow: {
         '2xs': 'var(--shadow-2xs)',
