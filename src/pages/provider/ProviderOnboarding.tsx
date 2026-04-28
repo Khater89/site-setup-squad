@@ -8,9 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, MapPin, Clock, Briefcase, X, Stethoscope, Upload, FileText } from "lucide-react";
+import { Loader2, CheckCircle, MapPin, Clock, Briefcase, X, Stethoscope, Upload, FileText, GraduationCap, Award, ShieldCheck } from "lucide-react";
 import mfnLogo from "@/assets/mfn-logo.png";
+
+const ROLE_TYPES = [
+  { value: "doctor", label: "طبيب" },
+  { value: "nurse", label: "ممرض/ة" },
+  { value: "physiotherapist", label: "أخصائي علاج طبيعي" },
+];
 
 const TOOL_SUGGESTIONS = ["جهاز ضغط", "سماعة طبية", "جهاز سكر", "أدوات تضميد", "جهاز أكسجين", "حقن وريدي"];
 const LANGUAGE_OPTIONS = ["العربية", "الإنجليزية", "التركية", "الفرنسية"];
@@ -39,6 +46,34 @@ const ProviderOnboarding = () => {
   const [licenseUrl, setLicenseUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Deferred professional fields (moved here from initial signup)
+  const [roleType, setRoleType] = useState<string>("");
+  const [licenseId, setLicenseId] = useState<string>("");
+  const [academicCertUrl, setAcademicCertUrl] = useState<string | null>(null);
+  const [experienceCertUrl, setExperienceCertUrl] = useState<string | null>(null);
+  const [uploadingAcademic, setUploadingAcademic] = useState(false);
+  const [uploadingExperience, setUploadingExperience] = useState(false);
+  const academicFileRef = useRef<HTMLInputElement>(null);
+  const experienceFileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (profile) {
+      setExperienceYears(profile.experience_years || 0);
+      setTools(profile.tools || []);
+      setLanguages(profile.languages || ["العربية"]);
+      setSpecialties(profile.specialties || []);
+      setAvailableNow(profile.available_now || false);
+      setRadiusKm(profile.radius_km || 20);
+      setAddressText(profile.address_text || "");
+      setBio((profile as any).bio || "");
+      setLicenseUrl((profile as any).license_file_url || null);
+      setRoleType((profile as any).role_type || "");
+      setLicenseId((profile as any).license_id || "");
+      setAcademicCertUrl((profile as any).academic_cert_url || null);
+      setExperienceCertUrl((profile as any).experience_cert_url || null);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (profile) {
