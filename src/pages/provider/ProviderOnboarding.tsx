@@ -126,7 +126,6 @@ const ProviderOnboarding = () => {
     if (error) {
       toast({ title: "خطأ في رفع الملف", description: error.message, variant: "destructive" });
     } else {
-      const { data: urlData } = supabase.storage.from("provider-licenses").getPublicUrl(path);
       setLicenseUrl(path);
       setLicenseFile(file);
       toast({ title: "تم رفع الملف بنجاح ✅" });
@@ -134,9 +133,44 @@ const ProviderOnboarding = () => {
     setUploading(false);
   };
 
+  const handleCertUpload = async (file: File, type: "academic" | "experience") => {
+    if (!user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "حجم الملف كبير جداً (الحد الأقصى 5MB)", variant: "destructive" });
+      return;
+    }
+    const setter = type === "academic" ? setUploadingAcademic : setUploadingExperience;
+    setter(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${type}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("provider-certificates").upload(path, file, { upsert: true });
+    setter(false);
+    if (error) {
+      toast({ title: "خطأ في رفع الملف", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (type === "academic") setAcademicCertUrl(path);
+    else setExperienceCertUrl(path);
+    toast({ title: "تم رفع الملف بنجاح ✅" });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Required deferred professional fields
+    if (!roleType) {
+      toast({ title: "يرجى اختيار التخصص المهني", variant: "destructive" });
+      return;
+    }
+    if (!licenseId.trim()) {
+      toast({ title: "يرجى إدخال رقم المزاولة المهنية", variant: "destructive" });
+      return;
+    }
+    if (!academicCertUrl) {
+      toast({ title: "يرجى رفع الشهادة العلمية", variant: "destructive" });
+      return;
+    }
     if (!addressText.trim()) {
       toast({ title: "يرجى إدخال عنوان الموقع", variant: "destructive" });
       return;
@@ -146,6 +180,10 @@ const ProviderOnboarding = () => {
     const { error } = await supabase
       .from("profiles")
       .update({
+        role_type: roleType,
+        license_id: licenseId.trim(),
+        academic_cert_url: academicCertUrl,
+        experience_cert_url: experienceCertUrl,
         experience_years: experienceYears,
         tools: tools.length > 0 ? tools : null,
         languages: languages.length > 0 ? languages : null,
@@ -156,6 +194,7 @@ const ProviderOnboarding = () => {
         bio: bio.trim() || null,
         license_file_url: licenseUrl,
         profile_completed: true,
+        provider_status: profile?.provider_status === "approved" ? "approved" : "pending",
       } as any)
       .eq("user_id", user.id);
 
@@ -163,12 +202,22 @@ const ProviderOnboarding = () => {
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
+      // Notify admin that documents have been submitted for review
+      try {
+        await supabase.from("staff_notifications" as any).insert({
+          title: "📋 طلب مراجعة وثائق مزود",
+          body: `قام ${profile?.full_name || "مزود"} بإكمال ملفه الشخصي ورفع الوثائق المهنية. يرجى المراجعة.`,
+          target_role: "admin",
+          provider_id: user.id,
+        });
+      } catch {/* non-fatal */}
+
       await refreshUserData();
       toast({ title: "تم إكمال الملف الشخصي بنجاح! ✅" });
       if (profile?.provider_status === "approved") {
         navigate("/provider");
       } else {
-        navigate("/provider/register");
+        navigate("/account-review", { replace: true });
       }
     }
   };
