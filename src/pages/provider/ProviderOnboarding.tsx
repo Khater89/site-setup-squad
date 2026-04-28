@@ -228,10 +228,108 @@ const ProviderOnboarding = () => {
         <div className="text-center">
           <img src={mfnLogo} alt="MFN" className="h-10 mx-auto mb-3" />
           <h1 className="text-xl font-bold">إكمال الملف الشخصي</h1>
-          <p className="text-sm text-muted-foreground mt-1">أكمل بياناتك المهنية لبدء استقبال الطلبات</p>
+          <p className="text-sm text-muted-foreground mt-1">أكمل بياناتك المهنية لتفعيل حسابك واستقبال الطلبات</p>
+        </div>
+
+        {/* Why this is required banner */}
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+          <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="text-xs text-foreground/80 leading-relaxed">
+            <p className="font-semibold text-primary mb-1">حسابك بانتظار التفعيل</p>
+            <p>لتفعيل الحساب وبدء استقبال الطلبات، يرجى إكمال البيانات المهنية ورفع الشهادة العلمية ورقم المزاولة.</p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Required Professional Identity */}
+          <Card className="border-primary/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-primary" /> الهوية المهنية والوثائق
+                <Badge variant="destructive" className="text-[10px] mr-auto">مطلوب</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">التخصص المهني *</label>
+                <Select value={roleType} onValueChange={setRoleType}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="اختر التخصص..." /></SelectTrigger>
+                  <SelectContent>
+                    {ROLE_TYPES.map((rt) => (
+                      <SelectItem key={rt.value} value={rt.value}>{rt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">رقم المزاولة المهنية *</label>
+                <Input
+                  value={licenseId}
+                  onChange={(e) => setLicenseId(e.target.value)}
+                  placeholder="مثال: JMA-12345"
+                  dir="ltr"
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Academic certificate (required) */}
+              <div>
+                <label className="text-sm font-medium flex items-center gap-1">
+                  <Award className="h-3.5 w-3.5" /> الشهادة العلمية *
+                </label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-2">PDF, JPG أو PNG — حتى 5MB</p>
+                <input
+                  ref={academicFileRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleCertUpload(f, "academic");
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => academicFileRef.current?.click()}
+                  disabled={uploadingAcademic}
+                >
+                  {uploadingAcademic ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploadingAcademic ? "جارٍ الرفع..." : academicCertUrl ? "تم الرفع ✅ — اضغط لتغيير الملف" : "رفع الشهادة العلمية"}
+                </Button>
+              </div>
+
+              {/* Experience certificate (optional) */}
+              <div>
+                <label className="text-sm font-medium flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" /> شهادة الخبرة (اختياري)
+                </label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-2">PDF, JPG أو PNG — حتى 5MB</p>
+                <input
+                  ref={experienceFileRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleCertUpload(f, "experience");
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => experienceFileRef.current?.click()}
+                  disabled={uploadingExperience}
+                >
+                  {uploadingExperience ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploadingExperience ? "جارٍ الرفع..." : experienceCertUrl ? "تم الرفع ✅ — اضغط لتغيير الملف" : "رفع شهادة الخبرة"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Experience */}
           <Card>
             <CardHeader className="pb-3">
