@@ -890,7 +890,6 @@ const ProviderRegister = () => {
                     currentStep={step}
                     steps={[
                       t("register.wizard.step1"),
-                      t("register.wizard.step2"),
                       t("register.wizard.step3"),
                     ]}
                   />
