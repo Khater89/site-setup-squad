@@ -161,16 +161,15 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             {/* Text content */}
             <div className="text-center lg:text-start space-y-6 order-2 lg:order-1">
-              {/* pill badge - clickable phone */}
-              <motion.a
-                href="tel:+962781343144"
+              {/* pill badge - 24/7 availability (no contact icons) */}
+              <motion.div
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-primary/20 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-semibold"
               >
-                <Phone className="h-4 w-4 animate-pulse" />
+                <Clock className="h-4 w-4" />
                 {t("landing.feature4")}
-              </motion.a>
+              </motion.div>
 
               <motion.h1
                 variants={fadeUp}
