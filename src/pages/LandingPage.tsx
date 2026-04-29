@@ -63,7 +63,51 @@ const staggerFast = {
 
 const LandingPage = () => {
   const { t, isRTL } = useLanguage();
+  const { toast } = useToast();
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
+
+  // Emergency quick-booking state
+  const [emName, setEmName] = useState("");
+  const [emAddress, setEmAddress] = useState("");
+  const [emPhone, setEmPhone] = useState("");
+  const [emSubmitting, setEmSubmitting] = useState(false);
+  const [emBookingNumber, setEmBookingNumber] = useState<string | null>(null);
+
+  const handleEmergencySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emName.trim() || !emAddress.trim() || !emPhone.trim()) {
+      toast({ title: "يرجى إدخال الاسم والعنوان ورقم الهاتف", variant: "destructive" });
+      return;
+    }
+    setEmSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-guest-booking", {
+        body: {
+          customer_name: emName.trim(),
+          customer_phone: emPhone.trim(),
+          city: "طوارئ",
+          client_address_text: emAddress.trim(),
+          client_lat: null,
+          client_lng: null,
+          service_id: EMERGENCY_SERVICE_ID,
+          scheduled_at: new Date().toISOString(),
+          hours: 1,
+          time_slot: "morning",
+          notes: `🚨 طلب طوارئ — العنوان: ${emAddress.trim()}`,
+          payment_method: "CASH",
+        },
+      });
+      if (error || !data?.success) {
+        toast({ title: "تعذّر إرسال الطلب", description: data?.error || error?.message, variant: "destructive" });
+      } else {
+        setEmBookingNumber(data.booking_number || "تم");
+        toast({ title: "تم استلام طلب الطوارئ ✓", description: "اتصل بالمنسق الآن لتسريع الاستجابة" });
+      }
+    } catch (err: any) {
+      toast({ title: "خطأ في الاتصال", description: err?.message, variant: "destructive" });
+    }
+    setEmSubmitting(false);
+  };
 
   /* ── data ── */
   const features = [
