@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import ImageGallery from "@/components/landing/ImageGallery";
 import heroMedicalImg from "@/assets/hero-medical.jpg";
@@ -29,7 +34,14 @@ import {
   Home,
   UserPlus,
   Briefcase,
+  Siren,
+  Loader2,
+  MessageCircle,
 } from "lucide-react";
+
+const EMERGENCY_SERVICE_ID = "bb83aac4-e7da-41ee-83bd-b54da4e23569";
+const COORDINATOR_PHONE = "+962781343144";
+const COORDINATOR_WA = "962781343144";
 
 /* ── animation variants ── */
 const fadeUp = {
