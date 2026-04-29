@@ -14,9 +14,12 @@ import {
 import {
   Search, Loader2, CheckCircle, Circle, Clock,
   MapPin, CalendarDays, Landmark, Copy, AlertTriangle,
-  Star, Briefcase, User,
+  Star, Briefcase, User, Phone, MessageCircle,
 } from "lucide-react";
 import ApplePayButton from "@/components/booking/ApplePayButton";
+
+const COORDINATOR_PHONE = "+962781343144";
+const COORDINATOR_WA = "962781343144";
 
 const STATUS_ORDER = ["NEW", "CONFIRMED", "ASSIGNED", "ACCEPTED", "PROVIDER_ON_THE_WAY", "IN_PROGRESS", "COMPLETED"];
 const STATUS_LABELS: Record<string, string> = {
