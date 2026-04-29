@@ -328,13 +328,13 @@ const LandingPage = () => {
           <motion.div variants={fadeUp} transition={{ duration: 0.5 }} className="text-center space-y-3 mb-8">
             <div className="inline-flex items-center gap-2 bg-destructive/10 border border-destructive/30 text-destructive px-4 py-1.5 rounded-full text-sm font-bold">
               <Siren className="h-4 w-4 animate-pulse" />
-              حجز طوارئ سريع
+              {t("landing.emergency.badge")}
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-foreground">
-              تحتاج خدمة طبية <span className="text-destructive">عاجلة الآن؟</span>
+              {t("landing.emergency.title_part1")} <span className="text-destructive">{t("landing.emergency.title_part2")}</span>
             </h2>
             <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-              املأ الاسم والعنوان فقط — سنستلم طلبك فوراً وسيظهر لك زر الاتصال والواتساب بالمنسق مباشرة بعد الإرسال.
+              {t("landing.emergency.desc")}
             </p>
           </motion.div>
 
@@ -352,36 +352,53 @@ const LandingPage = () => {
                       className="space-y-4"
                     >
                       <div>
-                        <label className="text-sm font-semibold mb-1 block">الاسم الكامل *</label>
+                        <label className="text-sm font-semibold mb-1 block">{t("landing.emergency.name")} *</label>
                         <Input
                           value={emName}
                           onChange={(e) => setEmName(e.target.value.slice(0, 100))}
-                          placeholder="مثال: أحمد محمد"
+                          placeholder={t("landing.emergency.name_ph")}
                           required
                           maxLength={100}
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-semibold mb-1 block">العنوان التفصيلي *</label>
+                        <label className="text-sm font-semibold mb-1 block">{t("landing.emergency.address")} *</label>
                         <Input
                           value={emAddress}
                           onChange={(e) => setEmAddress(e.target.value.slice(0, 300))}
-                          placeholder="المدينة، الحي، الشارع، رقم المبنى"
+                          placeholder={t("landing.emergency.address_ph")}
                           required
                           maxLength={300}
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-semibold mb-1 block">رقم الهاتف *</label>
+                        <label className="text-sm font-semibold mb-1 block">{t("landing.emergency.phone")} *</label>
                         <Input
                           value={emPhone}
                           onChange={(e) => setEmPhone(e.target.value.slice(0, 20))}
-                          placeholder="07XXXXXXXX"
+                          placeholder={t("landing.emergency.phone_ph")}
                           required
                           dir="ltr"
                           type="tel"
                           maxLength={20}
                         />
+                      </div>
+                      {/* Geolocation capture */}
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={captureLocation}
+                          disabled={emLocating}
+                          className="w-full gap-2 h-11"
+                        >
+                          <Navigation className={emLocating ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
+                          {emLocating
+                            ? t("landing.emergency.location_locating")
+                            : emLat != null && emLng != null
+                            ? `${t("landing.emergency.location_detected")} (${emLat.toFixed(4)}, ${emLng.toFixed(4)})`
+                            : t("landing.emergency.location")}
+                        </Button>
                       </div>
                       <Button
                         type="submit"
@@ -390,7 +407,7 @@ const LandingPage = () => {
                         className="w-full gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold h-12"
                       >
                         {emSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Siren className="h-5 w-5" />}
-                        {emSubmitting ? "جاري الإرسال..." : "احجز الطوارئ الآن"}
+                        {emSubmitting ? t("landing.emergency.submitting") : t("landing.emergency.submit")}
                       </Button>
                     </motion.form>
                   ) : (
@@ -406,29 +423,29 @@ const LandingPage = () => {
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-xl font-black text-foreground">تم استلام طلبك ✓</h3>
+                        <h3 className="text-xl font-black text-foreground">{t("landing.emergency.success_title")}</h3>
                         <p className="text-sm text-muted-foreground mt-1">
-                          رقم الحجز: <span className="font-mono font-bold text-primary" dir="ltr">{emBookingNumber}</span>
+                          {t("landing.emergency.booking_no")} <span className="font-mono font-bold text-primary" dir="ltr">{emBookingNumber}</span>
                         </p>
                       </div>
                       <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 space-y-3">
-                        <p className="text-sm font-bold text-foreground">للاستجابة الفورية، تواصل مع المنسق الآن:</p>
+                        <p className="text-sm font-bold text-foreground">{t("landing.emergency.contact_now")}</p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                           <a
                             href={`tel:${COORDINATOR_PHONE}`}
                             className="flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-primary text-primary-foreground font-bold shadow-md hover:shadow-lg transition-shadow"
                           >
                             <Phone className="h-5 w-5" />
-                            اتصل بالمنسق
+                            {t("landing.emergency.call_coord")}
                           </a>
                           <a
-                            href={`https://wa.me/${COORDINATOR_WA}?text=${encodeURIComponent(`مرحباً، طلب طوارئ رقم ${emBookingNumber} باسم ${emName}`)}`}
+                            href={`https://wa.me/${COORDINATOR_WA}?text=${encodeURIComponent(`Emergency #${emBookingNumber} — ${emName}`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-[#25D366] text-white font-bold shadow-md hover:shadow-lg transition-shadow"
                           >
                             <MessageCircle className="h-5 w-5" />
-                            واتساب المنسق
+                            {t("landing.emergency.wa_coord")}
                           </a>
                         </div>
                       </div>
@@ -436,10 +453,11 @@ const LandingPage = () => {
                         onClick={() => {
                           setEmBookingNumber(null);
                           setEmName(""); setEmAddress(""); setEmPhone("");
+                          setEmLat(null); setEmLng(null);
                         }}
                         className="text-xs text-muted-foreground hover:text-primary underline"
                       >
-                        إرسال طلب طوارئ آخر
+                        {t("landing.emergency.send_another")}
                       </button>
                     </motion.div>
                   )}
