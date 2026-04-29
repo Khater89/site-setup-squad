@@ -265,6 +265,7 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
 
   // Filter helpers
   const matchesRole = (roleType: string | null) => {
+    if (isEmergency) return true; // emergency is filtered by specialty, not by role
     if (!allowedRoles.length) return true;
     return roleType ? allowedRoles.includes(roleType) : false;
   };
