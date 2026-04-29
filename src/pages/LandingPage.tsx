@@ -27,6 +27,8 @@ import {
   ClipboardList,
   CalendarDays,
   Home,
+  UserPlus,
+  Briefcase,
 } from "lucide-react";
 
 /* ── animation variants ── */
