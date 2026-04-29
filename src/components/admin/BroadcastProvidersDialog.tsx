@@ -22,6 +22,7 @@ interface Props {
   };
   serviceName: string;
   coordinatorPhone: string | null;
+  serviceCategory?: string | null;
 }
 
 interface ProviderInfo {
@@ -31,11 +32,17 @@ interface ProviderInfo {
   city: string | null;
   role_type: string | null;
   available_now: boolean | null;
+  specialties: string[] | null;
 }
 
-const BroadcastProvidersDialog = ({ open, onOpenChange, booking, serviceName, coordinatorPhone }: Props) => {
+const BroadcastProvidersDialog = ({ open, onOpenChange, booking, serviceName, coordinatorPhone, serviceCategory }: Props) => {
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const isEmergency =
+    (serviceCategory || "").toLowerCase() === "emergency" ||
+    (serviceName || "").includes("طوارئ") ||
+    (serviceName || "").toLowerCase().includes("emergency");
 
   useEffect(() => {
     if (!open) return;
@@ -43,15 +50,21 @@ const BroadcastProvidersDialog = ({ open, onOpenChange, booking, serviceName, co
       setLoading(true);
       const { data } = await supabase
         .from("profiles")
-        .select("user_id, full_name, phone, city, role_type, available_now")
+        .select("user_id, full_name, phone, city, role_type, available_now, specialties")
         .eq("provider_status", "approved")
         .eq("profile_completed", true)
         .not("phone", "is", null);
-      setProviders((data as ProviderInfo[]) || []);
+      let list = (data as ProviderInfo[]) || [];
+      if (isEmergency) {
+        list = list.filter((p) =>
+          (p.specialties || []).some((s) => (s || "").toLowerCase().includes("emergency") || s?.includes("طوارئ"))
+        );
+      }
+      setProviders(list);
       setLoading(false);
     };
     fetch();
-  }, [open]);
+  }, [open, isEmergency]);
 
   const scheduledDate = new Date(booking.scheduled_at).toLocaleString("ar-JO", {
     weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
@@ -124,10 +137,17 @@ const BroadcastProvidersDialog = ({ open, onOpenChange, booking, serviceName, co
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : providers.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-4">لا يوجد مزودين معتمدين حالياً</p>
+          <p className="text-center text-sm text-muted-foreground py-4">
+            {isEmergency ? "لا يوجد مزودون معتمدون لخدمة الطوارئ حالياً" : "لا يوجد مزودين معتمدين حالياً"}
+          </p>
         ) : (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">{providers.length} مزود معتمد</p>
+            {isEmergency && (
+              <div className="rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs p-2 font-semibold text-center">
+                🚨 يتم عرض مزودي الطوارئ فقط
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">{providers.length} مزود</p>
             {providers.map((p) => (
               <div key={p.user_id} className="flex items-center justify-between rounded-lg border border-border p-2.5 hover:bg-muted/30 transition-colors">
                 <div className="flex-1 min-w-0">

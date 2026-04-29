@@ -101,6 +101,20 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
   const [providerRatings, setProviderRatings] = useState<Record<string, number>>({});
 
   const allowedRoles = serviceCategory ? CATEGORY_ROLE_MAP[serviceCategory] || [] : [];
+  const isEmergency =
+    (serviceCategory || "").toLowerCase() === "emergency" ||
+    (serviceName || "").includes("طوارئ") ||
+    (serviceName || "").toLowerCase().includes("emergency");
+  const emergencyProviderIds = useMemo(() => {
+    const set = new Set<string>();
+    fallbackProviders.forEach((p) => {
+      if ((p.specialties || []).some((s) => (s || "").toLowerCase().includes("emergency") || s?.includes("طوارئ"))) {
+        set.add(p.user_id);
+      }
+    });
+    return set;
+  }, [fallbackProviders]);
+  const matchesEmergency = (id: string) => !isEmergency || emergencyProviderIds.has(id);
 
   useEffect(() => {
     if (!open) return;
@@ -251,6 +265,7 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
 
   // Filter helpers
   const matchesRole = (roleType: string | null) => {
+    if (isEmergency) return true; // emergency is filtered by specialty, not by role
     if (!allowedRoles.length) return true;
     return roleType ? allowedRoles.includes(roleType) : false;
   };
@@ -268,8 +283,8 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
   const nearestIds = new Set(nearestProviders.map((p) => p.provider_id));
   const filteredNearest = useMemo(() =>
     nearestProviders
-      .filter(p => matchesRole(p.role_type) && matchesSearch(p.full_name)),
-    [nearestProviders, allowedRoles, search]
+      .filter(p => matchesRole(p.role_type) && matchesSearch(p.full_name) && matchesEmergency(p.provider_id)),
+    [nearestProviders, allowedRoles, search, isEmergency, emergencyProviderIds]
   );
   const sameCityProviders = useMemo(() =>
     fallbackProviders.filter(
@@ -277,8 +292,9 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
         && citiesMatch(p.city, booking.city)
         && matchesRole(p.role_type)
         && matchesSearch(p.full_name, p.provider_number)
+        && matchesEmergency(p.user_id)
     ),
-    [fallbackProviders, nearestIds, booking.city, allowedRoles, search]
+    [fallbackProviders, nearestIds, booking.city, allowedRoles, search, isEmergency, emergencyProviderIds]
   );
 
   // Apply quick filter on combined list
@@ -312,6 +328,11 @@ const CSAssignmentDialog = ({ booking, open, onOpenChange, onAssigned, serviceNa
           </DialogDescription>
         </DialogHeader>
 
+        {isEmergency && (
+          <div className="rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs p-2 font-semibold text-center">
+            🚨 طلب طوارئ — يتم عرض المزودين العاملين في الطوارئ فقط
+          </div>
+        )}
         <div className="space-y-4">
           {/* Price Setting — glass card */}
           <div className="rounded-xl border border-border/40 bg-card/60 backdrop-blur-md p-3 space-y-3 shadow-sm">
