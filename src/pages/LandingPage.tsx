@@ -71,13 +71,33 @@ const LandingPage = () => {
   const [emName, setEmName] = useState("");
   const [emAddress, setEmAddress] = useState("");
   const [emPhone, setEmPhone] = useState("");
+  const [emLat, setEmLat] = useState<number | null>(null);
+  const [emLng, setEmLng] = useState<number | null>(null);
+  const [emLocating, setEmLocating] = useState(false);
   const [emSubmitting, setEmSubmitting] = useState(false);
   const [emBookingNumber, setEmBookingNumber] = useState<string | null>(null);
+
+  const captureLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: t("landing.emergency.location_unsupported"), variant: "destructive" });
+      return;
+    }
+    setEmLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setEmLat(pos.coords.latitude);
+        setEmLng(pos.coords.longitude);
+        setEmLocating(false);
+      },
+      () => setEmLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleEmergencySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emName.trim() || !emAddress.trim() || !emPhone.trim()) {
-      toast({ title: "يرجى إدخال الاسم والعنوان ورقم الهاتف", variant: "destructive" });
+      toast({ title: t("landing.emergency.required_fields"), variant: "destructive" });
       return;
     }
     setEmSubmitting(true);
@@ -88,24 +108,24 @@ const LandingPage = () => {
           customer_phone: emPhone.trim(),
           city: "طوارئ",
           client_address_text: emAddress.trim(),
-          client_lat: null,
-          client_lng: null,
+          client_lat: emLat,
+          client_lng: emLng,
           service_id: EMERGENCY_SERVICE_ID,
           scheduled_at: new Date().toISOString(),
           hours: 1,
           time_slot: "morning",
-          notes: `🚨 طلب طوارئ — العنوان: ${emAddress.trim()}`,
+          notes: `🚨 طلب طوارئ — العنوان: ${emAddress.trim()}${emLat && emLng ? ` — موقع: ${emLat.toFixed(5)}, ${emLng.toFixed(5)}` : ""}`,
           payment_method: "CASH",
         },
       });
       if (error || !data?.success) {
-        toast({ title: "تعذّر إرسال الطلب", description: data?.error || error?.message, variant: "destructive" });
+        toast({ title: t("landing.emergency.toast_failed"), description: data?.error || error?.message, variant: "destructive" });
       } else {
-        setEmBookingNumber(data.booking_number || "تم");
-        toast({ title: "تم استلام طلب الطوارئ ✓", description: "اتصل بالمنسق الآن لتسريع الاستجابة" });
+        setEmBookingNumber(data.booking_number || "—");
+        toast({ title: t("landing.emergency.toast_received"), description: t("landing.emergency.toast_call_now") });
       }
     } catch (err: any) {
-      toast({ title: "خطأ في الاتصال", description: err?.message, variant: "destructive" });
+      toast({ title: t("landing.emergency.toast_failed"), description: err?.message, variant: "destructive" });
     }
     setEmSubmitting(false);
   };
