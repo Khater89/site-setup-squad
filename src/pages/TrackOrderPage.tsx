@@ -282,6 +282,29 @@ const TrackOrderPage = () => {
                   </span>
                 </div>
 
+                {/* Coordinator contact buttons — visible only after a booking is found */}
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <p className="text-xs font-bold text-foreground">للتواصل المباشر مع المنسق:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={`tel:${COORDINATOR_PHONE}`}
+                      className="flex items-center justify-center gap-2 h-10 rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow hover:shadow-md transition-shadow"
+                    >
+                      <Phone className="h-4 w-4" />
+                      اتصال
+                    </a>
+                    <a
+                      href={`https://wa.me/${COORDINATOR_WA}?text=${encodeURIComponent(`مرحباً، استفسار عن الحجز رقم ${booking.booking_number}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 h-10 rounded-lg bg-[#25D366] text-white font-bold text-sm shadow hover:shadow-md transition-shadow"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      واتساب
+                    </a>
+                  </div>
+                </div>
+
                 {/* Late provider alert */}
                 {result.is_provider_late && (
                   <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
