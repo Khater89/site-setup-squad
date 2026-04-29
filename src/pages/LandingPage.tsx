@@ -37,6 +37,7 @@ import {
   Siren,
   Loader2,
   MessageCircle,
+  Navigation,
 } from "lucide-react";
 
 const EMERGENCY_SERVICE_ID = "bb83aac4-e7da-41ee-83bd-b54da4e23569";
